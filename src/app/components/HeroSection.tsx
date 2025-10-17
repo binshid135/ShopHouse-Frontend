@@ -41,7 +41,7 @@ const FeaturedProduct: React.FC = () => (
   <div className="relative">
     <div className="relative bg-gradient-to-br from-orange-100 via-amber-100 to-orange-200 rounded-full w-full aspect-square flex items-center justify-center shadow-xl p-12">
       <div className="absolute -top-4 right-8 bg-white px-6 py-3 rounded-full shadow-lg">
-        <span className="text-sm font-semibold text-amber-900">Professional Cookware</span>
+        <span className="text-sm font-semibold text-amber-900">Team infrared cooker</span>
       </div>
       
       <div className="relative w-80 h-80 flex items-center justify-center">
@@ -55,7 +55,7 @@ const FeaturedProduct: React.FC = () => (
       </div>
 
       <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 bg-white px-6 py-3 rounded-full shadow-lg">
-        <span className="text-2xl font-bold text-amber-900">24K+</span>
+        <span className="text-2xl font-bold text-amber-900">$149</span>
       </div>
 
       <div className="absolute top-8 right-4 bg-white px-4 py-2 rounded-xl shadow-lg flex items-center gap-2">
