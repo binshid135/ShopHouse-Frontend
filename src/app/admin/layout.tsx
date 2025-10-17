@@ -24,7 +24,9 @@ export default function AdminLayout({
       
       if (!data.authenticated) {
         router.push('/admin/login');
+        console.log("hi")
       }
+
     } catch (error) {
       router.push('/admin/login');
     }
@@ -38,9 +40,6 @@ export default function AdminLayout({
     );
   }
 
-  if (!isAuthenticated) {
-    return null;
-  }
 
   return (
     <div className="flex h-screen bg-gray-100">
