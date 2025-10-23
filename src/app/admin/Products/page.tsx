@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Product } from './../../../../lib/types';
 import ProductForm from '@/app/components/admin/ProductForm';
+import { resolve } from 'path';
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -16,12 +17,13 @@ export default function ProductsPage() {
 
   const fetchProducts = async () => {
     try {
-      const response = await fetch('/api/admin/products');
+      const response = await fetch('/api/products');
       if (response.ok) {
         const data = await response.json();
         setProducts(data);
       } else {
         console.error('Failed to fetch products');
+        console.log("resss",response)
       }
     } catch (error) {
       console.error('Failed to fetch products:', error);
@@ -34,7 +36,7 @@ export default function ProductsPage() {
     if (!confirm('Are you sure you want to delete this product?')) return;
 
     try {
-      const response = await fetch(`/api/admin/products/${id}`, { 
+      const response = await fetch(`/api/products/${id}`, { 
         method: 'DELETE' 
       });
       
@@ -56,7 +58,7 @@ export default function ProductsPage() {
 
   const handleFormSubmit = async (formData: FormData) => {
     try {
-      const url = editingProduct ? '/api/admin/products' : '/api/admin/products';
+      const url = editingProduct ? '/api/products' : '/api/products';
       const method = editingProduct ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
@@ -74,6 +76,7 @@ export default function ProductsPage() {
       }
     } catch (error) {
       console.error('Failed to save product:', error);
+      console.log("add prod err")
       alert('Error saving product');
     }
   };

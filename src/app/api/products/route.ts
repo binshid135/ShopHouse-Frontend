@@ -55,11 +55,12 @@ export async function POST(request: NextRequest) {
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       Object.values(product)
     );
-    
+    console.log("successs",product)
     return NextResponse.json({ 
       success: true, 
       product: { ...product, images: JSON.parse(product.images) } 
     });
+
   } catch (error) {
     console.error('Failed to create product:', error);
     return NextResponse.json({ error: 'Failed to create product' }, { status: 500 });

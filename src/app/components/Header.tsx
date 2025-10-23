@@ -1,6 +1,8 @@
+// components/Header.tsx
 import React from 'react';
 import { ShoppingCart, Search, ChefHat } from 'lucide-react';
 import Link from 'next/link';
+import { useCart } from '../context/cartContext';
 
 interface HeaderProps {
     searchQuery: string;
@@ -72,15 +74,21 @@ const SearchInput: React.FC<HeaderActionsProps> = ({ searchQuery, setSearchQuery
     </div>
 );
 
-const CartButton: React.FC = () => (
-    <button className="relative p-2 hover:bg-white rounded-full transition-colors">
-        <Link href="/cart">
-            <ShoppingCart className="w-6 h-6 text-amber-900" />
-            <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
-                3
-            </span>
-        </Link>
-    </button>
-);
+const CartButton: React.FC = () => {
+    const { cartCount } = useCart();
+
+    return (
+        <button className="relative p-2 hover:bg-white rounded-full transition-colors">
+            <Link href="/cart">
+                <ShoppingCart className="w-6 h-6 text-amber-900" />
+                {cartCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                        {cartCount > 9 ? '9+' : cartCount}
+                    </span>
+                )}
+            </Link>
+        </button>
+    );
+};
 
 export default Header;
