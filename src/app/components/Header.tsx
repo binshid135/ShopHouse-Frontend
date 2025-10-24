@@ -1,5 +1,5 @@
 // components/Header.tsx
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ShoppingCart, Search, ChefHat } from 'lucide-react';
 import Link from 'next/link';
 import { useCart } from '../context/cartContext';
@@ -7,6 +7,12 @@ import { useCart } from '../context/cartContext';
 interface HeaderProps {
     searchQuery: string;
     setSearchQuery: (query: string) => void;
+}
+
+interface Cart {
+    cartId: string;
+    items: any[];
+    total: number;
 }
 
 const Header: React.FC<HeaderProps> = ({ searchQuery, setSearchQuery }) => {
@@ -75,7 +81,46 @@ const SearchInput: React.FC<HeaderActionsProps> = ({ searchQuery, setSearchQuery
 );
 
 const CartButton: React.FC = () => {
-    const { cartCount } = useCart();
+    const [cartCount, setCartCount] = useState(0);
+
+    const fetchCartCount = async () => {
+        try {
+            const response = await fetch('/api/userside/cart');
+            if (response.ok) {
+                const data: Cart = await response.json();
+                // Count distinct items, not quantities
+                const itemCount = data.items?.length || 0;
+                setCartCount(itemCount);
+            }
+        } catch (error) {
+            console.error('Failed to fetch cart count:', error);
+        }
+    };
+
+    useEffect(() => {
+        fetchCartCount();
+
+        // Listen for cart update events
+        const handleCartUpdate = () => {
+            fetchCartCount();
+        };
+
+        window.addEventListener('cartUpdated', handleCartUpdate);
+        
+        // Refresh when page becomes visible
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                fetchCartCount();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        
+        return () => {
+            window.removeEventListener('cartUpdated', handleCartUpdate);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, []);
 
     return (
         <button className="relative p-2 hover:bg-white rounded-full transition-colors">

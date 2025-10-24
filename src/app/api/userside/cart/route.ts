@@ -27,29 +27,29 @@ export async function GET(request: NextRequest) {
     const cartId = getCartId(request);
     const db = await getDB();
     await ensureCartTables(db);
-    
+
     const cartItems = await db.all(`
       SELECT ci.*, p.name, p.images, p.discountedPrice as price
       FROM cart_items ci
       JOIN products p ON ci.productId = p.id
       WHERE ci.cartId = ?
     `, [cartId]);
-    
+
     const itemsWithImages = cartItems.map(item => ({
       ...item,
       images: item.images ? JSON.parse(item.images) : []
     }));
-    
-    const total = itemsWithImages.reduce((sum, item) => 
+
+    const total = itemsWithImages.reduce((sum, item) =>
       sum + (item.price * item.quantity), 0
     );
-    
+
     const response = NextResponse.json({
       cartId,
       items: itemsWithImages,
       total
     });
-    
+
     // Set cart ID cookie if not exists
     if (!request.cookies.get('cartId')) {
       response.cookies.set('cartId', cartId, {
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
         path: '/',
       });
     }
-    
+
     return response;
   } catch (error) {
     console.error('Failed to fetch cart:', error);
@@ -71,23 +71,23 @@ export async function POST(request: NextRequest) {
     const cartId = getCartId(request);
     const db = await getDB();
     await ensureCartTables(db);
-    
+
     // Check if product exists
     const product = await db.get(
       'SELECT id FROM products WHERE id = ?',
       [productId]
     );
-    
+
     if (!product) {
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
-    
+
     // Check if item already in cart
     const existingItem = await db.get(
       'SELECT * FROM cart_items WHERE cartId = ? AND productId = ?',
       [cartId, productId]
     );
-    
+
     if (existingItem) {
       // Update quantity
       await db.run(
@@ -101,9 +101,9 @@ export async function POST(request: NextRequest) {
         [uuidv4(), cartId, productId, quantity]
       );
     }
-    
+
     const response = NextResponse.json({ success: true });
-    
+
     // Set cart ID cookie if not exists
     if (!request.cookies.get('cartId')) {
       response.cookies.set('cartId', cartId, {
@@ -111,7 +111,12 @@ export async function POST(request: NextRequest) {
         path: '/',
       });
     }
-    
+
+    // Trigger cart update event
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('cartUpdated'));
+    }
+
     return response;
   } catch (error) {
     console.error('Failed to add to cart:', error);
@@ -125,7 +130,7 @@ export async function PUT(request: NextRequest) {
     const cartId = getCartId(request);
     const db = await getDB();
     await ensureCartTables(db);
-    
+
     if (quantity <= 0) {
       // Remove item if quantity is 0 or less
       await db.run(
@@ -139,7 +144,7 @@ export async function PUT(request: NextRequest) {
         [quantity, itemId, cartId]
       );
     }
-    
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Failed to update cart:', error);
@@ -154,12 +159,12 @@ export async function DELETE(request: NextRequest) {
     const cartId = getCartId(request);
     const db = await getDB();
     await ensureCartTables(db);
-    
+
     await db.run(
       'DELETE FROM cart_items WHERE id = ? AND cartId = ?',
       [itemId, cartId]
     );
-    
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Failed to remove from cart:', error);

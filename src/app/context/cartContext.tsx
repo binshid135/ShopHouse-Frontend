@@ -32,7 +32,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const fetchCart = async () => {
         try {
-            const response = await fetch('/api/user/cart');
+            const response = await fetch('/api/userside/cart');
             if (response.ok) {
                 const data = await response.json();
                 setCart(data);
