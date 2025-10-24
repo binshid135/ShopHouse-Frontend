@@ -13,7 +13,7 @@ export default function Sidebar() {
 
   const menuItems = [
     { name: 'Dashboard', path: '/admin/dashboard' },
-    { name: 'Products', path: '/admin/products' },
+    { name: 'Products', path: '/admin/Products' },
     { name: 'Orders', path: '/admin/orders' },
     { name: 'Users', path: '/admin/users' },
     { name: 'Coupons', path: '/admin/coupons' },

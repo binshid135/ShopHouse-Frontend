@@ -56,8 +56,12 @@ export default function Products() {
     }
   };
 
+  // Add this new state
+  const [addedProductIds, setAddedProductIds] = useState<string[]>([]);
+
   const addToCart = async (productId: string, event: React.MouseEvent) => {
-    event.stopPropagation(); // Prevent navigation when clicking cart button
+    event.stopPropagation(); // Prevent navigation
+
     try {
       const response = await fetch('/api/userside/cart', {
         method: 'POST',
@@ -65,20 +69,18 @@ export default function Products() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          productId: productId,
+          productId,
           quantity: 1,
         }),
       });
 
       if (response.ok) {
-        // Show success feedback
-        const button = event.currentTarget as HTMLButtonElement;
-        const originalContent = button.innerHTML;
-        button.innerHTML = '✓ Added';
-        button.classList.add('bg-green-500');
+        // Mark as added
+        setAddedProductIds((prev) => [...prev, productId]);
+
+        // Auto-remove after 2 seconds
         setTimeout(() => {
-          button.innerHTML = originalContent;
-          button.classList.remove('bg-green-500');
+          setAddedProductIds((prev) => prev.filter((id) => id !== productId));
         }, 2000);
       } else {
         alert('Failed to add product to cart');
@@ -89,6 +91,7 @@ export default function Products() {
     }
   };
 
+
   const navigateToProduct = (productId: string) => {
     router.push(`/products/${productId}`);
   };
@@ -96,11 +99,11 @@ export default function Products() {
   // Filter products based on search and category
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         product.shortDescription?.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesCategory = selectedCategory === 'all' || 
-                           product.name.toLowerCase().includes(selectedCategory.toLowerCase().replace(' & ', ' '));
-    
+      product.shortDescription?.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesCategory = selectedCategory === 'all' ||
+      product.name.toLowerCase().includes(selectedCategory.toLowerCase().replace(' & ', ' '));
+
     return matchesSearch && matchesCategory;
   });
 
@@ -150,7 +153,7 @@ export default function Products() {
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
             <p className="text-xl text-amber-800 mb-4">{error}</p>
-            <button 
+            <button
               onClick={fetchProducts}
               className="bg-orange-500 text-white px-6 py-3 rounded-full hover:bg-orange-600 transition-colors"
             >
@@ -166,7 +169,7 @@ export default function Products() {
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100 overflow-hidden">
       <FloatingElements />
       <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
-      
+
       {/* Hero Section */}
       <section className="relative px-6 py-16">
         <div className="max-w-7xl mx-auto text-center">
@@ -189,12 +192,11 @@ export default function Products() {
                 <button
                   key={category}
                   onClick={() => setSelectedCategory(category === 'All Products' ? 'all' : category)}
-                  className={`px-4 py-2 rounded-full font-medium transition-all ${
-                    (category === 'All Products' && selectedCategory === 'all') || 
-                    selectedCategory === category
+                  className={`px-4 py-2 rounded-full font-medium transition-all ${(category === 'All Products' && selectedCategory === 'all') ||
+                      selectedCategory === category
                       ? 'bg-orange-500 text-white shadow-lg'
                       : 'bg-white text-amber-900 hover:bg-orange-100'
-                  }`}
+                    }`}
                 >
                   {category}
                 </button>
@@ -209,17 +211,15 @@ export default function Products() {
               <div className="flex bg-white rounded-full p-1">
                 <button
                   onClick={() => setViewMode('grid')}
-                  className={`p-2 rounded-full transition-all ${
-                    viewMode === 'grid' ? 'bg-orange-500 text-white' : 'text-amber-900'
-                  }`}
+                  className={`p-2 rounded-full transition-all ${viewMode === 'grid' ? 'bg-orange-500 text-white' : 'text-amber-900'
+                    }`}
                 >
                   <Grid className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setViewMode('list')}
-                  className={`p-2 rounded-full transition-all ${
-                    viewMode === 'list' ? 'bg-orange-500 text-white' : 'text-amber-900'
-                  }`}
+                  className={`p-2 rounded-full transition-all ${viewMode === 'list' ? 'bg-orange-500 text-white' : 'text-amber-900'
+                    }`}
                 >
                   <List className="w-4 h-4" />
                 </button>
@@ -240,11 +240,10 @@ export default function Products() {
               <p className="text-xl text-amber-800">No products found matching your criteria.</p>
             </div>
           ) : (
-            <div className={`grid gap-6 ${
-              viewMode === 'grid' 
-                ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' 
+            <div className={`grid gap-6 ${viewMode === 'grid'
+                ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
                 : 'grid-cols-1'
-            }`}>
+              }`}>
               {filteredProducts.map((product) => {
                 const discountPercentage = getDiscountPercentage(product.originalPrice, product.discountedPrice);
                 const productEmoji = getProductEmoji(product);
@@ -254,18 +253,16 @@ export default function Products() {
                   <div
                     key={product.id}
                     onClick={() => navigateToProduct(product.id)}
-                    className={`bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transform hover:-translate-y-2 transition-all duration-300 cursor-pointer ${
-                      viewMode === 'list' ? 'flex' : ''
-                    }`}
+                    className={`bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transform hover:-translate-y-2 transition-all duration-300 cursor-pointer ${viewMode === 'list' ? 'flex' : ''
+                      }`}
                   >
-                    <div className={`${
-                      viewMode === 'list' 
-                        ? 'w-48 h-48 flex-shrink-0' 
+                    <div className={`${viewMode === 'list'
+                        ? 'w-48 h-48 flex-shrink-0'
                         : 'h-48'
-                    } bg-gradient-to-br from-orange-100 to-amber-100 flex items-center justify-center relative`}>
+                      } bg-gradient-to-br from-orange-100 to-amber-100 flex items-center justify-center relative`}>
                       {product.images && product.images.length > 0 ? (
-                        <img 
-                          src={product.images[0]} 
+                        <img
+                          src={product.images[0]}
                           alt={product.name}
                           className="w-full h-full object-cover"
                         />
@@ -321,12 +318,16 @@ export default function Products() {
                             </span>
                           )}
                         </div>
-                        <button 
+                        <button
                           onClick={(e) => addToCart(product.id, e)}
-                          className="bg-gradient-to-r from-orange-500 to-amber-600 text-white p-3 rounded-full hover:shadow-lg transform hover:scale-110 transition-all"
+                          className={`p-3 rounded-full transition-all transform hover:scale-110 ${addedProductIds.includes(product.id)
+                              ? 'bg-green-500 text-white shadow-lg'
+                              : 'bg-gradient-to-r from-orange-500 to-amber-600 text-white hover:shadow-lg'
+                            }`}
                         >
-                          <ShoppingCart className="w-5 h-5" />
+                          {addedProductIds.includes(product.id) ? '✓ Added' : <ShoppingCart className="w-5 h-5" />}
                         </button>
+
                       </div>
                     </div>
                   </div>

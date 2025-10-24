@@ -1,22 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDB } from '../../../../../lib/database';
 import { v4 as uuidv4 } from 'uuid';
+import { getDB } from '../../../../../lib/database';
 
 function getCartId(request: NextRequest) {
   return request.cookies.get('cartId')?.value;
-}
-
-async function ensureCartTables(db: any) {
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS cart_items (
-      id TEXT PRIMARY KEY,
-      cartId TEXT NOT NULL,
-      productId TEXT NOT NULL,
-      quantity INTEGER NOT NULL DEFAULT 1,
-      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (productId) REFERENCES products (id)
-    );
-  `);
 }
 
 export async function POST(request: NextRequest) {
@@ -29,11 +16,10 @@ export async function POST(request: NextRequest) {
     }
     
     const db = await getDB();
-    await ensureCartTables(db);
     
-    // Get cart items
+    // Get cart items with product details
     const cartItems = await db.all(`
-      SELECT ci.*, p.name, p.discountedPrice as price
+      SELECT ci.*, p.name, p.discountedPrice as price, p.originalPrice
       FROM cart_items ci
       JOIN products p ON ci.productId = p.id
       WHERE ci.cartId = ?
@@ -44,12 +30,12 @@ export async function POST(request: NextRequest) {
     }
     
     // Calculate total
-    const total = cartItems.reduce((sum, item) => 
-      sum + (item.price * item.quantity), 0
-    );
+    const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const tax = subtotal * 0.05; // 5% VAT for UAE
+    const total = subtotal + tax;
     
-    // Create a temporary user for the order (or find existing one by email)
-    let user = await db.get('SELECT id FROM users WHERE email = ?', [customerEmail]);
+    // Create or find user
+    let user = await db.get('SELECT id FROM users WHERE email = ?', [customerEmail || '']);
     let userId: string;
     
     if (user) {
@@ -57,8 +43,8 @@ export async function POST(request: NextRequest) {
     } else {
       userId = uuidv4();
       await db.run(
-        'INSERT INTO users (id, email, name) VALUES (?, ?, ?)',
-        [userId, customerEmail, customerName]
+        'INSERT INTO users (id, email, name, createdAt) VALUES (?, ?, ?, ?)',
+        [userId, customerEmail || `${customerPhone}@customer.com`, customerName, new Date().toISOString()]
       );
     }
     
@@ -79,13 +65,22 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    // Create order details with shipping information
+    await db.run(
+      `INSERT INTO order_details (id, orderId, customerName, customerPhone, shippingAddress, status, createdAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [uuidv4(), orderId, customerName, customerPhone, shippingAddress, 'pending', new Date().toISOString()]
+    );
+    
     // Clear cart
     await db.run('DELETE FROM cart_items WHERE cartId = ?', [cartId]);
     
     const response = NextResponse.json({ 
       success: true, 
       orderId,
-      total 
+      total: parseFloat(total.toFixed(2)),
+      subtotal: parseFloat(subtotal.toFixed(2)),
+      tax: parseFloat(tax.toFixed(2))
     });
     
     // Clear cart cookie
@@ -101,42 +96,55 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const email = searchParams.get('email');
+    const phone = searchParams.get('phone');
     
-    if (!email) {
-      return NextResponse.json({ error: 'Email is required' }, { status: 400 });
+    if (!phone) {
+      return NextResponse.json({ error: 'Phone number is required' }, { status: 400 });
     }
     
     const db = await getDB();
     
-    // Find user by email
-    const user = await db.get('SELECT id FROM users WHERE email = ?', [email]);
-    
-    if (!user) {
-      return NextResponse.json([]); // No orders found for this email
-    }
-    
+    // Find orders by phone number
     const orders = await db.all(`
-      SELECT o.*, 
-             json_group_array(
-               json_object(
-                 'id', oi.id,
-                 'productId', oi.productId,
-                 'quantity', oi.quantity,
-                 'price', oi.price
-               )
-             ) as items
+      SELECT 
+        o.id,
+        o.total,
+        o.status,
+        o.createdAt,
+        od.customerName,
+        od.customerPhone,
+        od.shippingAddress,
+        json_group_array(
+          json_object(
+            'id', oi.id,
+            'productId', oi.productId,
+            'productName', p.name,
+            'quantity', oi.quantity,
+            'price', oi.price,
+            'images', p.images
+          )
+        ) as items
       FROM orders o
-      LEFT JOIN order_items oi ON o.id = oi.orderId
-      WHERE o.userId = ?
+      JOIN order_details od ON o.id = od.orderId
+      JOIN order_items oi ON o.id = oi.orderId
+      JOIN products p ON oi.productId = p.id
+      WHERE od.customerPhone = ?
       GROUP BY o.id
       ORDER BY o.createdAt DESC
-    `, [user.id]);
+    `, [phone]);
     
     const ordersWithParsedItems = orders.map(order => ({
-      ...order,
-      items: order.items ? JSON.parse(order.items) : [],
-      total: parseFloat(order.total)
+      id: order.id,
+      total: parseFloat(order.total),
+      status: order.status,
+      createdAt: order.createdAt,
+      customerName: order.customerName,
+      customerPhone: order.customerPhone,
+      shippingAddress: order.shippingAddress,
+      items: order.items ? JSON.parse(order.items).map((item: any) => ({
+        ...item,
+        images: item.images ? JSON.parse(item.images) : []
+      })) : []
     }));
     
     return NextResponse.json(ordersWithParsedItems);

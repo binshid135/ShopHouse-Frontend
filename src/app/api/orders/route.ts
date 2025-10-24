@@ -1,9 +1,9 @@
-// app/api/orders/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyAdminSession } from './../../../../lib/auth';
 import { getDB } from './../../../../lib/database';
+import { verifyAdminSession } from './../../../../lib/auth';
+import { v4 as uuidv4 } from 'uuid';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const session = await verifyAdminSession();
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -11,29 +11,34 @@ export async function GET() {
   
   try {
     const db = await getDB();
+    
     const orders = await db.all(`
-      SELECT o.*, u.name as userName, u.email as userEmail
+      SELECT 
+        o.id,
+        o.total,
+        o.status,
+        o.createdAt,
+        od.customerName,
+        od.customerPhone,
+        od.shippingAddress,
+        od.status as deliveryStatus,
+        COUNT(oi.id) as itemCount
       FROM orders o
-      LEFT JOIN users u ON o.userId = u.id
+      JOIN order_details od ON o.id = od.orderId
+      LEFT JOIN order_items oi ON o.id = oi.orderId
+      GROUP BY o.id
       ORDER BY o.createdAt DESC
     `);
     
-    for (let order of orders) {
-      const items = await db.all(`
-        SELECT oi.*, p.name as productName, p.images as productImages
-        FROM order_items oi
-        LEFT JOIN products p ON oi.productId = p.id
-        WHERE oi.orderId = ?
-      `, [order.id]);
-      
-      order.items = items.map((item: any) => ({
-        ...item,
-        productImages: item.productImages ? JSON.parse(item.productImages) : []
-      }));
-    }
+    const ordersWithCount = orders.map(order => ({
+      ...order,
+      total: parseFloat(order.total),
+      itemCount: parseInt(order.itemCount)
+    }));
     
-    return NextResponse.json(orders);
+    return NextResponse.json(ordersWithCount);
   } catch (error) {
+    console.error('Failed to fetch orders:', error);
     return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 });
   }
 }
@@ -45,13 +50,30 @@ export async function PUT(request: NextRequest) {
   }
   
   try {
+    const { orderId, status, notes } = await request.json();
     const db = await getDB();
-    const { orderId, status } = await request.json();
     
-    await db.run('UPDATE orders SET status = ? WHERE id = ?', [status, orderId]);
+    // Update order status
+    await db.run(
+      'UPDATE orders SET status = ? WHERE id = ?',
+      [status, orderId]
+    );
+    
+    // Update order details status
+    await db.run(
+      'UPDATE order_details SET status = ?, updatedAt = ? WHERE orderId = ?',
+      [status, new Date().toISOString(), orderId]
+    );
+    
+    // Add to status history
+    await db.run(
+      'INSERT INTO order_status_history (id, orderId, status, notes, createdAt) VALUES (?, ?, ?, ?, ?)',
+      [uuidv4(), orderId, status, notes || '', new Date().toISOString()]
+    );
     
     return NextResponse.json({ success: true });
   } catch (error) {
+    console.error('Failed to update order:', error);
     return NextResponse.json({ error: 'Failed to update order' }, { status: 500 });
   }
-}
+} 

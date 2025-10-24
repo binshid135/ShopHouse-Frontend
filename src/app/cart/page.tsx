@@ -134,7 +134,7 @@ export default function Cart() {
   };
 
   const proceedToCheckout = () => {
-    router.push('/checkout');
+    router.push('/cart/checkout');
   };
 
   const getProductEmoji = (productName: string) => {

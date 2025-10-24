@@ -69,5 +69,28 @@ async function initializeDB() {
       usedCount INTEGER DEFAULT 0,
       isActive BOOLEAN DEFAULT true
     );
+     -- Order details table (NEW)
+    CREATE TABLE IF NOT EXISTS order_details (
+      id TEXT PRIMARY KEY,
+      orderId TEXT NOT NULL,
+      customerName TEXT NOT NULL,
+      customerPhone TEXT NOT NULL,
+      shippingAddress TEXT NOT NULL,
+      status TEXT DEFAULT 'pending',
+      notes TEXT,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (orderId) REFERENCES orders (id)
+    );
+    
+    -- Order status history table (NEW)
+    CREATE TABLE IF NOT EXISTS order_status_history (
+      id TEXT PRIMARY KEY,
+      orderId TEXT NOT NULL,
+      status TEXT NOT NULL,
+      notes TEXT,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (orderId) REFERENCES orders (id)
+    );
   `);
 }
