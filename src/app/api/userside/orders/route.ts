@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { v4 as uuidv4 } from 'uuid';
 import { getDB } from '../../../../../lib/database';
+import { v4 as uuidv4 } from 'uuid';
+import { verifyUserSession } from '../../../../../lib/auth-user';
 
 function getCartId(request: NextRequest) {
   return request.cookies.get('cartId')?.value;
@@ -34,17 +35,37 @@ export async function POST(request: NextRequest) {
     const tax = subtotal * 0.05; // 5% VAT for UAE
     const total = subtotal + tax;
     
-    // Create or find user
-    let user = await db.get('SELECT id FROM users WHERE email = ?', [customerEmail || '']);
+    // Get authenticated user from session
+    const token = request.cookies.get('userToken')?.value;
     let userId: string;
-    
-    if (user) {
-      userId = user.id;
+    let userEmail: string;
+    let userName: string;
+
+    if (token) {
+      // User is logged in - use their account
+      const user = await verifyUserSession(token);
+      if (user) {
+        userId = user.id;
+        userEmail = user.email;
+        userName = user.name;
+      } else {
+        // Session invalid, create guest user
+        userId = uuidv4();
+        userEmail = customerEmail || `${customerPhone}@guest.com`;
+        userName = customerName;
+        await db.run(
+          'INSERT INTO users (id, email, name, createdAt) VALUES (?, ?, ?, ?)',
+          [userId, userEmail, userName, new Date().toISOString()]
+        );
+      }
     } else {
+      // Guest checkout - create temporary user
       userId = uuidv4();
+      userEmail = customerEmail || `${customerPhone}@guest.com`;
+      userName = customerName;
       await db.run(
         'INSERT INTO users (id, email, name, createdAt) VALUES (?, ?, ?, ?)',
-        [userId, customerEmail || `${customerPhone}@customer.com`, customerName, new Date().toISOString()]
+        [userId, userEmail, userName, new Date().toISOString()]
       );
     }
     
@@ -95,16 +116,21 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const phone = searchParams.get('phone');
+    // Get authenticated user
+    const token = request.cookies.get('userToken')?.value;
     
-    if (!phone) {
-      return NextResponse.json({ error: 'Phone number is required' }, { status: 400 });
+    if (!token) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
-    
+
+    const user = await verifyUserSession(token);
+    if (!user) {
+      return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
+    }
+
     const db = await getDB();
     
-    // Find orders by phone number
+    // Get orders for the authenticated user only
     const orders = await db.all(`
       SELECT 
         o.id,
@@ -128,10 +154,10 @@ export async function GET(request: NextRequest) {
       JOIN order_details od ON o.id = od.orderId
       JOIN order_items oi ON o.id = oi.orderId
       JOIN products p ON oi.productId = p.id
-      WHERE od.customerPhone = ?
+      WHERE o.userId = ?
       GROUP BY o.id
       ORDER BY o.createdAt DESC
-    `, [phone]);
+    `, [user.id]);
     
     const ordersWithParsedItems = orders.map(order => ({
       id: order.id,

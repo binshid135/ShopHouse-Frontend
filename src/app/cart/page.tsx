@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ShoppingCart, Trash2, Plus, Minus, Ticket, ArrowRight } from 'lucide-react';
+import { ShoppingCart, Trash2, Plus, Minus, Ticket, ArrowRight, RefreshCw, LogIn, UserPlus } from 'lucide-react';
 import Header from '../components/Header';
 import FloatingElements from '../components/FloatingElements';
 
@@ -24,21 +24,32 @@ export default function Cart() {
   const router = useRouter();
   const [cart, setCart] = useState<Cart | null>(null);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
   const [couponCode, setCouponCode] = useState('');
   const [discount, setDiscount] = useState(0);
   const [couponMessage, setCouponMessage] = useState('');
 
   useEffect(() => {
-    fetchCart();
+    checkAuthAndFetchCart();
   }, []);
 
-  const fetchCart = async () => {
+  const checkAuthAndFetchCart = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/userside/cart');
-      if (response.ok) {
-        const data = await response.json();
-        setCart(data);
+      
+      // Check if user is authenticated
+      const authResponse = await fetch('/api/auth/me');
+      const authData = await authResponse.json();
+      
+      if (authData.user) {
+        setUser(authData.user);
+      }
+      
+      // Fetch cart (API handles both authenticated and guest users)
+      const cartResponse = await fetch('/api/userside/cart');
+      if (cartResponse.ok) {
+        const cartData = await cartResponse.json();
+        setCart(cartData);
       } else {
         console.error('Failed to fetch cart');
       }
@@ -68,7 +79,7 @@ export default function Cart() {
       });
 
       if (response.ok) {
-        fetchCart(); // Refresh cart data
+        checkAuthAndFetchCart(); // Refresh cart data
       } else {
         alert('Failed to update quantity');
       }
@@ -85,7 +96,7 @@ export default function Cart() {
       });
 
       if (response.ok) {
-        fetchCart(); // Refresh cart data
+        checkAuthAndFetchCart(); // Refresh cart data
       } else {
         alert('Failed to remove item');
       }
@@ -117,7 +128,7 @@ export default function Cart() {
         const data = await response.json();
         if (data.valid) {
           setDiscount(data.coupon.discountAmount);
-          setCouponMessage(`🎉 ${data.coupon.discountAmount} discount applied!`);
+          setCouponMessage(`🎉 $${data.coupon.discountAmount.toFixed(2)} discount applied!`);
         } else {
           setDiscount(0);
           setCouponMessage(data.error || 'Invalid coupon code');
@@ -134,7 +145,16 @@ export default function Cart() {
   };
 
   const proceedToCheckout = () => {
-    router.push('/cart/checkout');
+    if (!user) {
+      // Save current cart and redirect to login
+      localStorage.setItem('redirectAfterLogin', '/checkout');
+      router.push('/login');
+      return;
+    }
+    
+    if (cart && cart.items.length > 0) {
+      router.push('/checkout');
+    }
   };
 
   const getProductEmoji = (productName: string) => {
@@ -152,7 +172,7 @@ export default function Cart() {
   // Calculate order summary
   const subtotal = cart?.total || 0;
   const shipping = subtotal > 500 ? 0 : 25;
-  const tax = subtotal * 0.08;
+  const tax = subtotal * 0.05; // 5% VAT
   const total = Math.max(0, subtotal + shipping + tax - discount);
 
   if (loading) {
@@ -173,13 +193,68 @@ export default function Cart() {
       <Header searchQuery={""} setSearchQuery={() => {}} />
       
       <div className="max-w-7xl mx-auto px-6 py-12">
-        <div className="flex items-center gap-3 mb-8">
-          <ShoppingCart className="w-8 h-8 text-orange-600" />
-          <h1 className="text-4xl font-bold text-amber-900">Shopping Cart</h1>
-          <span className="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-medium">
-            {cart?.items?.length || 0} items
-          </span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+          <div className="flex items-center gap-3">
+            <ShoppingCart className="w-8 h-8 text-orange-600" />
+            <h1 className="text-4xl font-bold text-amber-900">Shopping Cart</h1>
+            {cart && cart.items.length > 0 && (
+              <span className="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-medium">
+                {cart.items.length} items
+              </span>
+            )}
+          </div>
+          
+          {cart && cart.items.length > 0 && (
+            <div className="flex items-center gap-3">
+              {!user && (
+                <div className="text-sm text-amber-700 bg-amber-100 px-3 py-1 rounded-full">
+                  Shopping as Guest
+                </div>
+              )}
+              <button
+                onClick={checkAuthAndFetchCart}
+                className="flex items-center gap-2 bg-white text-amber-900 px-4 py-2 rounded-full hover:bg-orange-50 transition-colors"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Refresh
+              </button>
+            </div>
+          )}
         </div>
+
+        {/* User Not Logged In Warning */}
+        {!user && cart && cart.items.length > 0 && (
+          <div className="bg-amber-50 border border-amber-200 text-amber-800 px-6 py-4 rounded-2xl mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <p className="font-medium mb-1">💡 Sign in for a better experience!</p>
+                <p className="text-sm">Create an account to save your cart and view order history.</p>
+              </div>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => {
+                    localStorage.setItem('redirectAfterLogin', '/cart');
+                    router.push('/login');
+                  }}
+                  className="flex items-center gap-2 bg-orange-500 text-white px-4 py-2 rounded-full hover:bg-orange-600 transition-colors text-sm"
+                >
+                  <LogIn className="w-4 h-4" />
+                  Sign In
+                </button>
+                <button 
+                  onClick={() => {
+                    localStorage.setItem('redirectAfterLogin', '/cart');
+                    router.push('/signup');
+                  }}
+                  className="flex items-center gap-2 border border-orange-500 text-orange-500 px-4 py-2 rounded-full hover:bg-orange-50 transition-colors text-sm"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  Sign Up
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Cart Items */}
@@ -264,6 +339,23 @@ export default function Cart() {
             <div className="bg-white rounded-3xl p-6 shadow-lg sticky top-6">
               <h3 className="text-xl font-bold text-amber-900 mb-6">Order Summary</h3>
               
+              {/* User Status */}
+              {user ? (
+                <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl mb-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    Signed in as {user.name}
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-xl mb-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+                    Shopping as guest
+                  </div>
+                </div>
+              )}
+              
               {/* Coupon Section */}
               <div className="mb-6">
                 <div className="flex gap-2 mb-3">
@@ -309,7 +401,7 @@ export default function Cart() {
                   <span>{shipping === 0 ? 'FREE' : `$${shipping.toFixed(2)}`}</span>
                 </div>
                 <div className="flex justify-between text-amber-800">
-                  <span>Tax</span>
+                  <span>Tax (5%)</span>
                   <span>${tax.toFixed(2)}</span>
                 </div>
                 {discount > 0 && (
@@ -331,13 +423,19 @@ export default function Cart() {
                 disabled={!cart || cart.items.length === 0}
                 className="w-full bg-gradient-to-r from-orange-500 to-amber-600 text-white py-4 rounded-full font-medium hover:shadow-lg transform hover:-translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
               >
-                Proceed to Checkout
+                {!user ? 'Sign In to Checkout' : `Proceed to Checkout`}
                 <ArrowRight className="w-5 h-5" />
               </button>
 
               {shipping > 0 && subtotal < 500 && (
                 <p className="text-center text-sm text-amber-700 mt-4">
                   Add ${(500 - subtotal).toFixed(2)} more for FREE shipping!
+                </p>
+              )}
+
+              {!user && (
+                <p className="text-center text-xs text-amber-600 mt-3">
+                  You'll be asked to sign in or create an account before checkout
                 </p>
               )}
             </div>
@@ -364,6 +462,47 @@ export default function Cart() {
                   </div>
                   Secure payment processing
                 </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                    <span className="text-green-600 font-bold">✓</span>
+                  </div>
+                  Dedicated customer support
+                </div>
+              </div>
+            </div>
+
+            {/* Security Badge */}
+            <div className="bg-white rounded-3xl p-6 shadow-lg">
+              <h4 className="font-bold text-amber-900 mb-4">Secure Shopping</h4>
+              <div className="space-y-3 text-sm text-amber-700">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                    <span className="text-blue-600 font-bold">🔒</span>
+                  </div>
+                  Your cart is saved securely
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                    <span className="text-blue-600 font-bold">🛡️</span>
+                  </div>
+                  Privacy protected
+                </div>
+                {!user && (
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
+                      <span className="text-orange-600 font-bold">💡</span>
+                    </div>
+                    <span className="text-orange-600">
+                      <button 
+                        onClick={() => router.push('/signup')}
+                        className="underline hover:no-underline"
+                      >
+                        Create an account
+                      </button>{' '}
+                      to save your cart
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>

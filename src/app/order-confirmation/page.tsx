@@ -31,7 +31,7 @@ export default function OrderConfirmationPage() {
 
   const fetchOrder = async (id: string) => {
     try {
-      const response = await fetch(`/api/user/orders/${id}`);
+      const response = await fetch(`/api/userside/orders/${id}`);
       if (response.ok) {
         const data = await response.json();
         setOrder(data);

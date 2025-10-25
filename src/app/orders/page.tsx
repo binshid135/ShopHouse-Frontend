@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Package, Truck, CheckCircle, Clock, Star, ArrowRight, RefreshCw } from 'lucide-react';
+import { Package, Truck, CheckCircle, Clock, Star, ArrowRight, RefreshCw, LogIn, UserPlus } from 'lucide-react';
 import FloatingElements from '../components/FloatingElements';
 import Header from '../components/Header';
 
@@ -32,36 +32,47 @@ export default function Orders() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'confirmed' | 'preparing' | 'out_for_delivery' | 'delivered' | 'cancelled'>('all');
+  const [user, setUser] = useState<any>(null);
+
+  const tabs = [
+    { key: 'all' as const, label: 'All Orders' },
+    { key: 'pending' as const, label: 'Pending' },
+    { key: 'confirmed' as const, label: 'Confirmed' },
+    { key: 'preparing' as const, label: 'Preparing' },
+    { key: 'out_for_delivery' as const, label: 'Out for Delivery' },
+    { key: 'delivered' as const, label: 'Delivered' },
+    { key: 'cancelled' as const, label: 'Cancelled' },
+  ];
 
   useEffect(() => {
-    fetchOrders();
+    checkAuthAndFetchOrders();
   }, []);
 
-  const fetchOrders = async () => {
+  const checkAuthAndFetchOrders = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      // Get customer phone from user input or localStorage
-      const customerPhone = localStorage.getItem('customerPhone') || prompt('Please enter your phone number to view orders:');
+      // Check if user is authenticated
+      const authResponse = await fetch('/api/auth/me');
+      const authData = await authResponse.json();
       
-      if (!customerPhone) {
-        setError('Phone number is required to view orders');
-        setLoading(false);
-        return;
-      }
-
-      // Store phone for future use
-      localStorage.setItem('customerPhone', customerPhone);
-
-      const response = await fetch(`/api/userside/orders?phone=${encodeURIComponent(customerPhone)}`);
-      
-      if (response.ok) {
-        const data = await response.json();
-        setOrders(data);
+      if (authData.user) {
+        setUser(authData.user);
+        // User is authenticated, fetch their orders
+        const ordersResponse = await fetch('/api/userside/orders');
+        
+        if (ordersResponse.ok) {
+          const ordersData = await ordersResponse.json();
+          setOrders(ordersData);
+        } else if (ordersResponse.status === 401) {
+          setError('Please sign in to view your orders');
+        } else {
+          const errorData = await ordersResponse.json();
+          setError(errorData.error || 'Failed to load orders');
+        }
       } else {
-        const errorData = await response.json();
-        setError(errorData.error || 'Failed to fetch orders');
+        setError('Please sign in to view your orders');
       }
     } catch (error) {
       console.error('Failed to fetch orders:', error);
@@ -152,16 +163,6 @@ export default function Orders() {
     return '🍴';
   };
 
-  const tabs = [
-    { key: 'all' as const, label: 'All Orders' },
-    { key: 'pending' as const, label: 'Pending' },
-    { key: 'confirmed' as const, label: 'Confirmed' },
-    { key: 'preparing' as const, label: 'Preparing' },
-    { key: 'out_for_delivery' as const, label: 'Out for Delivery' },
-    { key: 'delivered' as const, label: 'Delivered' },
-    { key: 'cancelled' as const, label: 'Cancelled' },
-  ];
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100 overflow-hidden">
@@ -183,194 +184,212 @@ export default function Orders() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div className="flex items-center gap-3">
             <Package className="w-8 h-8 text-orange-600" />
-            <h1 className="text-4xl font-bold text-amber-900">Your Orders</h1>
-            <span className="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-medium">
-              {orders.length} orders
-            </span>
+            <h1 className="text-4xl font-bold text-amber-900">
+              {user ? 'Your Orders' : 'Order History'}
+            </h1>
+            {orders.length > 0 && (
+              <span className="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-medium">
+                {orders.length} orders
+              </span>
+            )}
           </div>
           
-          <button
-            onClick={fetchOrders}
-            className="flex items-center gap-2 bg-white text-amber-900 px-4 py-2 rounded-full hover:bg-orange-50 transition-colors"
-          >
-            <RefreshCw className="w-4 h-4" />
-            Refresh
-          </button>
+          {user && orders.length > 0 && (
+            <button
+              onClick={checkAuthAndFetchOrders}
+              className="flex items-center gap-2 bg-white text-amber-900 px-4 py-2 rounded-full hover:bg-orange-50 transition-colors"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Refresh
+            </button>
+          )}
         </div>
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-600 px-6 py-4 rounded-2xl mb-6">
-            <p>{error}</p>
+            <p className="mb-4">{error}</p>
+            {error.includes('sign in') && (
+              <div className="flex gap-4 flex-wrap">
+                <button 
+                  onClick={() => router.push('/login')}
+                  className="bg-orange-500 text-white px-6 py-2 rounded-full hover:bg-orange-600 transition-colors flex items-center gap-2"
+                >
+                  <LogIn className="w-4 h-4" />
+                  Sign In
+                </button>
+                <button 
+                  onClick={() => router.push('/signup')}
+                  className="border border-orange-500 text-orange-500 px-6 py-2 rounded-full hover:bg-orange-50 transition-colors flex items-center gap-2"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  Create Account
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Only show tabs and orders if user is authenticated and has orders */}
+        {user && orders.length > 0 && (
+          <>
+            {/* Tabs */}
+            <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`px-6 py-3 rounded-full font-medium whitespace-nowrap transition-all ${
+                    activeTab === tab.key
+                      ? 'bg-orange-500 text-white shadow-lg'
+                      : 'bg-white text-amber-900 hover:bg-orange-50'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Orders Count */}
+            <div className="mb-6">
+              <p className="text-amber-700">
+                Showing {filteredOrders.length} of {orders.length} orders
+              </p>
+            </div>
+
+            {/* Orders List */}
+            <div className="space-y-6">
+              {filteredOrders.map((order) => {
+                return (
+                  <div key={order.id} className="bg-white rounded-3xl p-6 shadow-lg hover:shadow-xl transition-all">
+                    {/* Order Header */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-6 border-b border-amber-200">
+                      <div>
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="text-xl font-bold text-amber-900">
+                            Order #{order.id.slice(-8).toUpperCase()}
+                          </h3>
+                          <span className={`px-3 py-1 rounded-full text-sm font-medium flex items-center gap-2 border ${getStatusColor(order.status)}`}>
+                            {getStatusIcon(order.status)}
+                            {getStatusDisplayText(order.status)}
+                          </span>
+                        </div>
+                        <p className="text-amber-700">Placed on {formatDate(order.createdAt)}</p>
+                        <p className="text-sm text-amber-600 mt-1">
+                          Deliver to: {order.shippingAddress}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-2xl font-bold text-amber-900">${order.total.toFixed(2)}</p>
+                        <p className="text-sm text-amber-700">{order.items.length} item(s)</p>
+                      </div>
+                    </div>
+
+                    {/* Order Items */}
+                    <div className="space-y-4 mb-6">
+                      {order.items.map((item) => {
+                        const productEmoji = getProductEmoji(item.productName);
+                        
+                        return (
+                          <div key={item.id} className="flex gap-4 items-center">
+                            <div className="w-16 h-16 bg-gradient-to-br from-orange-100 to-amber-100 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden">
+                              {item.images && item.images.length > 0 ? (
+                                <img 
+                                  src={item.images[0]} 
+                                  alt={item.productName}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="text-2xl">{productEmoji}</div>
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="font-bold text-amber-900 mb-1">{item.productName}</h4>
+                              <div className="flex items-center gap-4">
+                                <span className="text-amber-700">Qty: {item.quantity}</span>
+                                <span className="text-lg font-bold text-amber-900">
+                                  ${(item.price * item.quantity).toFixed(2)}
+                                </span>
+                              </div>
+                              <p className="text-sm text-amber-600">${item.price.toFixed(2)} each</p>
+                            </div>
+                            {order.status === 'delivered' && (
+                              <button className="flex items-center gap-2 text-orange-600 hover:text-orange-700 transition-colors">
+                                <Star className="w-4 h-4" />
+                                Rate
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Order Actions */}
+                    <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+                      <div className="space-y-2">
+                        <p className="text-sm text-amber-700">
+                          Contact: {order.customerPhone}
+                        </p>
+                        {order.status === 'out_for_delivery' && (
+                          <p className="text-sm text-blue-600 font-medium">
+                            🚚 Your order is out for delivery
+                          </p>
+                        )}
+                        {order.status === 'preparing' && (
+                          <p className="text-sm text-purple-600 font-medium">
+                            👨‍🍳 Your order is being prepared
+                          </p>
+                        )}
+                        {order.status === 'confirmed' && (
+                          <p className="text-sm text-amber-600 font-medium">
+                            ✅ Order confirmed
+                          </p>
+                        )}
+                        {order.status === 'pending' && (
+                          <p className="text-sm text-orange-600 font-medium">
+                            ⏳ Order received, processing soon
+                          </p>
+                        )}
+                      </div>
+                      
+                      <div className="flex gap-3">
+                        {order.status === 'delivered' && (
+                          <button className="flex items-center gap-2 text-orange-600 hover:text-orange-700 transition-colors">
+                            <Star className="w-4 h-4" />
+                            Rate Products
+                          </button>
+                        )}
+                        <button 
+                          onClick={() => router.push(`/orders/${order.id}`)}
+                          className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-amber-600 text-white px-6 py-2 rounded-full hover:shadow-lg transition-all"
+                        >
+                          View Details
+                          <ArrowRight className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {user && orders.length === 0 && !error && (
+          <div className="bg-white rounded-3xl p-12 text-center shadow-lg">
+            <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-2xl font-bold text-amber-900 mb-2">No orders yet</h3>
+            <p className="text-amber-700 mb-6">Start shopping to see your orders here!</p>
             <button 
-              onClick={() => {
-                localStorage.removeItem('customerPhone');
-                fetchOrders();
-              }}
-              className="text-red-700 underline mt-2"
+              onClick={() => router.push('/products')}
+              className="bg-gradient-to-r from-orange-500 to-amber-600 text-white px-8 py-3 rounded-full font-medium hover:shadow-lg transition-all"
             >
-              Try with different phone number
+              Start Shopping
             </button>
           </div>
         )}
 
-        {/* Tabs */}
-        <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`px-6 py-3 rounded-full font-medium whitespace-nowrap transition-all ${
-                activeTab === tab.key
-                  ? 'bg-orange-500 text-white shadow-lg'
-                  : 'bg-white text-amber-900 hover:bg-orange-50'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Orders List */}
-        <div className="space-y-6">
-          {filteredOrders.length === 0 ? (
-            <div className="bg-white rounded-3xl p-12 text-center shadow-lg">
-              <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-2xl font-bold text-amber-900 mb-2">
-                {error ? 'Unable to Load Orders' : 'No orders found'}
-              </h3>
-              <p className="text-amber-700 mb-6">
-                {error 
-                  ? 'Please check your phone number and try again.'
-                  : activeTab === 'all' 
-                    ? "You haven't placed any orders yet." 
-                    : `No orders with status "${getStatusDisplayText(activeTab)}"`}
-              </p>
-              {activeTab === 'all' && !error && (
-                <button 
-                  onClick={() => router.push('/products')}
-                  className="bg-gradient-to-r from-orange-500 to-amber-600 text-white px-8 py-3 rounded-full font-medium hover:shadow-lg transition-all"
-                >
-                  Start Shopping
-                </button>
-              )}
-              {error && (
-                <button 
-                  onClick={() => {
-                    localStorage.removeItem('customerPhone');
-                    fetchOrders();
-                  }}
-                  className="bg-gradient-to-r from-orange-500 to-amber-600 text-white px-8 py-3 rounded-full font-medium hover:shadow-lg transition-all"
-                >
-                  Enter Phone Number
-                </button>
-              )}
-            </div>
-          ) : (
-            filteredOrders.map((order) => (
-              <div key={order.id} className="bg-white rounded-3xl p-6 shadow-lg hover:shadow-xl transition-all">
-                {/* Order Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-6 border-b border-amber-200">
-                  <div>
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-xl font-bold text-amber-900">
-                        Order #{order.id.slice(-8).toUpperCase()}
-                      </h3>
-                      <span className={`px-3 py-1 rounded-full text-sm font-medium flex items-center gap-2 border ${getStatusColor(order.status)}`}>
-                        {getStatusIcon(order.status)}
-                        {getStatusDisplayText(order.status)}
-                      </span>
-                    </div>
-                    <p className="text-amber-700">Placed on {formatDate(order.createdAt)}</p>
-                    <p className="text-sm text-amber-600 mt-1">
-                      Deliver to: {order.shippingAddress}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-amber-900">${order.total.toFixed(2)}</p>
-                    <p className="text-sm text-amber-700">{order.items.length} item(s)</p>
-                  </div>
-                </div>
-
-                {/* Order Items */}
-                <div className="space-y-4 mb-6">
-                  {order.items.map((item) => {
-                    const productEmoji = getProductEmoji(item.productName);
-                    
-                    return (
-                      <div key={item.id} className="flex gap-4 items-center">
-                        <div className="w-16 h-16 bg-gradient-to-br from-orange-100 to-amber-100 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden">
-                          {item.images && item.images.length > 0 ? (
-                            <img 
-                              src={item.images[0]} 
-                              alt={item.productName}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="text-2xl">{productEmoji}</div>
-                          )}
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="font-bold text-amber-900 mb-1">{item.productName}</h4>
-                          <div className="flex items-center gap-4">
-                            <span className="text-amber-700">Qty: {item.quantity}</span>
-                            <span className="text-lg font-bold text-amber-900">
-                              ${(item.price * item.quantity).toFixed(2)}
-                            </span>
-                          </div>
-                          <p className="text-sm text-amber-600">${item.price.toFixed(2)} each</p>
-                        </div>
-                        {order.status === 'delivered' && (
-                          <button className="flex items-center gap-2 text-orange-600 hover:text-orange-700 transition-colors">
-                            <Star className="w-4 h-4" />
-                            Rate
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Order Actions */}
-                <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-                  <div className="space-y-2">
-                    <p className="text-sm text-amber-700">
-                      Contact: {order.customerPhone}
-                    </p>
-                    {order.status === 'out_for_delivery' && (
-                      <p className="text-sm text-blue-600 font-medium">
-                        🚚 Your order is out for delivery
-                      </p>
-                    )}
-                    {order.status === 'preparing' && (
-                      <p className="text-sm text-purple-600 font-medium">
-                        👨‍🍳 Your order is being prepared
-                      </p>
-                    )}
-                  </div>
-                  
-                  <div className="flex gap-3">
-                    {order.status === 'delivered' && (
-                      <button className="flex items-center gap-2 text-orange-600 hover:text-orange-700 transition-colors">
-                        <Star className="w-4 h-4" />
-                        Rate Products
-                      </button>
-                    )}
-                    <button 
-                      onClick={() => router.push(`/orders/${order.id}`)}
-                      className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-amber-600 text-white px-6 py-2 rounded-full hover:shadow-lg transition-all"
-                    >
-                      View Details
-                      <ArrowRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-
         {/* Help Section */}
-        {orders.length > 0 && (
+        {user && orders.length > 0 && (
           <div className="bg-white rounded-3xl p-6 mt-8 shadow-lg">
             <h3 className="text-lg font-bold text-amber-900 mb-4">Need Help with Your Order?</h3>
             <div className="grid md:grid-cols-2 gap-6 text-sm text-amber-700">
@@ -382,6 +401,7 @@ export default function Orders() {
                   <li>• <strong>Preparing:</strong> Items are being prepared for delivery</li>
                   <li>• <strong>Out for Delivery:</strong> Order is on its way to you</li>
                   <li>• <strong>Delivered:</strong> Order has been delivered</li>
+                  <li>• <strong>Cancelled:</strong> Order has been cancelled</li>
                 </ul>
               </div>
               <div>
@@ -389,6 +409,9 @@ export default function Orders() {
                 <p>For any questions about your order, contact us at:</p>
                 <p className="font-mono mt-1">📞 +971 50 123 4567</p>
                 <p className="font-mono">📧 support@shophouse.com</p>
+                <p className="text-xs mt-2 text-amber-600">
+                  Reference your order ID when contacting support
+                </p>
               </div>
             </div>
           </div>
