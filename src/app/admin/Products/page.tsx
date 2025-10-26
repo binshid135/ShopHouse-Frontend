@@ -1,7 +1,7 @@
 // app/admin/products/page.tsx
 'use client';
 import { useEffect, useState } from 'react';
-import { Product } from './../../../../lib/types';
+import { Product } from '../../../../lib/types';
 import ProductForm from '@/app/components/admin/ProductForm';
 import { resolve } from 'path';
 

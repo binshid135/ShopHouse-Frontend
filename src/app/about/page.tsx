@@ -72,7 +72,7 @@ export default function About() {
                 Our <span className="text-orange-600">Story</span> of Culinary Excellence
               </h1>
               <p className="text-lg text-amber-800">
-                Founded by professional chefs, Chef's Blend is dedicated to providing the highest quality 
+                Founded by professional chefs, Shop House is dedicated to providing the highest quality 
                 kitchen equipment to culinary professionals and passionate home cooks alike.
               </p>
               <div className="flex gap-4">
@@ -185,7 +185,7 @@ export default function About() {
             Ready to Elevate Your Kitchen?
           </h2>
           <p className="text-lg text-amber-800 mb-8 max-w-2xl mx-auto">
-            Join thousands of professional chefs who trust Chef's Blend for their kitchen equipment needs
+            Join thousands of professional chefs who trust Shop House for their kitchen equipment needs
           </p>
           <div className="flex gap-4 justify-center">
             <button className="bg-gradient-to-r from-orange-500 to-amber-600 text-white px-8 py-3 rounded-full font-medium hover:shadow-lg transform hover:-translate-y-1 transition-all">

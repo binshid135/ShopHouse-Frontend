@@ -1,13 +1,21 @@
 // lib/database.ts
 import sqlite3 from "sqlite3";
-import { open } from "sqlite";
-import { Product, User, Order, Coupon } from "./types";
+import { open, Database } from "sqlite";
 import { hashPassword } from "./auth-user";
 import { v4 as uuidv4 } from "uuid";
 
-let db: any = null;
+// Define interface for table info
+interface TableColumnInfo {
+  name: string;
+  type: string;
+  notnull: number;
+  dflt_value: any;
+  pk: number;
+}
 
-export async function getDB() {
+let db: Database | null = null;
+
+export async function getDB(): Promise<Database> {
   if (!db) {
     db = await open({
       filename: "./admin.db",
@@ -19,7 +27,9 @@ export async function getDB() {
   return db;
 }
 
-async function initializeDB() {
+async function initializeDB(): Promise<void> {
+  if (!db) return;
+
   // Create all tables with basic structure first
   await db.exec(`
     CREATE TABLE IF NOT EXISTS products (
@@ -95,7 +105,7 @@ async function initializeDB() {
       FOREIGN KEY (orderId) REFERENCES orders (id)
     );
 
-      CREATE TABLE IF NOT EXISTS cart_items (
+    CREATE TABLE IF NOT EXISTS cart_items (
       id TEXT PRIMARY KEY,
       cartId TEXT NOT NULL,
       productId TEXT NOT NULL,
@@ -104,10 +114,8 @@ async function initializeDB() {
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (productId) REFERENCES products (id)
     );
-
-    
-
   `);
+  
   // Now update the users table with authentication columns
   await migrateUsersTable();
 
@@ -133,23 +141,24 @@ async function initializeDB() {
     );
   `);
 
-  // In your initializeDB function
+  // Add indexes for better performance and security
   await db.exec(`
-  -- Add indexes for better performance and security
-  CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(userId);
-  CREATE INDEX IF NOT EXISTS idx_order_details_order_id ON order_details(orderId);
-  CREATE INDEX IF NOT EXISTS idx_cart_items_user_id ON cart_items(userId);
-  CREATE INDEX IF NOT EXISTS idx_cart_items_cart_id ON cart_items(cartId);
-`);
+    CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(userId);
+    CREATE INDEX IF NOT EXISTS idx_order_details_order_id ON order_details(orderId);
+    CREATE INDEX IF NOT EXISTS idx_cart_items_user_id ON cart_items(userId);
+    CREATE INDEX IF NOT EXISTS idx_cart_items_cart_id ON cart_items(cartId);
+  `);
 
   // Create demo user
   await createDemoUser();
   await migrateCartItemsTable();
 }
 
-async function migrateCartItemsTable() {
+async function migrateCartItemsTable(): Promise<void> {
+  if (!db) return;
+
   try {
-    const tableInfo = await db.all(`PRAGMA table_info(cart_items)`);
+    const tableInfo = await db.all<TableColumnInfo[]>(`PRAGMA table_info(cart_items)`);
     const columns = tableInfo.map((col) => col.name);
 
     if (!columns.includes("userId")) {
@@ -161,10 +170,12 @@ async function migrateCartItemsTable() {
   }
 }
 
-async function migrateUsersTable() {
+async function migrateUsersTable(): Promise<void> {
+  if (!db) return;
+
   try {
     // Check if users table needs migration
-    const tableInfo = await db.all(`PRAGMA table_info(users)`);
+    const tableInfo = await db.all<TableColumnInfo[]>(`PRAGMA table_info(users)`);
     const columns = tableInfo.map((col) => col.name);
 
     // Add missing authentication columns
@@ -208,7 +219,9 @@ async function migrateUsersTable() {
   }
 }
 
-async function createDemoUser() {
+async function createDemoUser(): Promise<void> {
+  if (!db) return;
+
   try {
     const demoUser = await db.get("SELECT * FROM users WHERE email = ?", [
       "demo@shophouse.com",

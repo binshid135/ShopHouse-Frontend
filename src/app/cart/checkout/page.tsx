@@ -123,6 +123,7 @@ export default function CheckoutPage() {
       if (response.ok) {
         const data = await response.json();
         setCart(data);
+        console.log("in check cart",data)
       } else {
         router.push('/cart');
       }
@@ -138,63 +139,68 @@ export default function CheckoutPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setSuccess(false);
-    setSubmitting(true);
+  // In your checkout page component
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError("");
+  setSuccess(false);
+  setSubmitting(true);
 
-    // Basic validation
-    if (
-      !formData.fullName ||
-      !formData.mobile ||
-      !formData.area ||
-      !formData.street ||
-      !formData.building
-    ) {
-      setError("Please fill all required fields.");
-      setSubmitting(false);
-      return;
+  // Basic validation
+  if (
+    !formData.fullName ||
+    !formData.mobile ||
+    !formData.area ||
+    !formData.street ||
+    !formData.building
+  ) {
+    setError("Please fill all required fields.");
+    setSubmitting(false);
+    return;
+  }
+
+  // UAE mobile validation
+  const mobilePattern = /^(05\d{8}|5\d{8}|\+9715\d{8})$/;
+  if (!mobilePattern.test(formData.mobile.replace(/\s/g, ''))) {
+    setError("Enter a valid UAE mobile number (e.g., 0501234567 or 501234567).");
+    setSubmitting(false);
+    return;
+  }
+
+  try {
+    console.log('Submitting order with cart:', cart);
+    
+    const response = await fetch('/api/userside/orders', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        customerName: formData.fullName,
+        // customerEmail: user?.email || '', // Include user email if available
+        customerPhone: formData.mobile,
+        shippingAddress: `${formData.street}, ${formData.building}${formData.flat ? `, Flat ${formData.flat}` : ''}, ${formData.area}, Al Ain`
+      }),
+    });
+
+    const result = await response.json();
+    console.log('Order response:', result);
+
+    if (response.ok) {
+      setSuccess(true);
+      setTimeout(() => {
+        router.push(`/order-confirmation?orderId=${result.orderId}`);
+      }, 2000);
+    } else {
+      setError(result.error || 'Checkout failed. Please try again.');
     }
-
-    // UAE mobile validation: starts with 05 or +9715 and has 9-10 digits
-    const mobilePattern = /^(05\d{8}|5\d{8}|\+9715\d{8})$/;
-    if (!mobilePattern.test(formData.mobile.replace(/\s/g, ''))) {
-      setError("Enter a valid UAE mobile number (e.g., 0501234567 or 501234567).");
-      setSubmitting(false);
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/userside/orders', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          customerName: formData.fullName,
-          customerEmail: '', // You might want to add email field
-          customerPhone: formData.mobile,
-          shippingAddress: `${formData.street}, ${formData.building}${formData.flat ? `, Flat ${formData.flat}` : ''}, ${formData.area}, Al Ain`
-        }),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        setSuccess(true);
-        setTimeout(() => {
-          router.push(`/order-confirmation?orderId=${result.orderId}`);
-        }, 2000);
-      } else {
-        const errorData = await response.json();
-        setError(errorData.error || 'Checkout failed. Please try again.');
-      }
-    } catch (err) {
-      setError("Checkout failed. Please try again.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  } catch (err) {
+    console.error('Checkout error:', err);
+    setError("Checkout failed. Please try again.");
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   if (loading) {
     return (

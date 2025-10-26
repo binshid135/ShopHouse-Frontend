@@ -3,12 +3,21 @@ import { getDB } from '../../../../../lib/database';
 import { v4 as uuidv4 } from 'uuid';
 import { verifyUserSession } from '../../../../../lib/auth-user';
 
+interface TableColumnInfo {
+  name: string;
+  type: string;
+  notnull: number;
+  dflt_value: any;
+  pk: number;
+}
+
 // Get cart ID based on user authentication
+// In your cart API route
 function getCartId(request: NextRequest) {
   const token = request.cookies.get('userToken')?.value;
   
   if (token) {
-    // For authenticated users, use user-specific cart ID
+    // For authenticated users, use consistent user-specific cart ID
     return `user_${token.substring(0, 8)}`;
   } else {
     // For guests, use session-based cart ID
@@ -33,8 +42,7 @@ async function ensureCartTables(db: any) {
     
     // Check if userId column exists, if not add it
     const tableInfo = await db.all(`PRAGMA table_info(cart_items)`);
-    const columns = tableInfo.map(col => col.name);
-    
+const columns = tableInfo.map((col: TableColumnInfo) => col.name);    
     if (!columns.includes('userId')) {
       await db.run(`ALTER TABLE cart_items ADD COLUMN userId TEXT`);
     }

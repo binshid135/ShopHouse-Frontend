@@ -50,6 +50,7 @@ export default function Cart() {
       if (cartResponse.ok) {
         const cartData = await cartResponse.json();
         setCart(cartData);
+        console.log("cart datta",cartData)
       } else {
         console.error('Failed to fetch cart');
       }
@@ -153,7 +154,7 @@ export default function Cart() {
     }
     
     if (cart && cart.items.length > 0) {
-      router.push('/checkout');
+      router.push('/cart/checkout');
     }
   };
 

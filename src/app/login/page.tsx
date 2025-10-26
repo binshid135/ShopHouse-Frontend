@@ -22,6 +22,7 @@ export default function LoginPage() {
   };
 
 // Add this to your handleSubmit function after successful login
+// In your login page - after successful login
 const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
   setLoading(true);
@@ -30,29 +31,26 @@ const handleSubmit = async (e: React.FormEvent) => {
   try {
     const response = await fetch('/api/auth/login', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(formData),
     });
 
     const data = await response.json();
 
     if (response.ok) {
-      // Migrate guest cart to user cart
-      const guestCartId = localStorage.getItem('guestCartId');
+      // Get current guest cart ID before migration
+      const guestCartId = document.cookie.split('; ').find(row => row.startsWith('cartId='))?.split('=')[1];
+      console.log("guest cart id",guestCartId)
       if (guestCartId) {
-        await fetch('/api/user/cart', {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+        console.log('🔄 Migrating guest cart to user account...');
+        // Call migration endpoint
+        await fetch('/api/userside/cart/migrate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ guestCartId }),
         });
-        localStorage.removeItem('guestCartId');
       }
       
-      // Redirect to products page or previous page
       router.push('/products');
       router.refresh();
     } else {

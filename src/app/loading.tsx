@@ -25,7 +25,7 @@ export default function Loading() {
             <div className="w-6 h-6 bg-gradient-to-br from-orange-500 to-amber-600 rounded-full"></div>
           </div>
         </div>
-        <h3 className="text-xl font-bold text-amber-900 mb-2">Chef's Blend</h3>
+        <h3 className="text-xl font-bold text-amber-900 mb-2">Shop House</h3>
         <p className="text-amber-700">Preparing your kitchen...</p>
       </div>
     </div>
