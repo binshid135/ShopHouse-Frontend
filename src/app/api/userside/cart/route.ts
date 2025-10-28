@@ -17,7 +17,8 @@ function getCartId(request: NextRequest) {
   const token = request.cookies.get('userToken')?.value;
   
   if (token) {
-    // For authenticated users, use consistent user-specific cart ID
+    // For authenticated users, generate a consistent cart ID based on user ID
+    // We'll use the first 8 chars of user ID for consistency
     return `user_${token.substring(0, 8)}`;
   } else {
     // For guests, use session-based cart ID
@@ -148,7 +149,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
     
-    // Check if item already in cart
+    // For authenticated users, always use user ID for queries
     let existingItem;
     if (userId) {
       existingItem = await db.get(
@@ -164,10 +165,15 @@ export async function POST(request: NextRequest) {
     
     if (existingItem) {
       // Update quantity
-      await db.run(
-        'UPDATE cart_items SET quantity = quantity + ? WHERE id = ?',
-        [quantity, existingItem.id]
-      );
+      const updateQuery = userId 
+        ? 'UPDATE cart_items SET quantity = quantity + ? WHERE userId = ? AND productId = ?'
+        : 'UPDATE cart_items SET quantity = quantity + ? WHERE cartId = ? AND productId = ?';
+      
+      const updateParams = userId 
+        ? [quantity, userId, productId]
+        : [quantity, cartId, productId];
+      
+      await db.run(updateQuery, updateParams);
     } else {
       // Add new item
       await db.run(
@@ -178,7 +184,7 @@ export async function POST(request: NextRequest) {
     
     const response = NextResponse.json({ success: true });
     
-    // Set cart ID cookie if not exists (for guests)
+    // Only set cart ID cookie for guests
     if (!request.cookies.get('cartId') && !token) {
       response.cookies.set('cartId', cartId, {
         maxAge: 30 * 24 * 60 * 60,
@@ -189,34 +195,6 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (error: any) {
     console.error('Failed to add to cart:', error);
-    
-    // Handle specific SQL errors
-    if (error.code === 'SQLITE_ERROR' && error.message.includes('no such column: userId')) {
-      // Column doesn't exist, try without userId
-      try {
-        const { productId, quantity = 1 } = await request.json();
-        const cartId = getCartId(request);
-        const db = await getDB();
-        
-        // Add item without userId (backward compatibility)
-        await db.run(
-          'INSERT INTO cart_items (id, cartId, productId, quantity) VALUES (?, ?, ?, ?)',
-          [uuidv4(), cartId, productId, quantity]
-        );
-        
-        const response = NextResponse.json({ success: true });
-        if (!request.cookies.get('cartId')) {
-          response.cookies.set('cartId', cartId, {
-            maxAge: 30 * 24 * 60 * 60,
-            path: '/',
-          });
-        }
-        return response;
-      } catch (fallbackError) {
-        console.error('Fallback also failed:', fallbackError);
-      }
-    }
-    
     return NextResponse.json({ error: 'Failed to add to cart' }, { status: 500 });
   }
 }

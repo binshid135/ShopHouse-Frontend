@@ -26,6 +26,17 @@ export default function SignupPage() {
     setError('');
   };
 
+  function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) {
+    return parts.pop()?.split(';').shift() || null;
+  }
+  return null;
+}
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -46,33 +57,47 @@ export default function SignupPage() {
     }
 
     try {
-      const response = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-          phone: formData.phone,
-          address: formData.address,
-        }),
-      });
+    const response = await fetch('/api/auth/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        phone: formData.phone,
+        address: formData.address,
+      }),
+    });
 
-      const data = await response.json();
+    const data = await response.json();
 
-      if (response.ok) {
-        router.push('/products');
-        router.refresh();
-      } else {
-        setError(data.error || 'Signup failed');
+    if (response.ok) {
+      // Migrate cart for new users too
+      const guestCartId = getCookie('cartId');
+      if (guestCartId) {
+        try {
+          await fetch('/api/userside/cart/migrate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ guestCartId }),
+          });
+        } catch (migrateError) {
+          console.error('Cart migration failed:', migrateError);
+        }
       }
-    } catch (error) {
-      setError('An error occurred. Please try again.');
-    } finally {
-      setLoading(false);
+      
+      router.push('/products');
+      router.refresh();
+    } else {
+      setError(data.error || 'Signup failed');
     }
+  } catch (error) {
+    setError('An error occurred. Please try again.');
+  } finally {
+    setLoading(false);
+  }
+
   };
 
   return (

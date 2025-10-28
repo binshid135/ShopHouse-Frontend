@@ -23,6 +23,7 @@ export default function LoginPage() {
 
 // Add this to your handleSubmit function after successful login
 // In your login page - after successful login
+// In your login page, update the handleSubmit function:
 const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
   setLoading(true);
@@ -39,16 +40,30 @@ const handleSubmit = async (e: React.FormEvent) => {
 
     if (response.ok) {
       // Get current guest cart ID before migration
-      const guestCartId = document.cookie.split('; ').find(row => row.startsWith('cartId='))?.split('=')[1];
-      console.log("guest cart id",guestCartId)
+      const guestCartId = getCookie('cartId');
+      console.log("Guest cart ID:", guestCartId);
+      
       if (guestCartId) {
-        console.log('🔄 Migrating guest cart to user account...');
-        // Call migration endpoint
-        await fetch('/api/userside/cart/migrate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ guestCartId }),
-        });
+        try {
+          console.log('🔄 Migrating guest cart to user account...');
+          // Call migration endpoint
+          const migrateResponse = await fetch('/api/userside/cart/migrate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include', // Important for cookies
+            body: JSON.stringify({ guestCartId }),
+          });
+          
+          if (migrateResponse.ok) {
+            const migrateData = await migrateResponse.json();
+            console.log('✅ Cart migration successful:', migrateData);
+          } else {
+            console.warn('⚠️ Cart migration failed, but login successful');
+          }
+        } catch (migrateError) {
+          console.error('❌ Cart migration error:', migrateError);
+          // Don't block login if migration fails
+        }
       }
       
       router.push('/products');
@@ -62,6 +77,18 @@ const handleSubmit = async (e: React.FormEvent) => {
     setLoading(false);
   }
 };
+
+// Helper function to get cookie value
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) {
+    return parts.pop()?.split(';').shift() || null;
+  }
+  return null;
+}
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100 overflow-hidden">
       <FloatingElements />
