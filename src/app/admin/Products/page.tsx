@@ -23,7 +23,7 @@ export default function ProductsPage() {
         setProducts(data);
       } else {
         console.error('Failed to fetch products');
-        console.log("resss",response)
+        console.log("resss", response)
       }
     } catch (error) {
       console.error('Failed to fetch products:', error);
@@ -36,10 +36,10 @@ export default function ProductsPage() {
     if (!confirm('Are you sure you want to delete this product?')) return;
 
     try {
-      const response = await fetch(`/api/products/${id}`, { 
-        method: 'DELETE' 
+      const response = await fetch(`/api/products/${id}`, {
+        method: 'DELETE'
       });
-      
+
       if (response.ok) {
         fetchProducts();
       } else {
@@ -136,6 +136,9 @@ export default function ProductsPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Recommendation
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -179,6 +182,21 @@ export default function ProductsPage() {
                         ${product.discountedPrice.toFixed(2)}
                       </span>
                     </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {product.isMostRecommended ? (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                        Most Recommended
+                      </span>
+                    ) : product.isRecommended ? (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        Recommended #{product.recommendationOrder}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                        Normal
+                      </span>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {(((product.originalPrice - product.discountedPrice) / product.originalPrice) * 100).toFixed(1)}% off

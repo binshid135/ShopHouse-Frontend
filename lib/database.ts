@@ -32,13 +32,16 @@ async function initializeDB(): Promise<void> {
 
   // Create all tables with basic structure first
   await db.exec(`
-    CREATE TABLE IF NOT EXISTS products (
+   CREATE TABLE IF NOT EXISTS products (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       shortDescription TEXT,
       originalPrice REAL NOT NULL,
       discountedPrice REAL NOT NULL,
       images TEXT,
+      isRecommended BOOLEAN DEFAULT 0,
+      isMostRecommended BOOLEAN DEFAULT 0,
+      recommendationOrder INTEGER DEFAULT 0,
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
       updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
     );
@@ -148,6 +151,18 @@ async function initializeDB(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_cart_items_user_id ON cart_items(userId);
     CREATE INDEX IF NOT EXISTS idx_cart_items_cart_id ON cart_items(cartId);
   `);
+
+  
+  // Add the new columns if they don't exist
+  try {
+    await db.run(`ALTER TABLE products ADD COLUMN isRecommended BOOLEAN DEFAULT 0`);
+    await db.run(`ALTER TABLE products ADD COLUMN isMostRecommended BOOLEAN DEFAULT 0`);
+    await db.run(`ALTER TABLE products ADD COLUMN recommendationOrder INTEGER DEFAULT 0`);
+  } catch (error) {
+    // Columns might already exist
+    console.log('Product columns migration completed or not needed');
+  }
+
 
   // Create demo user
   await createDemoUser();

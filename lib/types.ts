@@ -6,6 +6,9 @@ export interface Product {
   originalPrice: number;
   discountedPrice: number;
   images: string[];
+  isRecommended: boolean;
+  isMostRecommended: boolean;
+  recommendationOrder: number;
   createdAt: Date;
   updatedAt: Date;
 }

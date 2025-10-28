@@ -148,13 +148,6 @@ const handleSubmit = async (e: React.FormEvent) => {
                 </p>
               </div>
             </form>
-
-            {/* Demo Credentials */}
-            <div className="mt-8 p-4 bg-amber-50 rounded-xl border border-amber-200">
-              <p className="text-sm text-amber-800 font-medium mb-2">Demo Credentials:</p>
-              <p className="text-xs text-amber-700">Email: demo@shophouse.com</p>
-              <p className="text-xs text-amber-700">Password: demo123</p>
-            </div>
           </div>
         </div>
       </div>

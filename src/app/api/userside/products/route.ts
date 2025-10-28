@@ -6,12 +6,14 @@ export async function GET() {
     const db = await getDB();
     const products = await db.all(`
       SELECT * FROM products 
-      ORDER BY createdAt DESC
+      ORDER BY isMostRecommended DESC, recommendationOrder ASC, createdAt DESC
     `);
     
     const productsWithImages = products.map((product: any) => ({
       ...product,
-      images: product.images ? JSON.parse(product.images) : []
+      images: product.images ? JSON.parse(product.images) : [],
+      isRecommended: Boolean(product.isRecommended),
+      isMostRecommended: Boolean(product.isMostRecommended)
     }));
     
     return NextResponse.json(productsWithImages);
