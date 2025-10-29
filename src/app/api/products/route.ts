@@ -40,6 +40,13 @@ export async function POST(request: NextRequest) {
     
     const { uploadedImages, formData } = await handleFileUploadAndFormData(request);
     
+    // Validate that at least one image is provided
+    if (uploadedImages.length === 0) {
+      return NextResponse.json({ 
+        error: 'At least one image is required' 
+      }, { status: 400 });
+    }
+    
     // Handle recommendation logic
     const isRecommended = formData.isRecommended === 'true';
     const isMostRecommended = formData.isMostRecommended === 'true';
@@ -48,11 +55,15 @@ export async function POST(request: NextRequest) {
     // Validate recommendations
     if (isMostRecommended) {
       // Check if there's already a most recommended product
+      // For new products, don't exclude any ID since it doesn't exist yet
       const existingMostRecommended = await db.get(
-        'SELECT id FROM products WHERE isMostRecommended = 1 AND id != ?', 
-        [formData.id]
+        'SELECT id FROM products WHERE isMostRecommended = 1'
       );
       if (existingMostRecommended) {
+        // Clean up uploaded images since we're rejecting the creation
+        for (const imagePath of uploadedImages) {
+          await deleteUploadedFile(imagePath);
+        }
         return NextResponse.json({ 
           error: 'There can only be one most recommended product' 
         }, { status: 400 });
@@ -62,13 +73,28 @@ export async function POST(request: NextRequest) {
 
     if (isRecommended && !isMostRecommended) {
       // Check if we've reached the limit of 3 recommended products
+      // For new products, don't exclude any ID
       const recommendedCount = await db.get(
-        'SELECT COUNT(*) as count FROM products WHERE isRecommended = 1 AND isMostRecommended = 0 AND id != ?',
-        [formData.id]
+        'SELECT COUNT(*) as count FROM products WHERE isRecommended = 1 AND isMostRecommended = 0'
       );
       if (recommendedCount.count >= 3) {
+        // Clean up uploaded images since we're rejecting the creation
+        for (const imagePath of uploadedImages) {
+          await deleteUploadedFile(imagePath);
+        }
         return NextResponse.json({ 
           error: 'Maximum of 3 recommended products allowed' 
+        }, { status: 400 });
+      }
+      
+      // Validate recommendation order for new recommended products
+      if (recommendationOrder < 1 || recommendationOrder > 3) {
+        // Clean up uploaded images since we're rejecting the creation
+        for (const imagePath of uploadedImages) {
+          await deleteUploadedFile(imagePath);
+        }
+        return NextResponse.json({ 
+          error: 'Recommendation order must be between 1 and 3' 
         }, { status: 400 });
       }
     }
@@ -109,6 +135,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// app/api/products/route.ts - PUT function
 export async function PUT(request: NextRequest) {
   const session = await verifyAdminSession();
   if (!session) {
@@ -146,6 +173,13 @@ export async function PUT(request: NextRequest) {
       allImages.push(...filteredImages);
     }
 
+    // Validate that at least one image remains
+    if (allImages.length === 0) {
+      return NextResponse.json({ 
+        error: 'At least one image is required' 
+      }, { status: 400 });
+    }
+
     // Handle recommendation logic
     const isRecommended = formData.isRecommended === 'true';
     const isMostRecommended = formData.isMostRecommended === 'true';
@@ -175,6 +209,13 @@ export async function PUT(request: NextRequest) {
       if (recommendedCount.count >= 3) {
         return NextResponse.json({ 
           error: 'Maximum of 3 recommended products allowed' 
+        }, { status: 400 });
+      }
+      
+      // Validate recommendation order
+      if (recommendationOrder < 1 || recommendationOrder > 3) {
+        return NextResponse.json({ 
+          error: 'Recommendation order must be between 1 and 3' 
         }, { status: 400 });
       }
     }

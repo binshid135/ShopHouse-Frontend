@@ -167,6 +167,20 @@ async function initializeDB(): Promise<void> {
   // Create demo user
   await createDemoUser();
   await migrateCartItemsTable();
+
+  await db.exec(`
+  CREATE TABLE IF NOT EXISTS user_otps (
+    id TEXT PRIMARY KEY,
+    email TEXT NOT NULL,
+    otp TEXT NOT NULL,
+    expiresAt DATETIME NOT NULL,
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    used BOOLEAN DEFAULT 0
+  );
+  
+  CREATE INDEX IF NOT EXISTS idx_user_otps_email ON user_otps(email);
+  CREATE INDEX IF NOT EXISTS idx_user_otps_expiresAt ON user_otps(expiresAt);
+`);
 }
 
 async function migrateCartItemsTable(): Promise<void> {

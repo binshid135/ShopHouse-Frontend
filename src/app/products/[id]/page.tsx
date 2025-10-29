@@ -182,7 +182,7 @@ export default function ProductDetail() {
                   <img 
                     src={product.images[selectedImage]} 
                     alt={product.name}
-                    className="w-full h-96 object-cover rounded-2xl mb-6"
+                    className="w-full h-96 object-contain rounded-2xl mb-6"
                   />
                 ) : (
                   <div className="text-9xl text-center mb-6">{productEmoji}</div>
@@ -342,7 +342,7 @@ export default function ProductDetail() {
                       <img 
                         src={relatedProduct.images[0]} 
                         alt={relatedProduct.name}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain"
                       />
                     ) : (
                       <div className="text-6xl">{relatedEmoji}</div>

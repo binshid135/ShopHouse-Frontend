@@ -101,7 +101,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, index, onProductClic
             src={product.images[0]}
             alt={product.name}
             fill
-            className="object-cover group-hover:scale-110 transition-transform duration-300"
+            className="object-contain group-hover:scale-110 transition-transform duration-300"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">

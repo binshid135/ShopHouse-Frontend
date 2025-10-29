@@ -172,7 +172,7 @@ export default function Cart() {
 
   // Calculate order summary
   const subtotal = cart?.total || 0;
-  const shipping = subtotal > 500 ? 0 : 25;
+  const shipping = subtotal > 500 ? 0 : 20;
   const tax = subtotal * 0.05; // 5% VAT
   const total = Math.max(0, subtotal + shipping + tax - discount);
 
@@ -398,7 +398,7 @@ export default function Cart() {
                   <span>${subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-amber-800">
-                  <span>Shipping</span>
+                  <span>Delivery charge</span>
                   <span>{shipping === 0 ? 'FREE' : `$${shipping.toFixed(2)}`}</span>
                 </div>
                 <div className="flex justify-between text-amber-800">
@@ -430,7 +430,7 @@ export default function Cart() {
 
               {shipping > 0 && subtotal < 500 && (
                 <p className="text-center text-sm text-amber-700 mt-4">
-                  Add ${(500 - subtotal).toFixed(2)} more for FREE shipping!
+                  Add ${(500 - subtotal).toFixed(2)} more for FREE Delivery!
                 </p>
               )}
 
@@ -449,7 +449,7 @@ export default function Cart() {
                   <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
                     <span className="text-green-600 font-bold">✓</span>
                   </div>
-                  Free shipping on orders over $500
+                  Free Delivery on orders over $500
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">

@@ -23,31 +23,39 @@ export default function ProductForm({ product, onSubmit, onCancel }: ProductForm
   const [isMostRecommended, setIsMostRecommended] = useState(product?.isMostRecommended || false);
   const [recommendationOrder, setRecommendationOrder] = useState(product?.recommendationOrder || 0);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    const formData = new FormData();
-    if (product) formData.append('id', product.id);
-    formData.append('name', name);
-    formData.append('shortDescription', shortDescription);
-    formData.append('originalPrice', originalPrice);
-    formData.append('discountedPrice', discountedPrice);
-    formData.append('isRecommended', isRecommended.toString());
-    formData.append('isMostRecommended', isMostRecommended.toString());
-    formData.append('recommendationOrder', recommendationOrder.toString());
-    
-    // Append new images
-    images.forEach(image => {
-      formData.append('images', image);
-    });
-    
-    // Append images to delete
-    if (imagesToDelete.length > 0) {
-      formData.append('deletedImages', JSON.stringify(imagesToDelete));
-    }
-    
-    onSubmit(formData);
-  };
+  // components/admin/ProductForm.tsx - Update handleSubmit function
+const handleSubmit = (e: React.FormEvent) => {
+  e.preventDefault();
+  
+  // Client-side validation for images
+  const totalImages = existingImages.length + images.length - imagesToDelete.length;
+  if (totalImages === 0) {
+    alert('At least one image is required');
+    return;
+  }
+  
+  const formData = new FormData();
+  if (product) formData.append('id', product.id);
+  formData.append('name', name);
+  formData.append('shortDescription', shortDescription);
+  formData.append('originalPrice', originalPrice);
+  formData.append('discountedPrice', discountedPrice);
+  formData.append('isRecommended', isRecommended.toString());
+  formData.append('isMostRecommended', isMostRecommended.toString());
+  formData.append('recommendationOrder', recommendationOrder.toString());
+  
+  // Append new images
+  images.forEach(image => {
+    formData.append('images', image);
+  });
+  
+  // Append images to delete
+  if (imagesToDelete.length > 0) {
+    formData.append('deletedImages', JSON.stringify(imagesToDelete));
+  }
+  
+  onSubmit(formData);
+};
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {

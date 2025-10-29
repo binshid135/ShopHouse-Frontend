@@ -18,17 +18,17 @@ const AboutUs: React.FC = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-8 mb-12">
           <StatCard 
             icon={<Users className="w-8 h-8" />}
             number="10,000+"
-            label="Happy Chefs"
+            label="Happy Customers"
           />
-          <StatCard 
+          {/* <StatCard 
             icon={<Award className="w-8 h-8" />}
             number="15+"
             label="Years Experience"
-          />
+          /> */}
           <StatCard 
             icon={<Target className="w-8 h-8" />}
             number="500+"
@@ -36,7 +36,7 @@ const AboutUs: React.FC = () => {
           />
           <StatCard 
             icon={<Heart className="w-8 h-8" />}
-            number="98%"
+            number="100%"
             label="Satisfaction Rate"
           />
         </div>

@@ -24,6 +24,7 @@ export default function LoginPage() {
 // Add this to your handleSubmit function after successful login
 // In your login page - after successful login
 // In your login page, update the handleSubmit function:
+// In your login page, update the handleSubmit function:
 const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
   setLoading(true);
@@ -33,36 +34,40 @@ const handleSubmit = async (e: React.FormEvent) => {
     const response = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify(formData),
     });
 
     const data = await response.json();
 
     if (response.ok) {
-      // Get current guest cart ID before migration
+      // Get guest cart ID before migration
       const guestCartId = getCookie('cartId');
-      console.log("Guest cart ID:", guestCartId);
+      console.log("🔍 Guest cart ID for migration:", guestCartId);
       
       if (guestCartId) {
         try {
-          console.log('🔄 Migrating guest cart to user account...');
-          // Call migration endpoint
+          console.log('🔄 Starting cart migration after login...');
+          
+          // Small delay to ensure session is set
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
           const migrateResponse = await fetch('/api/userside/cart/migrate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            credentials: 'include', // Important for cookies
+            credentials: 'include',
             body: JSON.stringify({ guestCartId }),
           });
           
           if (migrateResponse.ok) {
             const migrateData = await migrateResponse.json();
-            console.log('✅ Cart migration successful:', migrateData);
+            console.log('✅ Cart migration successful after login:', migrateData);
           } else {
-            console.warn('⚠️ Cart migration failed, but login successful');
+            const errorData = await migrateResponse.json();
+            console.warn('⚠️ Cart migration failed after login:', errorData);
           }
         } catch (migrateError) {
-          console.error('❌ Cart migration error:', migrateError);
-          // Don't block login if migration fails
+          console.error('❌ Cart migration error after login:', migrateError);
         }
       }
       
