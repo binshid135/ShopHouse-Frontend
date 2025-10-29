@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Search, ChefHat, User, LogOut } from 'lucide-react';
+import { ShoppingCart, ChefHat, User, LogOut, Menu, X } from 'lucide-react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 interface HeaderProps {
     searchQuery: string;
@@ -19,6 +20,7 @@ interface User {
 const Header: React.FC<HeaderProps> = ({ searchQuery, setSearchQuery }) => {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     useEffect(() => {
         checkAuth();
@@ -47,18 +49,37 @@ const Header: React.FC<HeaderProps> = ({ searchQuery, setSearchQuery }) => {
     };
 
     return (
-        <header className="relative z-10 px-6 py-4">
+        <header className="relative z-10 px-4 py-4 sm:px-6">
             <div className="max-w-7xl mx-auto flex items-center justify-between">
+                {/* Mobile menu button */}
+                <button
+                    className="md:hidden p-2"
+                    onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                >
+                    {mobileMenuOpen ? (
+                        <X className="w-6 h-6 text-amber-900" />
+                    ) : (
+                        <Menu className="w-6 h-6 text-amber-900" />
+                    )}
+                </button>
+
                 <Logo />
-                <Navigation />
+                
+                {/* Desktop Navigation */}
+                <DesktopNavigation />
+                
                 <HeaderActions 
-                    searchQuery={searchQuery} 
-                    setSearchQuery={setSearchQuery}
                     user={user}
                     onLogout={handleLogout}
                     loading={loading}
                 />
             </div>
+
+            {/* Mobile Navigation */}
+            <MobileNavigation 
+                isOpen={mobileMenuOpen}
+                onClose={() => setMobileMenuOpen(false)}
+            />
         </header>
     );
 };
@@ -74,60 +95,102 @@ const Logo: React.FC = () => (
     </Link>
 );
 
-const Navigation: React.FC = () => (
-    <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
-        <Link href="/" className="text-amber-900 hover:text-orange-600 transition-colors">
-            Home
-        </Link>
-        <Link href="/products" className="text-amber-900 hover:text-orange-600 transition-colors">
-            Our Products
-        </Link>
-        <Link href="/about" className="text-amber-900 hover:text-orange-600 transition-colors">
-            About us
-        </Link>
-        <Link href="/orders" className="text-amber-900 hover:text-orange-600 transition-colors">
-            Your Orders
-        </Link>
-    </nav>
-);
+const DesktopNavigation: React.FC = () => {
+    const currentPath = usePathname();
+
+    const navItems = [
+        { href: '/', label: 'Home' },
+        { href: '/products', label: 'Our Products' },
+        { href: '/about', label: 'About us' },
+        { href: '/orders', label: 'Your Orders' },
+    ];
+
+    const isActive = (path: string) => {
+        if (path === '/') {
+            return currentPath === path;
+        }
+        return currentPath?.startsWith(path);
+    };
+
+    return (
+        <nav className="hidden md:flex items-center gap-4 lg:gap-8 text-sm font-medium">
+            {navItems.map((item) => (
+                <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`px-3 py-2 lg:px-4 lg:py-2 rounded-full transition-all ${
+                        isActive(item.href)
+                            ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg'
+                            : 'text-amber-900 hover:text-orange-600 hover:bg-amber-50'
+                    }`}
+                >
+                    {item.label}
+                </Link>
+            ))}
+        </nav>
+    );
+};
+
+interface MobileNavigationProps {
+    isOpen: boolean;
+    onClose: () => void;
+}
+
+const MobileNavigation: React.FC<MobileNavigationProps> = ({ isOpen, onClose }) => {
+    const currentPath = usePathname();
+
+    const navItems = [
+        { href: '/', label: 'Home' },
+        { href: '/products', label: 'Our Products' },
+        { href: '/about', label: 'About us' },
+        { href: '/orders', label: 'Your Orders' },
+    ];
+
+    const isActive = (path: string) => {
+        if (path === '/') {
+            return currentPath === path;
+        }
+        return currentPath?.startsWith(path);
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="md:hidden absolute top-full left-0 right-0 bg-white border-b border-amber-200 shadow-lg z-50">
+            <nav className="px-4 py-4 flex flex-col space-y-2">
+                {navItems.map((item) => (
+                    <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={onClose}
+                        className={`px-4 py-3 rounded-lg transition-all text-base font-medium ${
+                            isActive(item.href)
+                                ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md'
+                                : 'text-amber-900 hover:text-orange-600 hover:bg-amber-50'
+                        }`}
+                    >
+                        {item.label}
+                    </Link>
+                ))}
+            </nav>
+        </div>
+    );
+};
 
 interface HeaderActionsProps {
-    searchQuery: string;
-    setSearchQuery: (query: string) => void;
     user: User | null;
     onLogout: () => void;
     loading: boolean;
 }
 
 const HeaderActions: React.FC<HeaderActionsProps> = ({ 
-    searchQuery, 
-    setSearchQuery, 
     user, 
     onLogout,
     loading 
 }) => (
-    <div className="flex items-center gap-4">
-        <SearchInput searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+    <div className="flex items-center gap-3 sm:gap-4">
         <CartButton />
         <UserMenu user={user} onLogout={onLogout} loading={loading} />
-    </div>
-);
-
-interface SearchInputProps {
-    searchQuery: string;
-    setSearchQuery: (query: string) => void;
-}
-
-const SearchInput: React.FC<SearchInputProps> = ({ searchQuery, setSearchQuery }) => (
-    <div className="relative hidden lg:block">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <input
-            type="text"
-            placeholder="Search..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 pr-4 py-2 bg-white rounded-full border-2 border-transparent focus:border-orange-400 outline-none transition-all w-48"
-        />
     </div>
 );
 
@@ -158,7 +221,7 @@ const CartButton: React.FC = () => {
     };
 
     return (
-        <button className="relative p-2 hover:bg-white rounded-full transition-colors">
+        <button className="relative p-2 hover:bg-amber-50 rounded-full transition-colors">
             <Link href="/cart">
                 <ShoppingCart className="w-6 h-6 text-amber-900" />
                 {cartCount > 0 && (
@@ -189,14 +252,14 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout, loading }) => {
             <div className="flex items-center gap-2">
                 <Link
                     href="/login"
-                    className="text-amber-900 hover:text-orange-600 transition-colors font-medium"
+                    className="text-amber-900 hover:text-orange-600 transition-colors font-medium text-sm sm:text-base"
                 >
                     Sign In
                 </Link>
-                <span className="text-amber-900">|</span>
+                <span className="text-amber-900 hidden sm:inline">|</span>
                 <Link
                     href="/signup"
-                    className="bg-orange-500 text-white px-4 py-2 rounded-full hover:bg-orange-600 transition-colors font-medium"
+                    className="bg-orange-500 text-white px-3 py-2 sm:px-4 sm:py-2 rounded-full hover:bg-orange-600 transition-colors font-medium text-sm sm:text-base"
                 >
                     Sign Up
                 </Link>
@@ -208,7 +271,7 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout, loading }) => {
         <div className="relative">
             <button
                 onClick={() => setShowDropdown(!showDropdown)}
-                className="flex items-center gap-2 p-2 hover:bg-white rounded-full transition-colors"
+                className="flex items-center gap-2 p-2 hover:bg-amber-50 rounded-full transition-colors"
             >
                 <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-amber-600 rounded-full flex items-center justify-center">
                     <User className="w-4 h-4 text-white" />
