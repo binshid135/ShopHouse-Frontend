@@ -55,7 +55,7 @@ const Footer: React.FC = () => {
               <ul className="space-y-3">
                 <ContactItem 
                   icon={<Phone className="w-4 h-4" />}
-                  text="+1 (555) 123-4567"
+                  text="+971 50 849 3690"
                 />
                 <ContactItem 
                   icon={<Mail className="w-4 h-4" />}
