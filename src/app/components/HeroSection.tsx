@@ -38,17 +38,6 @@ const HeroContent: React.FC<HeroContentProps> = ({ mostRecommendedProduct }) => 
     <p className="text-lg text-amber-800 max-w-md">
       Boost your kitchen efficiency and build your culinary excellence with premium equipment every morning
     </p>
-    {/* {mostRecommendedProduct && (
-      <div className="bg-white/80 backdrop-blur-sm p-4 rounded-lg border-l-4 border-orange-500">
-        <p className="text-sm text-amber-700">
-          <span className="font-bold">Featured: </span>
-          {mostRecommendedProduct.name}
-        </p>
-        <p className="text-xs text-amber-600 mt-1">
-          {mostRecommendedProduct.shortDescription}
-        </p>
-      </div>
-    )} */}
     <div className="flex gap-4">
       <button className="bg-gradient-to-r from-orange-500 to-amber-600 text-white px-8 py-3 rounded-full font-medium hover:shadow-lg transform hover:-translate-y-1 transition-all flex items-center gap-2">
         Order now
@@ -89,9 +78,9 @@ const FeaturedProduct: React.FC<FeaturedProductProps> = ({ mostRecommendedProduc
   };
 
   return (
-    <div className="relative">
+    <div className="relative group">
       <div 
-        className="relative bg-gradient-to-br from-orange-100 via-amber-100 to-orange-200 rounded-full w-full aspect-square flex items-center justify-center shadow-xl p-12 cursor-pointer transform hover:scale-105 transition-transform duration-300"
+        className="relative bg-gradient-to-br from-orange-100 via-amber-100 to-orange-200 rounded-full w-full aspect-square flex items-center justify-center shadow-xl p-8 cursor-pointer transform hover:scale-105 transition-transform duration-300"
         onClick={handleClick}
       >
         {/* Product Tag */}
@@ -101,15 +90,15 @@ const FeaturedProduct: React.FC<FeaturedProductProps> = ({ mostRecommendedProduc
           </span>
         </div>
         
-        {/* Product Image */}
-        <div className="relative w-80 h-80 flex items-center justify-center">
+        {/* Product Image Container */}
+        <div className="relative w-4/5 h-4/5 flex items-center justify-center">
           {mostRecommendedProduct.images && mostRecommendedProduct.images.length > 0 ? (
             <Image 
               src={mostRecommendedProduct.images[0]} 
               alt={mostRecommendedProduct.name} 
-              width={320} 
-              height={320} 
-              className="w-full h-full object-contain"
+              fill
+              sizes="(max-width: 768px) 80vw, 40vw"
+              className="object-contain scale-110" // Scale up the image
               priority
             />
           ) : (
@@ -141,11 +130,6 @@ const FeaturedProduct: React.FC<FeaturedProductProps> = ({ mostRecommendedProduc
           <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
           <span className="font-bold text-amber-900">4.9</span>
         </div>
-
-        {/* Most Recommended Badge */}
-        {/* <div className="absolute top-8 left-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-4 py-2 rounded-xl shadow-lg">
-          <span className="text-sm font-bold">⭐ Most Recommended</span>
-        </div> */}
 
         {/* Click Hint */}
         <div className="absolute bottom-8 right-8 bg-black/70 text-white px-3 py-2 rounded-lg text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300">
