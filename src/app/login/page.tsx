@@ -21,84 +21,84 @@ export default function LoginPage() {
     setError('');
   };
 
-// Add this to your handleSubmit function after successful login
-// In your login page - after successful login
-// In your login page, update the handleSubmit function:
-// In your login page, update the handleSubmit function:
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setLoading(true);
-  setError('');
+  // Add this to your handleSubmit function after successful login
+  // In your login page - after successful login
+  // In your login page, update the handleSubmit function:
+  // In your login page, update the handleSubmit function:
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
 
-  try {
-    const response = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify(formData),
-    });
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(formData),
+      });
 
-    const data = await response.json();
+      const data = await response.json();
 
-    if (response.ok) {
-      // Get guest cart ID before migration
-      const guestCartId = getCookie('cartId');
-      console.log("🔍 Guest cart ID for migration:", guestCartId);
-      
-      if (guestCartId) {
-        try {
-          console.log('🔄 Starting cart migration after login...');
-          
-          // Small delay to ensure session is set
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
-          const migrateResponse = await fetch('/api/userside/cart/migrate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({ guestCartId }),
-          });
-          
-          if (migrateResponse.ok) {
-            const migrateData = await migrateResponse.json();
-            console.log('✅ Cart migration successful after login:', migrateData);
-          } else {
-            const errorData = await migrateResponse.json();
-            console.warn('⚠️ Cart migration failed after login:', errorData);
+      if (response.ok) {
+        // Get guest cart ID before migration
+        const guestCartId = getCookie('cartId');
+        console.log("🔍 Guest cart ID for migration:", guestCartId);
+
+        if (guestCartId) {
+          try {
+            console.log('🔄 Starting cart migration after login...');
+
+            // Small delay to ensure session is set
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            const migrateResponse = await fetch('/api/userside/cart/migrate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({ guestCartId }),
+            });
+
+            if (migrateResponse.ok) {
+              const migrateData = await migrateResponse.json();
+              console.log('✅ Cart migration successful after login:', migrateData);
+            } else {
+              const errorData = await migrateResponse.json();
+              console.warn('⚠️ Cart migration failed after login:', errorData);
+            }
+          } catch (migrateError) {
+            console.error('❌ Cart migration error after login:', migrateError);
           }
-        } catch (migrateError) {
-          console.error('❌ Cart migration error after login:', migrateError);
         }
-      }
-      
-      router.push('/products');
-      router.refresh();
-    } else {
-      setError(data.error || 'Login failed');
-    }
-  } catch (error) {
-    setError('An error occurred. Please try again.');
-  } finally {
-    setLoading(false);
-  }
-};
 
-// Helper function to get cookie value
-function getCookie(name: string): string | null {
-  if (typeof document === 'undefined') return null;
-  
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) {
-    return parts.pop()?.split(';').shift() || null;
+        router.push('/products');
+        router.refresh();
+      } else {
+        setError(data.error || 'Login failed');
+      }
+    } catch (error) {
+      setError('An error occurred. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Helper function to get cookie value
+  function getCookie(name: string): string | null {
+    if (typeof document === 'undefined') return null;
+
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) {
+      return parts.pop()?.split(';').shift() || null;
+    }
+    return null;
   }
-  return null;
-}
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100 overflow-hidden">
       <FloatingElements />
-      <Header searchQuery={""} setSearchQuery={() => {}} />
-      
+      <Header searchQuery={""} setSearchQuery={() => { }} />
+
       <div className="flex items-center justify-center min-h-[80vh] px-4">
         <div className="max-w-md w-full">
           <div className="bg-white rounded-3xl shadow-lg p-8">
@@ -160,6 +160,14 @@ function getCookie(name: string): string | null {
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
+              </div>
+              <div className="text-right">
+                <Link
+                  href="/forgot-password"
+                  className="text-sm text-orange-600 hover:text-orange-700 font-medium"
+                >
+                  Forgot your password?
+                </Link>
               </div>
 
               <button

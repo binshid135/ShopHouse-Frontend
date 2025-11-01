@@ -284,7 +284,7 @@ export default function Cart() {
                           <img 
                             src={item.images[0]} 
                             alt={item.name}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-contain"
                           />
                         ) : (
                           <div className="text-3xl">{productEmoji}</div>

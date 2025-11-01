@@ -118,7 +118,7 @@ async function initializeDB(): Promise<void> {
       FOREIGN KEY (productId) REFERENCES products (id)
     );
   `);
-  
+
   // Now update the users table with authentication columns
   await migrateUsersTable();
 
@@ -152,7 +152,7 @@ async function initializeDB(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_cart_items_cart_id ON cart_items(cartId);
   `);
 
-  
+
   // Add the new columns if they don't exist
   try {
     await db.run(`ALTER TABLE products ADD COLUMN isRecommended BOOLEAN DEFAULT 0`);
@@ -180,6 +180,22 @@ async function initializeDB(): Promise<void> {
   
   CREATE INDEX IF NOT EXISTS idx_user_otps_email ON user_otps(email);
   CREATE INDEX IF NOT EXISTS idx_user_otps_expiresAt ON user_otps(expiresAt);
+`);
+
+  // In initializeDB function, add this with other table creations:
+  await db.exec(`
+  CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    id TEXT PRIMARY KEY,
+    userId TEXT NOT NULL,
+    token TEXT UNIQUE NOT NULL,
+    expiresAt DATETIME NOT NULL,
+    used BOOLEAN DEFAULT 0,
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (userId) REFERENCES users (id)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_token ON password_reset_tokens(token);
+  CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_expiresAt ON password_reset_tokens(expiresAt);
 `);
 }
 
