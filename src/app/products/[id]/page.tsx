@@ -36,6 +36,7 @@ export default function ProductDetail() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [addedProductIds, setAddedProductIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (params.id) {
@@ -76,9 +77,7 @@ export default function ProductDetail() {
     }
   };
 
-  const handleAddToCart = async () => {
-    if (!product) return;
-
+  const handleAddToCart = async (productId: string, quantityToAdd: number = 1) => {
     try {
       const response = await fetch('/api/userside/cart', {
         method: 'POST',
@@ -86,20 +85,48 @@ export default function ProductDetail() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          productId: product.id,
-          quantity: quantity,
+          productId,
+          quantity: quantityToAdd,
         }),
       });
 
       if (response.ok) {
-        setIsInCart(true);
-        setTimeout(() => setIsInCart(false), 2000);
+        // Mark as added
+        setAddedProductIds((prev) => [...prev, productId]);
+
+        // Auto-remove after 2 seconds
+        setTimeout(() => {
+          setAddedProductIds((prev) => prev.filter((id) => id !== productId));
+        }, 2000);
+
+        return true;
       } else {
         alert('Failed to add product to cart');
+        return false;
       }
     } catch (error) {
       console.error('Failed to add to cart:', error);
       alert('Error adding to cart');
+      return false;
+    }
+  };
+
+  const handleMainProductAddToCart = async () => {
+    if (!product) return;
+
+    const success = await handleAddToCart(product.id, quantity);
+    if (success) {
+      setIsInCart(true);
+      setTimeout(() => setIsInCart(false), 2000);
+    }
+  };
+
+  const handleRelatedProductAddToCart = async (productId: string, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent navigation to product detail
+    
+    const success = await handleAddToCart(productId, 1);
+    if (success) {
+      // Success feedback is handled by the addedProductIds state
     }
   };
 
@@ -228,11 +255,11 @@ export default function ProductDetail() {
 
               <div className="flex items-center gap-4">
                 <span className="text-3xl font-bold text-amber-900">
-                  ${product.discountedPrice.toFixed(2)}
+                  AED{product.discountedPrice.toFixed(2)}
                 </span>
                 {product.originalPrice > product.discountedPrice && (
                   <span className="text-xl text-gray-500 line-through">
-                    ${product.originalPrice.toFixed(2)}
+                    AED{product.originalPrice.toFixed(2)}
                   </span>
                 )}
               </div>
@@ -287,7 +314,7 @@ export default function ProductDetail() {
 
                 <div className="flex gap-4">
                   <button 
-                    onClick={handleAddToCart}
+                    onClick={handleMainProductAddToCart}
                     className="flex-1 bg-gradient-to-r from-orange-500 to-amber-600 text-white py-4 rounded-full font-medium hover:shadow-lg transform hover:-translate-y-1 transition-all flex items-center justify-center gap-3"
                   >
                     <ShoppingCart className="w-5 h-5" />
@@ -330,6 +357,7 @@ export default function ProductDetail() {
             {relatedProducts.map((relatedProduct) => {
               const relatedEmoji = getProductEmoji(relatedProduct);
               const relatedDiscount = Math.round(((relatedProduct.originalPrice - relatedProduct.discountedPrice) / relatedProduct.originalPrice) * 100);
+              const isAdded = addedProductIds.includes(relatedProduct.id);
               
               return (
                 <div
@@ -355,25 +383,31 @@ export default function ProductDetail() {
                   </div>
                   <div className="p-6">
                     <h3 className="text-lg font-bold text-amber-900 mb-2">{relatedProduct.name}</h3>
+                    {relatedProduct.shortDescription && (
+                      <p className="text-amber-700 text-sm mb-3 line-clamp-2">
+                        {relatedProduct.shortDescription}
+                      </p>
+                    )}
                     <div className="flex items-center justify-between">
                       <div className="flex flex-col">
                         <span className="text-xl font-bold text-amber-900">
-                          ${relatedProduct.discountedPrice.toFixed(2)}
+                          AED{relatedProduct.discountedPrice.toFixed(2)}
                         </span>
                         {relatedProduct.originalPrice > relatedProduct.discountedPrice && (
                           <span className="text-sm text-gray-500 line-through">
-                            ${relatedProduct.originalPrice.toFixed(2)}
+                            AED{relatedProduct.originalPrice.toFixed(2)}
                           </span>
                         )}
                       </div>
                       <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Add to cart functionality for related products
-                        }}
-                        className="bg-gradient-to-r from-orange-500 to-amber-600 text-white p-2 rounded-full hover:shadow-lg transform hover:scale-110 transition-all"
+                        onClick={(e) => handleRelatedProductAddToCart(relatedProduct.id, e)}
+                        className={`p-3 rounded-full transition-all transform hover:scale-110 ${
+                          isAdded
+                            ? 'bg-green-500 text-white shadow-lg'
+                            : 'bg-gradient-to-r from-orange-500 to-amber-600 text-white hover:shadow-lg'
+                        }`}
                       >
-                        <ShoppingCart className="w-4 h-4" />
+                        {isAdded ? '✓' : <ShoppingCart className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>

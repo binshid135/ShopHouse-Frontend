@@ -20,19 +20,10 @@ export default function Products() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const categories = [
-    'All Products',
-    'Knives & Cutlery',
-    'Cookware',
-    'Appliances',
-    'Utensils',
-    'Bakeware'
-  ];
+  const [addedProductIds, setAddedProductIds] = useState<string[]>([]);
 
   useEffect(() => {
     fetchProducts();
@@ -55,9 +46,6 @@ export default function Products() {
       setLoading(false);
     }
   };
-
-  // Add this new state
-  const [addedProductIds, setAddedProductIds] = useState<string[]>([]);
 
   const addToCart = async (productId: string, event: React.MouseEvent) => {
     event.stopPropagation(); // Prevent navigation
@@ -91,20 +79,14 @@ export default function Products() {
     }
   };
 
-
   const navigateToProduct = (productId: string) => {
     router.push(`/products/${productId}`);
   };
 
-  // Filter products based on search and category
+  // Filter products based on search query
   const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    return product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.shortDescription?.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesCategory = selectedCategory === 'all' ||
-      product.name.toLowerCase().includes(selectedCategory.toLowerCase().replace(' & ', ' '));
-
-    return matchesSearch && matchesCategory;
   });
 
   // Calculate discount percentage
@@ -187,27 +169,27 @@ export default function Products() {
         <div className="max-w-7xl mx-auto">
           {/* Controls */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
-            <div className="flex flex-wrap gap-2">
-              {categories.map((category) => (
-                <button
-                  key={category}
-                  onClick={() => setSelectedCategory(category === 'All Products' ? 'all' : category)}
-                  className={`px-4 py-2 rounded-full font-medium transition-all ${(category === 'All Products' && selectedCategory === 'all') ||
-                      selectedCategory === category
-                      ? 'bg-orange-500 text-white shadow-lg'
-                      : 'bg-white text-amber-900 hover:bg-orange-100'
-                    }`}
-                >
-                  {category}
-                </button>
-              ))}
+            {/* Search Field */}
+            <div className="w-full md:w-auto">
+              <div className="relative max-w-md">
+                <input
+                  type="text"
+                  placeholder="Search products..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full px-6 py-3 rounded-full border border-amber-200 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white text-amber-900 placeholder-amber-400 shadow-sm"
+                />
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                  <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                </div>
+              </div>
             </div>
 
             <div className="flex items-center gap-4">
-              <button className="flex items-center gap-2 bg-white px-4 py-2 rounded-full text-amber-900 font-medium hover:shadow-lg transition-all">
+              {/* <button className="flex items-center gap-2 bg-white px-4 py-2 rounded-full text-amber-900 font-medium hover:shadow-lg transition-all">
                 <Filter className="w-4 h-4" />
                 Filter
-              </button>
+              </button> */}
               <div className="flex bg-white rounded-full p-1">
                 <button
                   onClick={() => setViewMode('grid')}
@@ -231,13 +213,26 @@ export default function Products() {
           <div className="mb-6">
             <p className="text-amber-700">
               Showing {filteredProducts.length} of {products.length} products
+              {searchQuery && (
+                <span className="text-orange-600"> for "{searchQuery}"</span>
+              )}
             </p>
           </div>
 
           {/* Products Grid */}
           {filteredProducts.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-xl text-amber-800">No products found matching your criteria.</p>
+              <p className="text-xl text-amber-800">
+                {searchQuery ? `No products found matching "${searchQuery}".` : "No products found."}
+              </p>
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="mt-4 bg-orange-500 text-white px-6 py-2 rounded-full hover:bg-orange-600 transition-colors"
+                >
+                  Clear Search
+                </button>
+              )}
             </div>
           ) : (
             <div className={`grid gap-6 ${viewMode === 'grid'
@@ -289,7 +284,7 @@ export default function Products() {
                           </span>
                           {discountPercentage > 0 && (
                             <span className="px-2 py-1 bg-red-100 text-red-600 rounded-full text-xs font-medium">
-                              Save ${(product.originalPrice - product.discountedPrice).toFixed(2)}
+                              Save AED{(product.originalPrice - product.discountedPrice).toFixed(2)}
                             </span>
                           )}
                         </div>
@@ -310,11 +305,11 @@ export default function Products() {
                       <div className="flex items-center justify-between">
                         <div className="flex flex-col">
                           <span className="text-2xl font-bold text-amber-900">
-                            ${product.discountedPrice.toFixed(2)}
+                            AED{product.discountedPrice.toFixed(2)}
                           </span>
                           {product.originalPrice > product.discountedPrice && (
                             <span className="text-sm text-gray-500 line-through">
-                              ${product.originalPrice.toFixed(2)}
+                              AED{product.originalPrice.toFixed(2)}
                             </span>
                           )}
                         </div>
@@ -327,7 +322,6 @@ export default function Products() {
                         >
                           {addedProductIds.includes(product.id) ? '✓ Added' : <ShoppingCart className="w-5 h-5" />}
                         </button>
-
                       </div>
                     </div>
                   </div>

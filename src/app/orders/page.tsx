@@ -279,7 +279,7 @@ export default function Orders() {
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-2xl font-bold text-amber-900">${order.total.toFixed(2)}</p>
+                        <p className="text-2xl font-bold text-amber-900">AED {order.total.toFixed(2)}</p>
                         <p className="text-sm text-amber-700">{order.items.length} item(s)</p>
                       </div>
                     </div>
@@ -307,10 +307,10 @@ export default function Orders() {
                               <div className="flex items-center gap-4">
                                 <span className="text-amber-700">Qty: {item.quantity}</span>
                                 <span className="text-lg font-bold text-amber-900">
-                                  ${(item.price * item.quantity).toFixed(2)}
+                                  AED {(item.price * item.quantity).toFixed(2)}
                                 </span>
                               </div>
-                              <p className="text-sm text-amber-600">${item.price.toFixed(2)} each</p>
+                              <p className="text-sm text-amber-600">AED {item.price.toFixed(2)} each</p>
                             </div>
                             {order.status === 'delivered' && (
                               <button className="flex items-center gap-2 text-orange-600 hover:text-orange-700 transition-colors">
@@ -326,9 +326,9 @@ export default function Orders() {
                     {/* Order Actions */}
                     <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
                       <div className="space-y-2">
-                        <p className="text-sm text-amber-700">
+                        {/* <p className="text-sm text-amber-700">
                           Contact: {order.customerPhone}
-                        </p>
+                        </p> */}
                         {order.status === 'out_for_delivery' && (
                           <p className="text-sm text-blue-600 font-medium">
                             🚚 Your order is out for delivery
@@ -358,13 +358,13 @@ export default function Orders() {
                             Rate Products
                           </button>
                         )}
-                        <button 
+                        {/* <button 
                           onClick={() => router.push(`/orders/${order.id}`)}
                           className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-amber-600 text-white px-6 py-2 rounded-full hover:shadow-lg transition-all"
                         >
                           View Details
                           <ArrowRight className="w-4 h-4" />
-                        </button>
+                        </button> */}
                       </div>
                     </div>
                   </div>
@@ -407,8 +407,8 @@ export default function Orders() {
               <div>
                 <p className="font-semibold mb-2">Contact Support:</p>
                 <p>For any questions about your order, contact us at:</p>
-                <p className="font-mono mt-1">📞 +971 50 123 4567</p>
-                <p className="font-mono">📧 support@shophouse.com</p>
+                <p className="font-mono mt-1">📞 +971 50 719 1804</p>
+                <p className="font-mono">📧 shophouse@gmail.com</p>
                 <p className="text-xs mt-2 text-amber-600">
                   Reference your order ID when contacting support
                 </p>

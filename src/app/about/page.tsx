@@ -3,16 +3,24 @@ import { useState } from 'react';
 import { Users, Award, Clock, Shield, Truck, Heart } from 'lucide-react';
 import Header from '../components/Header';
 import FloatingElements from '../components/FloatingElements';
+import { useRouter } from 'next/navigation';
 
 export default function About() {
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  const stats = [
-    { number: '50K+', label: 'Happy Customers', icon: Users },
-    { number: '15+', label: 'Years Experience', icon: Award },
-    { number: '24/7', label: 'Support', icon: Clock },
-    { number: '5Y', label: 'Warranty', icon: Shield }
-  ];
+  const router = useRouter();
+  
+    const handleOrderNow = () => {
+      router.push("/products");
+    };
+  
+
+  // const stats = [
+  //   { number: '10K+', label: 'Happy Customers', icon: Users },
+  //   { number: '15+', label: 'Years Experience', icon: Award },
+  //   { number: '100%', label: 'Support', icon: Clock },
+  //   // { number: '5Y', label: 'Warranty', icon: Shield }
+  // ];
 
   const values = [
     {
@@ -77,7 +85,7 @@ export default function About() {
               </p>
               <div className="flex gap-4">
                 <button className="bg-gradient-to-r from-orange-500 to-amber-600 text-white px-8 py-3 rounded-full font-medium hover:shadow-lg transform hover:-translate-y-1 transition-all">
-                  Meet Our Team
+                  View our location
                 </button>
               </div>
             </div>
@@ -85,7 +93,7 @@ export default function About() {
             <div className="relative">
               <div className="relative bg-gradient-to-br from-amber-900 to-orange-950 rounded-3xl w-full aspect-square flex items-center justify-center shadow-2xl">
                 <div className="absolute -top-4 right-8 bg-white px-6 py-3 rounded-full shadow-lg">
-                  <span className="text-sm font-semibold text-amber-900">Since 2008</span>
+                  <span className="text-sm font-semibold text-amber-900">Since 2025</span>
                 </div>
                 
                 <div className="relative w-64 h-64 bg-white rounded-2xl flex items-center justify-center shadow-xl">
@@ -102,7 +110,7 @@ export default function About() {
       </section>
 
       {/* Stats Section */}
-      <section className="px-6 py-12">
+      {/* <section className="px-6 py-12">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {stats.map((stat, index) => (
@@ -119,7 +127,7 @@ export default function About() {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* Values Section */}
       <section className="px-6 py-12">
@@ -149,7 +157,7 @@ export default function About() {
       </section>
 
       {/* Team Section */}
-      <section className="px-6 py-12">
+      {/* <section className="px-6 py-12">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-amber-900 mb-4">Meet Our Team</h2>
@@ -176,7 +184,7 @@ export default function About() {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* CTA Section */}
       <section className="px-6 py-16">
@@ -188,7 +196,7 @@ export default function About() {
             Join thousands of professional chefs who trust Shop House for their kitchen equipment needs
           </p>
           <div className="flex gap-4 justify-center">
-            <button className="bg-gradient-to-r from-orange-500 to-amber-600 text-white px-8 py-3 rounded-full font-medium hover:shadow-lg transform hover:-translate-y-1 transition-all">
+            <button onClick={handleOrderNow} className="bg-gradient-to-r from-orange-500 to-amber-600 text-white px-8 py-3 rounded-full font-medium hover:shadow-lg transform hover:-translate-y-1 transition-all">
               Shop Now
             </button>
             <button className="border-2 border-orange-500 text-orange-600 px-8 py-3 rounded-full font-medium hover:bg-orange-50 transition-all">

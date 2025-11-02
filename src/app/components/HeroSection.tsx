@@ -2,6 +2,7 @@ import React from 'react';
 import { ShoppingCart, Star } from 'lucide-react';
 import Image from 'next/image';
 import { Product } from '../page';
+import { useRouter } from "next/navigation";
 
 interface HeroSectionProps {
   mostRecommendedProduct?: Product;
@@ -28,27 +29,39 @@ interface HeroContentProps {
   mostRecommendedProduct?: Product;
 }
 
-const HeroContent: React.FC<HeroContentProps> = ({ mostRecommendedProduct }) => (
-  <div className="space-y-6">
-    <h1 className="text-5xl md:text-6xl font-bold leading-tight">
-      Equip your <span className="text-orange-600">kitchen</span>
-      <br />
-      before your service
-    </h1>
-    <p className="text-lg text-amber-800 max-w-md">
-      Boost your kitchen efficiency and build your culinary excellence with premium equipment every morning
-    </p>
-    <div className="flex gap-4">
-      <button className="bg-gradient-to-r from-orange-500 to-amber-600 text-white px-8 py-3 rounded-full font-medium hover:shadow-lg transform hover:-translate-y-1 transition-all flex items-center gap-2">
-        Order now
-        <ShoppingCart className="w-4 h-4" />
-      </button>
-      <button className="text-orange-600 font-medium hover:underline">
-        More menu
-      </button>
+const HeroContent: React.FC<HeroContentProps> = ({ mostRecommendedProduct }) => {
+  const router = useRouter();
+
+  const handleOrderNow = () => {
+    router.push("/products");
+  };
+
+  return (
+    <div className="space-y-6">
+      <h1 className="text-5xl md:text-6xl font-bold leading-tight">
+        Equip your <span className="text-orange-600">kitchen</span>
+        <br />
+        before your service
+      </h1>
+
+      <p className="text-lg text-amber-800 max-w-md">
+        Boost your kitchen efficiency and build your culinary excellence with premium equipment every morning
+      </p>
+
+      <div className="flex gap-4">
+        <button
+          onClick={handleOrderNow}
+          className="bg-gradient-to-r from-orange-500 to-amber-600 text-white px-8 py-3 rounded-full font-medium hover:shadow-lg transform hover:-translate-y-1 transition-all flex items-center gap-2"
+        >
+          Order now
+          <ShoppingCart className="w-4 h-4" />
+        </button>
+      </div>
     </div>
-  </div>
-);
+  );
+};
+
+
 
 interface FeaturedProductProps {
   mostRecommendedProduct?: Product;
@@ -112,11 +125,11 @@ const FeaturedProduct: React.FC<FeaturedProductProps> = ({ mostRecommendedProduc
         <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 bg-white px-6 py-3 rounded-full shadow-lg flex items-center gap-2">
           {mostRecommendedProduct.originalPrice > mostRecommendedProduct.discountedPrice && (
             <span className="text-sm text-gray-500 line-through">
-              ${mostRecommendedProduct.originalPrice.toFixed(2)}
+              AED{mostRecommendedProduct.originalPrice.toFixed(2)}
             </span>
           )}
           <span className="text-2xl font-bold text-amber-900">
-            ${mostRecommendedProduct.discountedPrice.toFixed(2)}
+            AED{mostRecommendedProduct.discountedPrice.toFixed(2)}
           </span>
           {discountPercentage > 0 && (
             <span className="text-xs bg-red-500 text-white px-2 py-1 rounded-full">

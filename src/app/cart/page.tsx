@@ -129,7 +129,7 @@ export default function Cart() {
         const data = await response.json();
         if (data.valid) {
           setDiscount(data.coupon.discountAmount);
-          setCouponMessage(`🎉 $${data.coupon.discountAmount.toFixed(2)} discount applied!`);
+          setCouponMessage(`🎉 AED${data.coupon.discountAmount.toFixed(2)} discount applied!`);
         } else {
           setDiscount(0);
           setCouponMessage(data.error || 'Invalid coupon code');
@@ -172,7 +172,7 @@ export default function Cart() {
 
   // Calculate order summary
   const subtotal = cart?.total || 0;
-  const shipping = subtotal > 500 ? 0 : 20;
+  const shipping = subtotal > 100 ? 0 : 10;
   const tax = subtotal * 0.05; // 5% VAT
   const total = Math.max(0, subtotal + shipping + tax - discount);
 
@@ -295,7 +295,7 @@ export default function Cart() {
                         <div className="flex justify-between items-start mb-3">
                           <div>
                             <h3 className="text-xl font-bold text-amber-900 mb-1">{item.name}</h3>
-                            <span className="text-orange-600 font-medium">${item.price.toFixed(2)} each</span>
+                            <span className="text-orange-600 font-medium">AED{item.price.toFixed(2)} each</span>
                           </div>
                           <button 
                             onClick={() => removeItem(item.id)}
@@ -324,7 +324,7 @@ export default function Cart() {
                             </div>
                           </div>
                           <span className="text-2xl font-bold text-amber-900">
-                            ${(item.price * item.quantity).toFixed(2)}
+                            AED{(item.price * item.quantity).toFixed(2)}
                           </span>
                         </div>
                       </div>
@@ -395,26 +395,26 @@ export default function Cart() {
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between text-amber-800">
                   <span>Subtotal</span>
-                  <span>${subtotal.toFixed(2)}</span>
+                  <span>AED{subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-amber-800">
                   <span>Delivery charge</span>
-                  <span>{shipping === 0 ? 'FREE' : `$${shipping.toFixed(2)}`}</span>
+                  <span>{shipping === 0 ? 'FREE' : `AED${shipping.toFixed(2)}`}</span>
                 </div>
                 <div className="flex justify-between text-amber-800">
                   <span>Tax (5%)</span>
-                  <span>${tax.toFixed(2)}</span>
+                  <span>AED{tax.toFixed(2)}</span>
                 </div>
                 {discount > 0 && (
                   <div className="flex justify-between text-green-600">
                     <span>Discount</span>
-                    <span>-${discount.toFixed(2)}</span>
+                    <span>-AED{discount.toFixed(2)}</span>
                   </div>
                 )}
                 <div className="border-t border-amber-200 pt-3">
                   <div className="flex justify-between text-lg font-bold text-amber-900">
                     <span>Total</span>
-                    <span>${total.toFixed(2)}</span>
+                    <span>AED{total.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -428,9 +428,9 @@ export default function Cart() {
                 <ArrowRight className="w-5 h-5" />
               </button>
 
-              {shipping > 0 && subtotal < 500 && (
+              {shipping > 0 && subtotal < 100 && (
                 <p className="text-center text-sm text-amber-700 mt-4">
-                  Add ${(500 - subtotal).toFixed(2)} more for FREE Delivery!
+                  Add AED{(100 - subtotal).toFixed(2)} more for FREE Delivery!
                 </p>
               )}
 
@@ -449,14 +449,14 @@ export default function Cart() {
                   <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
                     <span className="text-green-600 font-bold">✓</span>
                   </div>
-                  Free Delivery on orders over $500
+                  Free Delivery on orders over AED 100
                 </div>
-                <div className="flex items-center gap-3">
+                {/* <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
                     <span className="text-green-600 font-bold">✓</span>
                   </div>
                   30-day money-back guarantee
-                </div>
+                </div> */}
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
                     <span className="text-green-600 font-bold">✓</span>

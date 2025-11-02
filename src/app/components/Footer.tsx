@@ -1,12 +1,12 @@
 // components/Footer.tsx
 import React from 'react';
-import { 
-  Phone, 
-  Mail, 
-  MapPin, 
-  Facebook, 
-  Twitter, 
-  Instagram, 
+import {
+  Phone,
+  Mail,
+  MapPin,
+  Facebook,
+  Twitter,
+  Instagram,
   Youtube,
   CreditCard,
   Shield,
@@ -24,8 +24,8 @@ const Footer: React.FC = () => {
             <div className="lg:col-span-2">
               <h3 className="text-2xl font-bold mb-4">Shop House</h3>
               <p className="text-amber-100 mb-6 leading-relaxed">
-                Your trusted partner for professional kitchen equipment. 
-                We provide chefs and culinary professionals with premium tools 
+                Your trusted partner for professional kitchen equipment.
+                We provide chefs and culinary professionals with premium tools
                 to create exceptional dining experiences.
               </p>
               <div className="flex space-x-4">
@@ -53,24 +53,24 @@ const Footer: React.FC = () => {
             <div>
               <h4 className="text-lg font-semibold mb-4">Contact Us</h4>
               <ul className="space-y-3">
-                <ContactItem 
+                <ContactItem
                   icon={<Phone className="w-4 h-4" />}
-                  text="+971 50 849 3690"
+                  text="03 722 4922 | 050 719 1804"
                 />
-                <ContactItem 
+                <ContactItem
                   icon={<Mail className="w-4 h-4" />}
                   text="shophouse@gmail.com"
                 />
-                <ContactItem 
+                <ContactItem
                   icon={<MapPin className="w-4 h-4" />}
-                  text="123 Culinary Street, Food City, FC 12345"
+                  text="ALAIN TOWN CENTER, NEAR LUCKY PLAZA"
                 />
               </ul>
             </div>
           </div>
 
           {/* Features */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12 pt-8 border-t border-amber-700">
+          {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12 pt-8 border-t border-amber-700">
             <FeatureItem 
               icon={<Shield className="w-8 h-8" />}
               title="Quality Guarantee"
@@ -86,7 +86,7 @@ const Footer: React.FC = () => {
               title="Secure Payment"
               description="100% secure payment processing"
             />
-          </div>
+          </div> */}
         </div>
       </div>
 
@@ -97,11 +97,11 @@ const Footer: React.FC = () => {
             <div className="text-amber-200 text-sm mb-4 md:mb-0">
               © 2024 Shop House. All rights reserved.
             </div>
-            <div className="flex space-x-6 text-sm">
+            {/* <div className="flex space-x-6 text-sm">
               <FooterLink href="/privacy" text="Privacy Policy" />
               <FooterLink href="/terms" text="Terms of Service" />
               <FooterLink href="/cookies" text="Cookie Policy" />
-            </div>
+            </div> */}
           </div>
         </div>
       </div>
@@ -115,8 +115,8 @@ interface SocialIconProps {
 }
 
 const SocialIcon: React.FC<SocialIconProps> = ({ href, icon }) => (
-  <a 
-    href={href} 
+  <a
+    href={href}
     className="w-10 h-10 bg-amber-700 hover:bg-amber-600 rounded-full flex items-center justify-center transition-colors duration-300"
   >
     {icon}
@@ -130,8 +130,8 @@ interface FooterLinkProps {
 
 const FooterLink: React.FC<FooterLinkProps> = ({ href, text }) => (
   <li>
-    <a 
-      href={href} 
+    <a
+      href={href}
       className="text-amber-200 hover:text-white transition-colors duration-300"
     >
       {text}

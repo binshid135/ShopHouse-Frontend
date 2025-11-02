@@ -1,8 +1,64 @@
 // components/AboutUs.tsx
-import React from 'react';
-import { Users, Target, Award, Heart } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Users, Target, Award, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const AboutUs: React.FC = () => {
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  const storePhotos = [
+    {
+      id: 1,
+      title: "Store Front",
+      description: "Visit our modern and welcoming storefront",
+      placeholder: "bg-gradient-to-br from-orange-200 to-amber-300"
+    },
+    {
+      id: 2,
+      title: "Showroom",
+      description: "Explore our extensive product display",
+      placeholder: "bg-gradient-to-br from-amber-200 to-orange-300"
+    },
+    {
+      id: 3,
+      title: "Product Display",
+      description: "High-quality kitchen equipment on display",
+      placeholder: "bg-gradient-to-br from-orange-300 to-amber-400"
+    },
+    {
+      id: 4,
+      title: "Our Team",
+      description: "Meet our experienced and friendly staff",
+      placeholder: "bg-gradient-to-br from-amber-100 to-orange-200"
+    },
+    {
+      id: 5,
+      title: "Customer Service",
+      description: "Professional service and expert advice",
+      placeholder: "bg-gradient-to-br from-orange-100 to-amber-200"
+    }
+  ];
+
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev === storePhotos.length - 1 ? 0 : prev + 1));
+  };
+
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev === 0 ? storePhotos.length - 1 : prev - 1));
+  };
+
+  const goToSlide = (index: number) => {
+    setCurrentSlide(index);
+  };
+
+  // Auto-advance slides
+  useEffect(() => {
+    const timer = setInterval(() => {
+      nextSlide();
+    }, 5000);
+
+    return () => clearInterval(timer);
+  }, [currentSlide]);
+
   return (
     <section className="relative px-6 py-16 bg-white">
       <div className="max-w-7xl mx-auto">
@@ -12,9 +68,104 @@ const AboutUs: React.FC = () => {
             About ShopHouse
           </h2>
           <p className="text-lg text-amber-700 max-w-2xl mx-auto">
-            Empowering culinary professionals with premium kitchen equipment since 2015. 
+            Empowering culinary professionals with premium kitchen equipment since 2024. 
             We're committed to helping you create exceptional dining experiences.
           </p>
+        </div>
+
+        {/* Store Photos Carousel */}
+        <div className="mb-16">
+          <div className="text-center mb-8">
+            <h3 className="text-2xl font-bold text-amber-900 mb-2">
+              Visit Our Store
+            </h3>
+            <p className="text-amber-600 max-w-2xl mx-auto">
+              Get a glimpse of our well-stocked showroom and experienced team ready to serve you
+            </p>
+          </div>
+          
+          {/* Carousel Container */}
+          <div className="relative max-w-4xl mx-auto">
+            {/* Carousel */}
+            <div className="relative overflow-hidden rounded-2xl shadow-2xl">
+              <div 
+                className="flex transition-transform duration-500 ease-in-out"
+                style={{ transform: `translateX(-${currentSlide * 100}%)` }}
+              >
+                {storePhotos.map((photo, index) => (
+                  <div
+                    key={photo.id}
+                    className="w-full flex-shrink-0"
+                  >
+                    <div className={`aspect-[16/9] ${photo.placeholder} flex items-center justify-center relative`}>
+                      <div className="text-center text-amber-700 z-10">
+                        <div className="text-4xl font-bold mb-2">{photo.title}</div>
+                        <p className="text-lg opacity-90">{photo.description}</p>
+                        <p className="text-sm opacity-75 mt-2">Add your photo here</p>
+                      </div>
+                      {/* Overlay for better text readability */}
+                      <div className="absolute inset-0 bg-black bg-opacity-10" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Navigation Arrows */}
+              <button
+                onClick={prevSlide}
+                className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-80 hover:bg-opacity-100 text-amber-900 w-10 h-10 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110"
+                aria-label="Previous photo"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+              
+              <button
+                onClick={nextSlide}
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-80 hover:bg-opacity-100 text-amber-900 w-10 h-10 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110"
+                aria-label="Next photo"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
+
+              {/* Slide Indicators */}
+              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
+                {storePhotos.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => goToSlide(index)}
+                    className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                      index === currentSlide 
+                        ? 'bg-white scale-125' 
+                        : 'bg-white bg-opacity-50 hover:bg-opacity-75'
+                    }`}
+                    aria-label={`Go to slide ${index + 1}`}
+                  />
+                ))}
+              </div>
+
+              {/* Slide Counter */}
+              <div className="absolute top-4 right-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm">
+                {currentSlide + 1} / {storePhotos.length}
+              </div>
+            </div>
+
+            {/* Thumbnail Preview */}
+            <div className="flex justify-center mt-4 space-x-2">
+              {storePhotos.map((photo, index) => (
+                <button
+                  key={photo.id}
+                  onClick={() => goToSlide(index)}
+                  className={`w-16 h-12 rounded-lg overflow-hidden transition-all duration-300 ${
+                    index === currentSlide 
+                      ? 'ring-2 ring-orange-500 ring-offset-2 scale-110' 
+                      : 'opacity-70 hover:opacity-100 hover:scale-105'
+                  }`}
+                >
+                  <div className={`w-full h-full ${photo.placeholder}`} />
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Stats */}
@@ -24,11 +175,7 @@ const AboutUs: React.FC = () => {
             number="10,000+"
             label="Happy Customers"
           />
-          {/* <StatCard 
-            icon={<Award className="w-8 h-8" />}
-            number="15+"
-            label="Years Experience"
-          /> */}
+          
           <StatCard 
             icon={<Target className="w-8 h-8" />}
             number="500+"
@@ -65,7 +212,7 @@ const AboutUs: React.FC = () => {
             />
             <ValueCard
               title="Reliable Service"
-              description="24/7 customer support and fast delivery to keep your kitchen running smoothly."
+              description="100% customer support and fast delivery to keep your kitchen running smoothly."
               color="text-orange-600"
             />
           </div>

@@ -140,11 +140,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, index, onProductClic
           <div className="text-right">
             {product.originalPrice > product.discountedPrice && (
               <div className="text-xs text-gray-500 line-through">
-                ${product.originalPrice.toFixed(2)}
+                AED{product.originalPrice.toFixed(2)}
               </div>
             )}
             <div className="text-xl font-bold text-amber-900">
-              ${product.discountedPrice.toFixed(2)}
+              AED{product.discountedPrice.toFixed(2)}
             </div>
           </div>
         </div>
