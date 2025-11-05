@@ -9,11 +9,11 @@ export default function About() {
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   const router = useRouter();
-  
-    const handleOrderNow = () => {
-      router.push("/products");
-    };
-  
+
+  const handleOrderNow = () => {
+    router.push("/products");
+  };
+
 
   // const stats = [
   //   { number: '10K+', label: 'Happy Customers', icon: Users },
@@ -45,42 +45,22 @@ export default function About() {
     }
   ];
 
-  const team = [
-    {
-      name: 'Sarah Chen',
-      role: 'Head Chef & Founder',
-      image: '👩‍🍳',
-      description: '15+ years in Michelin-starred kitchens'
-    },
-    {
-      name: 'Marcus Rodriguez',
-      role: 'Equipment Specialist',
-      image: '👨‍💼',
-      description: 'Expert in commercial kitchen design'
-    },
-    {
-      name: 'Emily Watson',
-      role: 'Customer Success',
-      image: '👩‍💼',
-      description: 'Ensuring your kitchen runs smoothly'
-    }
-  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100 overflow-hidden">
       <FloatingElements />
       <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
-      
+
       {/* Hero Section */}
       <section className="relative px-6 py-16">
         <div className="max-w-7xl mx-auto">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div className="space-y-6">
               <h1 className="text-5xl md:text-6xl font-bold leading-tight">
-                Our <span className="text-orange-600">Story</span> of Culinary Excellence
+                Our <span className="text-orange-600">Story</span> of Excellence
               </h1>
               <p className="text-lg text-amber-800">
-                Founded by professional chefs, Shop House is dedicated to providing the highest quality 
+                Shop House is dedicated to providing the highest quality
                 kitchen equipment to culinary professionals and passionate home cooks alike.
               </p>
               <div className="flex gap-4">
@@ -95,13 +75,13 @@ export default function About() {
                 <div className="absolute -top-4 right-8 bg-white px-6 py-3 rounded-full shadow-lg">
                   <span className="text-sm font-semibold text-amber-900">Since 2025</span>
                 </div>
-                
-                <div className="relative w-64 h-64 bg-white rounded-2xl flex items-center justify-center shadow-xl">
+
+                {/* <div className="relative w-64 h-64 bg-white rounded-2xl flex items-center justify-center shadow-xl">
                   <div className="text-8xl">👨‍🍳</div>
-                </div>
+                </div> */}
 
                 <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 bg-white px-6 py-3 rounded-full shadow-lg">
-                  <span className="text-xl font-bold text-amber-900">Professional Grade</span>
+                  <span className="text-xl font-bold text-amber-900">Shop House</span>
                 </div>
               </div>
             </div>

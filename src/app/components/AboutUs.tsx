@@ -99,9 +99,9 @@ const AboutUs: React.FC = () => {
                   >
                     <div className={`aspect-[16/9] ${photo.placeholder} flex items-center justify-center relative`}>
                       <div className="text-center text-amber-700 z-10">
-                        <div className="text-4xl font-bold mb-2">{photo.title}</div>
+                        {/* <div className="text-4xl font-bold mb-2">{photo.title}</div>
                         <p className="text-lg opacity-90">{photo.description}</p>
-                        <p className="text-sm opacity-75 mt-2">Add your photo here</p>
+                        <p className="text-sm opacity-75 mt-2">Add your photo here</p> */}
                       </div>
                       {/* Overlay for better text readability */}
                       <div className="absolute inset-0 bg-black bg-opacity-10" />

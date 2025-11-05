@@ -75,7 +75,7 @@ const FeaturedProduct: React.FC<FeaturedProductProps> = ({ mostRecommendedProduc
         <div className="relative bg-gradient-to-br from-orange-100 via-amber-100 to-orange-200 rounded-full w-full aspect-square flex items-center justify-center shadow-xl p-12">
           <div className="text-center text-amber-600">
             <p className="text-lg font-semibold">No featured product</p>
-            <p className="text-sm">Add a most recommended product in admin</p>
+            {/* <p className="text-sm">Add a most recommended product in admin</p> */}
           </div>
         </div>
       </div>
