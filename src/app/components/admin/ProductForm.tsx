@@ -14,48 +14,59 @@ export default function ProductForm({ product, onSubmit, onCancel }: ProductForm
   const [shortDescription, setShortDescription] = useState(product?.shortDescription || '');
   const [originalPrice, setOriginalPrice] = useState(product?.originalPrice.toString() || '');
   const [discountedPrice, setDiscountedPrice] = useState(product?.discountedPrice.toString() || '');
+  const [stock, setStock] = useState(product?.stock.toString() || '0'); // Add this
+  const [category, setCategory] = useState(product?.category || 'Uncategorized'); // Add this
   const [images, setImages] = useState<File[]>([]);
   const [existingImages, setExistingImages] = useState<string[]>(product?.images || []);
   const [imagesToDelete, setImagesToDelete] = useState<string[]>([]);
-  
+
   // Recommendation fields
   const [isRecommended, setIsRecommended] = useState(product?.isRecommended || false);
   const [isMostRecommended, setIsMostRecommended] = useState(product?.isMostRecommended || false);
   const [recommendationOrder, setRecommendationOrder] = useState(product?.recommendationOrder || 0);
 
-  // components/admin/ProductForm.tsx - Update handleSubmit function
-const handleSubmit = (e: React.FormEvent) => {
-  e.preventDefault();
-  
-  // Client-side validation for images
-  const totalImages = existingImages.length + images.length - imagesToDelete.length;
-  if (totalImages === 0) {
-    alert('At least one image is required');
-    return;
-  }
-  
-  const formData = new FormData();
-  if (product) formData.append('id', product.id);
-  formData.append('name', name);
-  formData.append('shortDescription', shortDescription);
-  formData.append('originalPrice', originalPrice);
-  formData.append('discountedPrice', discountedPrice);
-  formData.append('isRecommended', isRecommended.toString());
-  formData.append('isMostRecommended', isMostRecommended.toString());
-  formData.append('recommendationOrder', recommendationOrder.toString());
-  
-  // Append new images
-  images.forEach(image => {
-    formData.append('images', image);
-  });
-  
-  // Append images to delete
-  if (imagesToDelete.length > 0) {
-    formData.append('deletedImages', JSON.stringify(imagesToDelete));
-  }
-  
-  onSubmit(formData);
-};
+  // Predefined categories - you can modify these as needed
+  const categories = [
+    'Restaurant',
+    'Household',
+    'kitchen',
+    'Uncategorized'
+  ];
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Client-side validation for images
+    const totalImages = existingImages.length + images.length - imagesToDelete.length;
+    if (totalImages === 0) {
+      alert('At least one image is required');
+      return;
+    }
+
+    const formData = new FormData();
+    if (product) formData.append('id', product.id);
+    formData.append('name', name);
+    formData.append('shortDescription', shortDescription);
+    formData.append('originalPrice', originalPrice);
+    formData.append('discountedPrice', discountedPrice);
+    formData.append('stock', stock); // Add this
+    formData.append('category', category); // Add this
+    formData.append('isRecommended', isRecommended.toString());
+    formData.append('isMostRecommended', isMostRecommended.toString());
+    formData.append('recommendationOrder', recommendationOrder.toString());
+
+    // Append new images
+    images.forEach(image => {
+      formData.append('images', image);
+    });
+
+    // Append images to delete
+    if (imagesToDelete.length > 0) {
+      formData.append('deletedImages', JSON.stringify(imagesToDelete));
+    }
+
+    onSubmit(formData);
+  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -104,7 +115,7 @@ const handleSubmit = (e: React.FormEvent) => {
           <h2 className="text-xl font-bold mb-4">
             {product ? 'Edit Product' : 'Add New Product'}
           </h2>
-          
+
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Basic Information */}
             <div className="grid grid-cols-1 gap-4">
@@ -120,7 +131,7 @@ const handleSubmit = (e: React.FormEvent) => {
                   required
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Short Description
@@ -132,7 +143,7 @@ const handleSubmit = (e: React.FormEvent) => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -147,7 +158,7 @@ const handleSubmit = (e: React.FormEvent) => {
                     required
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Discounted Price *
@@ -162,12 +173,46 @@ const handleSubmit = (e: React.FormEvent) => {
                   />
                 </div>
               </div>
+              {/* Add Stock and Category Fields */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Stock Quantity *
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={stock}
+                    onChange={(e) => setStock(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Category *
+                  </label>
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  >
+                    {categories.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             </div>
 
             {/* Recommendation Section */}
             <div className="border-t pt-4">
               <h3 className="text-lg font-medium text-gray-900 mb-3">Product Recommendations</h3>
-              
+
               <div className="space-y-3">
                 <div className="flex items-center">
                   <input
@@ -234,7 +279,7 @@ const handleSubmit = (e: React.FormEvent) => {
             {/* Images Section */}
             <div className="border-t pt-4">
               <h3 className="text-lg font-medium text-gray-900 mb-3">Product Images</h3>
-              
+
               {/* Existing Images */}
               {existingImages.length > 0 && (
                 <div className="mb-4">
@@ -261,7 +306,7 @@ const handleSubmit = (e: React.FormEvent) => {
                   </div>
                 </div>
               )}
-              
+
               {/* New Images */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">

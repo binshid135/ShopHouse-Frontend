@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ShoppingCart, Star, Heart, Shield, Truck, ArrowLeft } from 'lucide-react';
+import { ShoppingCart, Star, Heart, Shield, Truck, ArrowLeft, AlertCircle } from 'lucide-react';
 import FloatingElements from './../../components/FloatingElements';
 import Header from './../../components/Header';
 
@@ -12,6 +12,8 @@ interface Product {
   originalPrice: number;
   discountedPrice: number;
   images: string[];
+  category: string;
+  stock: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -37,6 +39,7 @@ export default function ProductDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [addedProductIds, setAddedProductIds] = useState<string[]>([]);
+  const [cartError, setCartError] = useState<string | null>(null);
 
   useEffect(() => {
     if (params.id) {
@@ -77,8 +80,10 @@ export default function ProductDetail() {
     }
   };
 
-  const handleAddToCart = async (productId: string, quantityToAdd: number = 1) => {
+  const handleAddToCart = async (productId: string, quantityToAdd: number = 1, productName?: string) => {
     try {
+      setCartError(null); // Clear previous errors
+      
       const response = await fetch('/api/userside/cart', {
         method: 'POST',
         headers: {
@@ -101,12 +106,26 @@ export default function ProductDetail() {
 
         return true;
       } else {
-        alert('Failed to add product to cart');
+        const errorData = await response.json();
+        const errorMessage = errorData.error || 'Failed to add product to cart';
+        setCartError(errorMessage);
+        
+        // Auto-hide error after 5 seconds
+        setTimeout(() => {
+          setCartError(null);
+        }, 5000);
+        
         return false;
       }
     } catch (error) {
       console.error('Failed to add to cart:', error);
-      alert('Error adding to cart');
+      const errorMessage = 'Error adding to cart. Please try again.';
+      setCartError(errorMessage);
+      
+      setTimeout(() => {
+        setCartError(null);
+      }, 5000);
+      
       return false;
     }
   };
@@ -114,17 +133,39 @@ export default function ProductDetail() {
   const handleMainProductAddToCart = async () => {
     if (!product) return;
 
-    const success = await handleAddToCart(product.id, quantity);
+    // Validate stock before adding to cart
+    if (product.stock <= 0) {
+      setCartError('This product is currently out of stock');
+      setTimeout(() => setCartError(null), 5000);
+      return;
+    }
+
+    if (quantity > product.stock) {
+      setCartError(`Only ${product.stock} items available in stock`);
+      setTimeout(() => setCartError(null), 5000);
+      return;
+    }
+
+    const success = await handleAddToCart(product.id, quantity, product.name);
     if (success) {
       setIsInCart(true);
       setTimeout(() => setIsInCart(false), 2000);
     }
   };
 
-  const handleRelatedProductAddToCart = async (productId: string, event: React.MouseEvent) => {
+  const handleRelatedProductAddToCart = async (productId: string, event: React.MouseEvent, relatedProduct?: Product) => {
     event.stopPropagation(); // Prevent navigation to product detail
     
-    const success = await handleAddToCart(productId, 1);
+    if (relatedProduct) {
+      // Validate stock for related product
+      if (relatedProduct.stock <= 0) {
+        setCartError(`${relatedProduct.name} is out of stock`);
+        setTimeout(() => setCartError(null), 5000);
+        return;
+      }
+    }
+    
+    const success = await handleAddToCart(productId, 1, relatedProduct?.name);
     if (success) {
       // Success feedback is handled by the addedProductIds state
     }
@@ -145,6 +186,55 @@ export default function ProductDetail() {
     if (name.includes('mixer') || name.includes('tool')) return '⚙️';
     if (name.includes('sharpener')) return '⚔️';
     return '🍴';
+  };
+
+  // Get stock status badge
+  const getStockBadge = (stock: number) => {
+    if (stock <= 0) {
+      return (
+        <span className="px-3 py-1 bg-red-100 text-red-600 rounded-full text-sm font-medium flex items-center gap-1">
+          <AlertCircle className="w-4 h-4" />
+          Out of Stock
+        </span>
+      );
+    }
+    
+    if (stock < 5) {
+      return (
+        <span className="px-3 py-1 bg-yellow-100 text-yellow-600 rounded-full text-sm font-medium">
+          Only {stock} left
+        </span>
+      );
+    }
+    
+    return (
+      <span className="px-3 py-1 bg-green-100 text-green-600 rounded-full text-sm font-medium">
+        In Stock
+      </span>
+    );
+  };
+
+  // Get category icon
+  const getCategoryIcon = (category: string) => {
+    switch (category.toLowerCase()) {
+      case 'electronics':
+      case 'appliances':
+        return '⚡';
+      case 'cookware':
+        return '🍳';
+      case 'cutlery':
+        return '🔪';
+      case 'baking':
+        return '🎂';
+      case 'utensils':
+        return '🥄';
+      case 'tools':
+        return '🛠️';
+      case 'storage':
+        return '📦';
+      default:
+        return '🏷️';
+    }
   };
 
   if (loading) {
@@ -181,6 +271,8 @@ export default function ProductDetail() {
 
   const discount = getDiscountPercentage();
   const productEmoji = getProductEmoji(product);
+  const isOutOfStock = product.stock <= 0;
+  const isLowStock = product.stock > 0 && product.stock < 5;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100 overflow-hidden">
@@ -197,6 +289,24 @@ export default function ProductDetail() {
           Back to Products
         </button>
       </div>
+
+      {/* Error Message */}
+      {cartError && (
+        <div className="max-w-7xl mx-auto px-6 mb-6">
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 flex-shrink-0" />
+            <p className="font-medium">{cartError}</p>
+            <button 
+              onClick={() => setCartError(null)}
+              className="ml-auto text-red-500 hover:text-red-700 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Product Details */}
       <section className="px-6 py-8">
@@ -236,9 +346,15 @@ export default function ProductDetail() {
                     {discount}% OFF
                   </span>
                 )}
-                <span className="px-3 py-1 bg-green-100 text-green-600 rounded-full text-sm font-medium">
-                  In Stock
-                </span>
+                {getStockBadge(product.stock)}
+                
+                {/* Category Badge */}
+                {product.category && product.category !== 'Uncategorized' && (
+                  <span className="inline-flex items-center gap-1 px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-sm font-medium">
+                    <span>{getCategoryIcon(product.category)}</span>
+                    {product.category}
+                  </span>
+                )}
               </div>
 
               <h1 className="text-4xl font-bold text-amber-900">{product.name}</h1>
@@ -268,6 +384,36 @@ export default function ProductDetail() {
                 <p className="text-lg text-amber-800 leading-relaxed">{product.shortDescription}</p>
               )}
 
+              {/* Stock Warning for Low Stock */}
+              {isLowStock && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4">
+                  <div className="flex items-center gap-3">
+                    <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium text-yellow-800">Low Stock Alert</p>
+                      <p className="text-sm text-yellow-700">
+                        Only {product.stock} items left. Order soon to avoid disappointment.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Stock Warning for Out of Stock */}
+              {isOutOfStock && (
+                <div className="bg-red-50 border border-red-200 rounded-2xl p-4">
+                  <div className="flex items-center gap-3">
+                    <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium text-red-800">Out of Stock</p>
+                      <p className="text-sm text-red-700">
+                        This product is currently unavailable. Check back later or browse similar products.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Features */}
               <div className="space-y-3">
                 <h3 className="text-xl font-bold text-amber-900">Product Details</h3>
@@ -295,37 +441,75 @@ export default function ProductDetail() {
               <div className="space-y-4">
                 <div className="flex items-center gap-4">
                   <span className="text-lg font-medium text-amber-900">Quantity:</span>
-                  <div className="flex items-center gap-3 bg-white rounded-full px-4 py-2">
+                  <div className={`flex items-center gap-3 rounded-full px-4 py-2 ${
+                    isOutOfStock ? 'bg-gray-100' : 'bg-white'
+                  }`}>
                     <button 
                       onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
+                      disabled={isOutOfStock}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                        isOutOfStock 
+                          ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
+                          : 'bg-gray-100 hover:bg-gray-200'
+                      }`}
                     >
                       -
                     </button>
-                    <span className="font-bold text-amber-900 w-8 text-center">{quantity}</span>
+                    <span className={`font-bold w-8 text-center ${
+                      isOutOfStock ? 'text-gray-400' : 'text-amber-900'
+                    }`}>
+                      {quantity}
+                    </span>
                     <button 
                       onClick={() => setQuantity(quantity + 1)}
-                      className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
+                      disabled={isOutOfStock || quantity >= product.stock}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                        isOutOfStock || quantity >= product.stock
+                          ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
+                          : 'bg-gray-100 hover:bg-gray-200'
+                      }`}
                     >
                       +
                     </button>
                   </div>
+                  
+                  {/* Max quantity warning */}
+                  {quantity >= product.stock && product.stock > 0 && (
+                    <span className="text-sm text-red-600 font-medium">
+                      Maximum {product.stock} available
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex gap-4">
                   <button 
                     onClick={handleMainProductAddToCart}
-                    className="flex-1 bg-gradient-to-r from-orange-500 to-amber-600 text-white py-4 rounded-full font-medium hover:shadow-lg transform hover:-translate-y-1 transition-all flex items-center justify-center gap-3"
+                    disabled={isOutOfStock}
+                    className={`flex-1 py-4 rounded-full font-medium transform transition-all flex items-center justify-center gap-3 ${
+                      isOutOfStock
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : isInCart
+                        ? 'bg-green-500 text-white shadow-lg hover:shadow-xl'
+                        : 'bg-gradient-to-r from-orange-500 to-amber-600 text-white hover:shadow-lg hover:-translate-y-1'
+                    }`}
                   >
                     <ShoppingCart className="w-5 h-5" />
-                    {isInCart ? 'Added to Cart!' : 'Add to Cart'}
+                    {isOutOfStock 
+                      ? 'Out of Stock' 
+                      : isInCart 
+                        ? 'Added to Cart!' 
+                        : 'Add to Cart'
+                    }
                   </button>
                   <button 
                     onClick={() => setIsFavorite(!isFavorite)}
+                    disabled={isOutOfStock}
                     className={`p-4 rounded-full border-2 transition-all ${
-                      isFavorite 
-                        ? 'bg-red-50 border-red-200 text-red-500' 
-                        : 'bg-white border-amber-200 text-amber-900 hover:border-orange-300'
+                      isOutOfStock
+                        ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed'
+                        : isFavorite 
+                          ? 'bg-red-50 border-red-200 text-red-500 hover:border-red-300' 
+                          : 'bg-white border-amber-200 text-amber-900 hover:border-orange-300'
                     }`}
                   >
                     <Heart className={`w-5 h-5 ${isFavorite ? 'fill-red-500' : ''}`} />
@@ -358,12 +542,18 @@ export default function ProductDetail() {
               const relatedEmoji = getProductEmoji(relatedProduct);
               const relatedDiscount = Math.round(((relatedProduct.originalPrice - relatedProduct.discountedPrice) / relatedProduct.originalPrice) * 100);
               const isAdded = addedProductIds.includes(relatedProduct.id);
+              const isRelatedOutOfStock = relatedProduct.stock <= 0;
+              const isRelatedLowStock = relatedProduct.stock > 0 && relatedProduct.stock < 5;
               
               return (
                 <div
                   key={relatedProduct.id}
-                  className="bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-xl transform hover:-translate-y-2 transition-all duration-300 cursor-pointer"
-                  onClick={() => router.push(`/products/${relatedProduct.id}`)}
+                  className={`bg-white rounded-3xl overflow-hidden shadow-lg transform transition-all duration-300 cursor-pointer ${
+                    isRelatedOutOfStock 
+                      ? 'opacity-60 cursor-not-allowed' 
+                      : 'hover:shadow-xl hover:-translate-y-2'
+                  }`}
+                  onClick={() => !isRelatedOutOfStock && router.push(`/products/${relatedProduct.id}`)}
                 >
                   <div className="h-48 bg-gradient-to-br from-orange-100 to-amber-100 flex items-center justify-center relative">
                     {relatedProduct.images && relatedProduct.images.length > 0 ? (
@@ -380,6 +570,17 @@ export default function ProductDetail() {
                         -{relatedDiscount}%
                       </div>
                     )}
+                    {/* Stock badge for related products */}
+                    {isRelatedOutOfStock && (
+                      <div className="absolute top-4 left-4 bg-red-500 text-white px-2 py-1 rounded-full text-sm font-bold">
+                        Out of Stock
+                      </div>
+                    )}
+                    {isRelatedLowStock && !isRelatedOutOfStock && (
+                      <div className="absolute top-4 left-4 bg-yellow-500 text-white px-2 py-1 rounded-full text-sm font-bold">
+                        Low Stock
+                      </div>
+                    )}
                   </div>
                   <div className="p-6">
                     <h3 className="text-lg font-bold text-amber-900 mb-2">{relatedProduct.name}</h3>
@@ -390,7 +591,9 @@ export default function ProductDetail() {
                     )}
                     <div className="flex items-center justify-between">
                       <div className="flex flex-col">
-                        <span className="text-xl font-bold text-amber-900">
+                        <span className={`text-xl font-bold ${
+                          isRelatedOutOfStock ? 'text-gray-400' : 'text-amber-900'
+                        }`}>
                           AED{relatedProduct.discountedPrice.toFixed(2)}
                         </span>
                         {relatedProduct.originalPrice > relatedProduct.discountedPrice && (
@@ -400,14 +603,22 @@ export default function ProductDetail() {
                         )}
                       </div>
                       <button 
-                        onClick={(e) => handleRelatedProductAddToCart(relatedProduct.id, e)}
-                        className={`p-3 rounded-full transition-all transform hover:scale-110 ${
-                          isAdded
-                            ? 'bg-green-500 text-white shadow-lg'
-                            : 'bg-gradient-to-r from-orange-500 to-amber-600 text-white hover:shadow-lg'
+                        onClick={(e) => handleRelatedProductAddToCart(relatedProduct.id, e, relatedProduct)}
+                        disabled={isRelatedOutOfStock}
+                        className={`p-3 rounded-full transition-all transform ${
+                          isRelatedOutOfStock
+                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            : isAdded
+                            ? 'bg-green-500 text-white shadow-lg hover:scale-110'
+                            : 'bg-gradient-to-r from-orange-500 to-amber-600 text-white hover:shadow-lg hover:scale-110'
                         }`}
                       >
-                        {isAdded ? '✓' : <ShoppingCart className="w-4 h-4" />}
+                        {isRelatedOutOfStock 
+                          ? 'Out of Stock' 
+                          : isAdded 
+                            ? '✓' 
+                            : <ShoppingCart className="w-4 h-4" />
+                        }
                       </button>
                     </div>
                   </div>

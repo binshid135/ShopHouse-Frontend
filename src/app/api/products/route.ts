@@ -29,6 +29,7 @@ export async function GET() {
   }
 }
 
+// In POST function - add stock and category handling
 export async function POST(request: NextRequest) {
   const session = await verifyAdminSession();
   if (!session) {
@@ -55,7 +56,6 @@ export async function POST(request: NextRequest) {
     // Validate recommendations
     if (isMostRecommended) {
       // Check if there's already a most recommended product
-      // For new products, don't exclude any ID since it doesn't exist yet
       const existingMostRecommended = await db.get(
         'SELECT id FROM products WHERE isMostRecommended = 1'
       );
@@ -68,12 +68,11 @@ export async function POST(request: NextRequest) {
           error: 'There can only be one most recommended product' 
         }, { status: 400 });
       }
-      recommendationOrder = 0; // Most recommended should be first
+      recommendationOrder = 0;
     }
 
     if (isRecommended && !isMostRecommended) {
       // Check if we've reached the limit of 3 recommended products
-      // For new products, don't exclude any ID
       const recommendedCount = await db.get(
         'SELECT COUNT(*) as count FROM products WHERE isRecommended = 1 AND isMostRecommended = 0'
       );
@@ -105,6 +104,8 @@ export async function POST(request: NextRequest) {
       shortDescription: formData.shortDescription as string || null,
       originalPrice: parseFloat(formData.originalPrice as string),
       discountedPrice: parseFloat(formData.discountedPrice as string),
+      stock: parseInt(formData.stock as string) || 0, // Add this
+      category: formData.category as string || 'Uncategorized', // Add this
       images: JSON.stringify(uploadedImages),
       isRecommended: isRecommended ? 1 : 0,
       isMostRecommended: isMostRecommended ? 1 : 0,
@@ -114,8 +115,8 @@ export async function POST(request: NextRequest) {
     };
     
     await db.run(
-      `INSERT INTO products (id, name, shortDescription, originalPrice, discountedPrice, images, isRecommended, isMostRecommended, recommendationOrder, createdAt, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO products (id, name, shortDescription, originalPrice, discountedPrice, stock, category, images, isRecommended, isMostRecommended, recommendationOrder, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       Object.values(product)
     );
 
@@ -135,7 +136,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// app/api/products/route.ts - PUT function
+// In PUT function - add stock and category handling
 export async function PUT(request: NextRequest) {
   const session = await verifyAdminSession();
   if (!session) {
@@ -197,7 +198,7 @@ export async function PUT(request: NextRequest) {
           error: 'There can only be one most recommended product' 
         }, { status: 400 });
       }
-      recommendationOrder = 0; // Most recommended should be first
+      recommendationOrder = 0;
     }
 
     if (isRecommended && !isMostRecommended) {
@@ -230,6 +231,8 @@ export async function PUT(request: NextRequest) {
       shortDescription: formData.shortDescription as string || null,
       originalPrice: parseFloat(formData.originalPrice as string),
       discountedPrice: parseFloat(formData.discountedPrice as string),
+      stock: parseInt(formData.stock as string) || 0, // Add this
+      category: formData.category as string || 'Uncategorized', // Add this
       images: JSON.stringify(allImages),
       isRecommended: isRecommended ? 1 : 0,
       isMostRecommended: isMostRecommended ? 1 : 0,
@@ -240,7 +243,7 @@ export async function PUT(request: NextRequest) {
     
     await db.run(
       `UPDATE products 
-       SET name = ?, shortDescription = ?, originalPrice = ?, discountedPrice = ?, images = ?, 
+       SET name = ?, shortDescription = ?, originalPrice = ?, discountedPrice = ?, stock = ?, category = ?, images = ?, 
            isRecommended = ?, isMostRecommended = ?, recommendationOrder = ?, updatedAt = ?
        WHERE id = ?`,
       Object.values(product)

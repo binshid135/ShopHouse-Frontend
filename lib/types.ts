@@ -9,6 +9,8 @@ export interface Product {
   isRecommended: boolean;
   isMostRecommended: boolean;
   recommendationOrder: number;
+  stock: number; // Add this
+  category: string; // Add this
   createdAt: Date;
   updatedAt: Date;
 }

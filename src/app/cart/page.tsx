@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ShoppingCart, Trash2, Plus, Minus, Ticket, ArrowRight, RefreshCw, LogIn, UserPlus } from 'lucide-react';
+import { ShoppingCart, Trash2, Plus, Minus, Ticket, ArrowRight, RefreshCw, LogIn, UserPlus, AlertCircle } from 'lucide-react';
 import Header from '../components/Header';
 import FloatingElements from '../components/FloatingElements';
 
@@ -12,6 +12,7 @@ interface CartItem {
   price: number;
   quantity: number;
   images: string[];
+  stock: number; // Add stock information
 }
 
 interface Cart {
@@ -28,6 +29,7 @@ export default function Cart() {
   const [couponCode, setCouponCode] = useState('');
   const [discount, setDiscount] = useState(0);
   const [couponMessage, setCouponMessage] = useState('');
+  const [cartError, setCartError] = useState<string | null>(null);
 
   useEffect(() => {
     checkAuthAndFetchCart();
@@ -36,6 +38,7 @@ export default function Cart() {
   const checkAuthAndFetchCart = async () => {
     try {
       setLoading(true);
+      setCartError(null);
       
       // Check if user is authenticated
       const authResponse = await fetch('/api/auth/me');
@@ -50,20 +53,27 @@ export default function Cart() {
       if (cartResponse.ok) {
         const cartData = await cartResponse.json();
         setCart(cartData);
-        console.log("cart datta",cartData)
       } else {
         console.error('Failed to fetch cart');
       }
     } catch (error) {
       console.error('Failed to fetch cart:', error);
+      setCartError('Failed to load cart. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const updateQuantity = async (itemId: string, newQuantity: number) => {
+  const updateQuantity = async (itemId: string, newQuantity: number, currentStock: number, productName: string) => {
     if (newQuantity < 1) {
       await removeItem(itemId);
+      return;
+    }
+
+    // Validate stock before updating
+    if (newQuantity > currentStock) {
+      setCartError(`Only ${currentStock} items available for ${productName}`);
+      setTimeout(() => setCartError(null), 5000);
       return;
     }
 
@@ -82,11 +92,14 @@ export default function Cart() {
       if (response.ok) {
         checkAuthAndFetchCart(); // Refresh cart data
       } else {
-        alert('Failed to update quantity');
+        const errorData = await response.json();
+        setCartError(errorData.error || 'Failed to update quantity');
+        setTimeout(() => setCartError(null), 5000);
       }
     } catch (error) {
       console.error('Failed to update quantity:', error);
-      alert('Error updating quantity');
+      setCartError('Error updating quantity');
+      setTimeout(() => setCartError(null), 5000);
     }
   };
 
@@ -99,11 +112,13 @@ export default function Cart() {
       if (response.ok) {
         checkAuthAndFetchCart(); // Refresh cart data
       } else {
-        alert('Failed to remove item');
+        setCartError('Failed to remove item');
+        setTimeout(() => setCartError(null), 5000);
       }
     } catch (error) {
       console.error('Failed to remove item:', error);
-      alert('Error removing item');
+      setCartError('Error removing item');
+      setTimeout(() => setCartError(null), 5000);
     }
   };
 
@@ -129,7 +144,7 @@ export default function Cart() {
         const data = await response.json();
         if (data.valid) {
           setDiscount(data.coupon.discountAmount);
-          setCouponMessage(`🎉 AED${data.coupon.discountAmount.toFixed(2)} discount applied!`);
+          setCouponMessage(`🎉 AED ${data.coupon.discountAmount.toFixed(2)} discount applied!`);
         } else {
           setDiscount(0);
           setCouponMessage(data.error || 'Invalid coupon code');
@@ -153,6 +168,22 @@ export default function Cart() {
       return;
     }
     
+    // Check if any items are out of stock before proceeding
+    const outOfStockItems = cart?.items.filter(item => item.stock <= 0) || [];
+    if (outOfStockItems.length > 0) {
+      setCartError('Some items in your cart are out of stock. Please remove them before checkout.');
+      setTimeout(() => setCartError(null), 5000);
+      return;
+    }
+
+    // Check if any items have insufficient stock
+    const insufficientStockItems = cart?.items.filter(item => item.quantity > item.stock) || [];
+    if (insufficientStockItems.length > 0) {
+      setCartError('Some items in your cart have insufficient stock. Please update quantities before checkout.');
+      setTimeout(() => setCartError(null), 5000);
+      return;
+    }
+    
     if (cart && cart.items.length > 0) {
       router.push('/cart/checkout');
     }
@@ -170,11 +201,70 @@ export default function Cart() {
     return '🍴';
   };
 
+  // Get stock status for an item
+  const getStockStatus = (item: CartItem) => {
+    if (item.stock <= 0) {
+      return {
+        status: 'out-of-stock',
+        message: 'Out of Stock',
+        color: 'red',
+        badge: (
+          <span className="px-2 py-1 bg-red-100 text-red-600 rounded-full text-xs font-medium flex items-center gap-1">
+            <AlertCircle className="w-3 h-3" />
+            Out of Stock
+          </span>
+        )
+      };
+    }
+    
+    if (item.quantity > item.stock) {
+      return {
+        status: 'insufficient-stock',
+        message: `Only ${item.stock} available`,
+        color: 'red',
+        badge: (
+          <span className="px-2 py-1 bg-red-100 text-red-600 rounded-full text-xs font-medium">
+            Only {item.stock} left
+          </span>
+        )
+      };
+    }
+    
+    if (item.stock < 5) {
+      return {
+        status: 'low-stock',
+        message: `Only ${item.stock} left`,
+        color: 'yellow',
+        badge: (
+          <span className="px-2 py-1 bg-yellow-100 text-yellow-600 rounded-full text-xs font-medium">
+            Only {item.stock} left
+          </span>
+        )
+      };
+    }
+    
+    return {
+      status: 'in-stock',
+      message: 'In Stock',
+      color: 'green',
+      badge: (
+        <span className="px-2 py-1 bg-green-100 text-green-600 rounded-full text-xs font-medium">
+          In Stock
+        </span>
+      )
+    };
+  };
+
   // Calculate order summary
   const subtotal = cart?.total || 0;
   const shipping = subtotal > 100 ? 0 : 10;
   const tax = subtotal * 0.05; // 5% VAT
   const total = Math.max(0, subtotal + shipping + tax - discount);
+
+  // Check if cart has any issues that prevent checkout
+  const hasCartIssues = cart?.items.some(item => 
+    item.stock <= 0 || item.quantity > item.stock
+  );
 
   if (loading) {
     return (
@@ -194,6 +284,24 @@ export default function Cart() {
       <Header searchQuery={""} setSearchQuery={() => {}} />
       
       <div className="max-w-7xl mx-auto px-6 py-12">
+        {/* Error Message */}
+        {cartError && (
+          <div className="mb-6">
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 flex-shrink-0" />
+              <p className="font-medium">{cartError}</p>
+              <button 
+                onClick={() => setCartError(null)}
+                className="ml-auto text-red-500 hover:text-red-700 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div className="flex items-center gap-3">
             <ShoppingCart className="w-8 h-8 text-orange-600" />
@@ -275,9 +383,14 @@ export default function Cart() {
             ) : (
               cart.items.map((item) => {
                 const productEmoji = getProductEmoji(item.name);
+                const stockStatus = getStockStatus(item);
+                const isOutOfStock = item.stock <= 0;
+                const hasInsufficientStock = item.quantity > item.stock;
                 
                 return (
-                  <div key={item.id} className="bg-white rounded-3xl p-6 shadow-lg hover:shadow-xl transition-all">
+                  <div key={item.id} className={`bg-white rounded-3xl p-6 shadow-lg transition-all ${
+                    isOutOfStock ? 'opacity-60' : 'hover:shadow-xl'
+                  }`}>
                     <div className="flex gap-6">
                       <div className="w-24 h-24 bg-gradient-to-br from-orange-100 to-amber-100 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden">
                         {item.images && item.images.length > 0 ? (
@@ -295,7 +408,12 @@ export default function Cart() {
                         <div className="flex justify-between items-start mb-3">
                           <div>
                             <h3 className="text-xl font-bold text-amber-900 mb-1">{item.name}</h3>
-                            <span className="text-orange-600 font-medium">AED{item.price.toFixed(2)} each</span>
+                            <span className="text-orange-600 font-medium">AED {item.price.toFixed(2)} each</span>
+                            
+                            {/* Stock Status Badge */}
+                            <div className="mt-2">
+                              {stockStatus.badge}
+                            </div>
                           </div>
                           <button 
                             onClick={() => removeItem(item.id)}
@@ -307,26 +425,61 @@ export default function Cart() {
 
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-3 bg-amber-50 rounded-full px-4 py-2">
+                            <div className={`flex items-center gap-3 rounded-full px-4 py-2 ${
+                              isOutOfStock ? 'bg-gray-100' : 'bg-amber-50'
+                            }`}>
                               <button 
-                                onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                                className="w-6 h-6 rounded-full bg-white flex items-center justify-center hover:bg-gray-100 transition-colors"
+                                onClick={() => updateQuantity(item.id, item.quantity - 1, item.stock, item.name)}
+                                disabled={isOutOfStock}
+                                className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${
+                                  isOutOfStock 
+                                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
+                                    : 'bg-white hover:bg-gray-100'
+                                }`}
                               >
                                 <Minus className="w-3 h-3" />
                               </button>
-                              <span className="font-bold text-amber-900 w-8 text-center">{item.quantity}</span>
+                              <span className={`font-bold w-8 text-center ${
+                                isOutOfStock ? 'text-gray-400' : 'text-amber-900'
+                              }`}>
+                                {item.quantity}
+                              </span>
                               <button 
-                                onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                                className="w-6 h-6 rounded-full bg-white flex items-center justify-center hover:bg-gray-100 transition-colors"
+                                onClick={() => updateQuantity(item.id, item.quantity + 1, item.stock, item.name)}
+                                disabled={isOutOfStock || item.quantity >= item.stock}
+                                className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${
+                                  isOutOfStock || item.quantity >= item.stock
+                                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
+                                    : 'bg-white hover:bg-gray-100'
+                                }`}
                               >
                                 <Plus className="w-3 h-3" />
                               </button>
                             </div>
                           </div>
-                          <span className="text-2xl font-bold text-amber-900">
-                            AED{(item.price * item.quantity).toFixed(2)}
+                          <span className={`text-2xl font-bold ${
+                            isOutOfStock ? 'text-gray-400' : 'text-amber-900'
+                          }`}>
+                            AED {(item.price * item.quantity).toFixed(2)}
                           </span>
                         </div>
+
+                        {/* Warning Messages */}
+                        {isOutOfStock && (
+                          <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-xl">
+                            <p className="text-red-700 text-sm font-medium">
+                              This item is out of stock. Please remove it to proceed with checkout.
+                            </p>
+                          </div>
+                        )}
+                        
+                        {hasInsufficientStock && !isOutOfStock && (
+                          <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-xl">
+                            <p className="text-yellow-700 text-sm font-medium">
+                              Only {item.stock} items available. Please reduce quantity to proceed.
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -353,6 +506,16 @@ export default function Cart() {
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
                     Shopping as guest
+                  </div>
+                </div>
+              )}
+              
+              {/* Cart Issues Warning */}
+              {hasCartIssues && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-4">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    <p className="text-sm font-medium">Some items need attention before checkout</p>
                   </div>
                 </div>
               )}
@@ -395,33 +558,33 @@ export default function Cart() {
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between text-amber-800">
                   <span>Subtotal</span>
-                  <span>AED{subtotal.toFixed(2)}</span>
+                  <span>AED {subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-amber-800">
                   <span>Delivery charge</span>
-                  <span>{shipping === 0 ? 'FREE' : `AED${shipping.toFixed(2)}`}</span>
+                  <span>{shipping === 0 ? 'FREE' : `AED ${shipping.toFixed(2)}`}</span>
                 </div>
                 <div className="flex justify-between text-amber-800">
                   <span>Tax (5%)</span>
-                  <span>AED{tax.toFixed(2)}</span>
+                  <span>AED {tax.toFixed(2)}</span>
                 </div>
                 {discount > 0 && (
                   <div className="flex justify-between text-green-600">
                     <span>Discount</span>
-                    <span>-AED{discount.toFixed(2)}</span>
+                    <span>-AED {discount.toFixed(2)}</span>
                   </div>
                 )}
                 <div className="border-t border-amber-200 pt-3">
                   <div className="flex justify-between text-lg font-bold text-amber-900">
                     <span>Total</span>
-                    <span>AED{total.toFixed(2)}</span>
+                    <span>AED {total.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
 
               <button 
                 onClick={proceedToCheckout}
-                disabled={!cart || cart.items.length === 0}
+                disabled={!cart || cart.items.length === 0 || hasCartIssues}
                 className="w-full bg-gradient-to-r from-orange-500 to-amber-600 text-white py-4 rounded-full font-medium hover:shadow-lg transform hover:-translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
               >
                 {!user ? 'Sign In to Checkout' : `Proceed to Checkout`}
@@ -430,13 +593,19 @@ export default function Cart() {
 
               {shipping > 0 && subtotal < 100 && (
                 <p className="text-center text-sm text-amber-700 mt-4">
-                  Add AED{(100 - subtotal).toFixed(2)} more for FREE Delivery!
+                  Add AED {(100 - subtotal).toFixed(2)} more for FREE Delivery!
                 </p>
               )}
 
               {!user && (
                 <p className="text-center text-xs text-amber-600 mt-3">
                   You'll be asked to sign in or create an account before checkout
+                </p>
+              )}
+
+              {hasCartIssues && (
+                <p className="text-center text-xs text-red-600 mt-3">
+                  Please resolve stock issues before checkout
                 </p>
               )}
             </div>
@@ -451,12 +620,6 @@ export default function Cart() {
                   </div>
                   Free Delivery on orders over AED 100
                 </div>
-                {/* <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                    <span className="text-green-600 font-bold">✓</span>
-                  </div>
-                  30-day money-back guarantee
-                </div> */}
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
                     <span className="text-green-600 font-bold">✓</span>

@@ -163,6 +163,14 @@ async function initializeDB(): Promise<void> {
     console.log('Product columns migration completed or not needed');
   }
 
+  try {
+    await db.run(`ALTER TABLE products ADD COLUMN stock INTEGER DEFAULT 0`);
+    await db.run(`ALTER TABLE products ADD COLUMN category TEXT DEFAULT 'Uncategorized'`);
+  } catch (error) {
+    // Columns might already exist
+    console.log('Product stock and category migration completed or not needed');
+  }
+
 
   // Create demo user
   await createDemoUser();

@@ -387,7 +387,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                 disabled={submitting}
                 className="w-full bg-gradient-to-r from-orange-500 to-amber-600 text-white py-4 rounded-xl font-medium hover:shadow-lg transform hover:-translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {submitting ? 'Processing...' : `Confirm Order - $${cart.total.toFixed(2)}`}
+                {submitting ? 'Processing...' : `Confirm Order - AED ${cart.total.toFixed(2)}`}
               </button>
             </form>
           </div>
@@ -416,7 +416,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                       <p className="text-amber-700 text-sm">Qty: {item.quantity}</p>
                     </div>
                     <span className="font-bold text-amber-900">
-                      ${(item.price * item.quantity).toFixed(2)}
+                      AED {(item.price * item.quantity).toFixed(2)}
                     </span>
                   </div>
                 ))}
@@ -425,7 +425,7 @@ const handleSubmit = async (e: React.FormEvent) => {
               <div className="space-y-3">
                 <div className="flex justify-between text-amber-800">
                   <span>Subtotal</span>
-                  <span>${cart.total.toFixed(2)}</span>
+                  <span>AED {cart.total.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-amber-800">
                   <span>Shipping</span>
@@ -433,12 +433,12 @@ const handleSubmit = async (e: React.FormEvent) => {
                 </div>
                 <div className="flex justify-between text-amber-800">
                   <span>Tax</span>
-                  <span>${(cart.total * 0.05).toFixed(2)}</span>
+                  <span>AED {(cart.total * 0.05).toFixed(2)}</span>
                 </div>
                 <div className="border-t border-amber-200 pt-3">
                   <div className="flex justify-between text-lg font-bold text-amber-900">
                     <span>Total</span>
-                    <span>${(cart.total * 1.05).toFixed(2)}</span>
+                    <span>AED {(cart.total * 1.05).toFixed(2)}</span>
                   </div>
                 </div>
               </div>

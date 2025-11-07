@@ -123,6 +123,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// app/api/userside/cart/route.ts - Update POST function
 export async function POST(request: NextRequest) {
   try {
     const { productId, quantity = 1 } = await request.json();
@@ -139,14 +140,19 @@ export async function POST(request: NextRequest) {
       userId = user?.id || null;
     }
     
-    // Check if product exists
+    // Check if product exists and has stock
     const product = await db.get(
-      'SELECT id FROM products WHERE id = ?',
+      'SELECT id, stock FROM products WHERE id = ?',
       [productId]
     );
     
     if (!product) {
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+    }
+    
+    // Check stock availability
+    if (product.stock <= 0) {
+      return NextResponse.json({ error: 'This product is out of stock' }, { status: 400 });
     }
     
     // For authenticated users, always use user ID for queries
@@ -161,6 +167,16 @@ export async function POST(request: NextRequest) {
         'SELECT * FROM cart_items WHERE cartId = ? AND productId = ?',
         [cartId, productId]
       );
+    }
+    
+    // Check if adding this item would exceed available stock
+    const currentQuantity = existingItem ? existingItem.quantity : 0;
+    const newTotalQuantity = currentQuantity + quantity;
+    
+    if (newTotalQuantity > product.stock) {
+      return NextResponse.json({ 
+        error: `Only ${product.stock} items available in stock. You already have ${currentQuantity} in cart.` 
+      }, { status: 400 });
     }
     
     if (existingItem) {
@@ -199,6 +215,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// Also update the PUT function for quantity updates
 export async function PUT(request: NextRequest) {
   try {
     const { itemId, quantity } = await request.json();
@@ -213,6 +230,37 @@ export async function PUT(request: NextRequest) {
     if (token) {
       const user = await verifyUserSession(token);
       userId = user?.id || null;
+    }
+    
+    // Get product info to check stock
+    let cartItem;
+    if (userId) {
+      cartItem = await db.get(
+        `SELECT ci.*, p.stock 
+         FROM cart_items ci 
+         JOIN products p ON ci.productId = p.id 
+         WHERE ci.id = ? AND ci.userId = ?`,
+        [itemId, userId]
+      );
+    } else {
+      cartItem = await db.get(
+        `SELECT ci.*, p.stock 
+         FROM cart_items ci 
+         JOIN products p ON ci.productId = p.id 
+         WHERE ci.id = ? AND ci.cartId = ?`,
+        [itemId, cartId]
+      );
+    }
+    
+    if (!cartItem) {
+      return NextResponse.json({ error: 'Cart item not found' }, { status: 404 });
+    }
+    
+    // Check stock availability for the new quantity
+    if (quantity > cartItem.stock) {
+      return NextResponse.json({ 
+        error: `Only ${cartItem.stock} items available in stock` 
+      }, { status: 400 });
     }
     
     if (quantity <= 0) {
