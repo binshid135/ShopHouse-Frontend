@@ -2,7 +2,7 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Filter, Grid, List, Star, ShoppingCart, X } from 'lucide-react';
+import { Filter, Grid, List, Star, ShoppingCart, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import Header from './../components/Header'
 import FloatingElements from './../components/FloatingElements';
 
@@ -30,36 +30,47 @@ export default function Products() {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [categories, setCategories] = useState<string[]>(['All']);
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [currentImageIndexes, setCurrentImageIndexes] = useState<{[key: string]: number}>({});
 
   useEffect(() => {
     fetchProducts();
   }, []);
 
-  const fetchProducts = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch('/api/userside/products');
-      if (response.ok) {
-        const data = await response.json();
-        setProducts(data);
-        
-        // Extract unique categories, filter out "Uncategorized" and empty categories
-        const uniqueCategories = ['All', ...new Set(data
+ const fetchProducts = async () => {
+  try {
+    setLoading(true);
+    const response = await fetch('/api/userside/products');
+    if (response.ok) {
+      const data = await response.json();
+      setProducts(data);
+      
+      // Extract unique categories, filter out "Uncategorized" and empty categories
+      const uniqueCategories = ['All', ...new Set(
+        data
           .map((product: Product) => product.category)
-          .filter((category: string) => category && category !== 'Uncategorized' && category.trim() !== '')
-        )];
-        setCategories(uniqueCategories);
-      } else {
-        setError('Failed to fetch products');
-      }
-    } catch (error) {
-      console.error('Failed to fetch products:', error);
-      setError('Error loading products');
-    } finally {
-      setLoading(false);
+          .filter((category: string | null | undefined) => 
+            category && category !== 'Uncategorized' && category.trim() !== ''
+          )
+      )] as string[];
+      
+      setCategories(uniqueCategories);
+      
+      // Initialize image indexes for each product
+      const indexes: {[key: string]: number} = {};
+      data.forEach((product: Product) => {
+        indexes[product.id] = 0;
+      });
+      setCurrentImageIndexes(indexes);
+    } else {
+      setError('Failed to fetch products');
     }
-  };
-
+  } catch (error) {
+    console.error('Failed to fetch products:', error);
+    setError('Error loading products');
+  } finally {
+    setLoading(false);
+  }
+};
   const addToCart = async (productId: string, event: React.MouseEvent) => {
     event.stopPropagation(); // Prevent navigation
 
@@ -111,6 +122,29 @@ export default function Products() {
 
   const navigateToProduct = (productId: string) => {
     router.push(`/products/${productId}`);
+  };
+
+  // Image carousel navigation
+  const nextImage = (productId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    const product = products.find(p => p.id === productId);
+    if (!product || product.images.length <= 1) return;
+    
+    setCurrentImageIndexes(prev => ({
+      ...prev,
+      [productId]: (prev[productId] + 1) % product.images.length
+    }));
+  };
+
+  const prevImage = (productId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    const product = products.find(p => p.id === productId);
+    if (!product || product.images.length <= 1) return;
+    
+    setCurrentImageIndexes(prev => ({
+      ...prev,
+      [productId]: (prev[productId] - 1 + product.images.length) % product.images.length
+    }));
   };
 
   // Filter products based on search query and category
@@ -269,7 +303,7 @@ export default function Products() {
             </div>
 
             <div className="flex items-center gap-4">
-              {/* Category Filter - Improved Design */}
+              {/* Category Filter */}
               <div className="relative">
                 <button
                   onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
@@ -404,7 +438,7 @@ export default function Products() {
             )}
           </div>
 
-          {/* Category Quick Filters (Horizontal Scroll) */}
+          {/* Category Quick Filters */}
           {categories.length > 1 && (
             <div className="mb-8">
               <div className="flex items-center gap-2 overflow-x-auto pb-4 scrollbar-hide">
@@ -467,6 +501,8 @@ export default function Products() {
                 const productTag = getProductTag(product);
                 const stockBadge = getStockBadge(product);
                 const isOutOfStock = product.stock <= 0;
+                const currentImageIndex = currentImageIndexes[product.id] || 0;
+                const hasMultipleImages = product.images && product.images.length > 1;
 
                 return (
                   <div
@@ -481,23 +517,72 @@ export default function Products() {
                     <div className={`${viewMode === 'list'
                         ? 'w-48 h-48 flex-shrink-0'
                         : 'h-48'
-                      } bg-gradient-to-br from-orange-100 to-amber-100 flex items-center justify-center relative`}>
+                      } bg-gradient-to-br from-orange-100 to-amber-100 flex items-center justify-center relative group`}>
+                      
+                      {/* Product Image or Slideshow */}
                       {product.images && product.images.length > 0 ? (
-                        <img
-                          src={product.images[0]}
-                          alt={product.name}
-                          className="w-full h-full object-contain"
-                        />
+                        <>
+                          <img
+                            src={product.images[currentImageIndex]}
+                            alt={product.name}
+                            className="w-full h-full object-contain transition-opacity duration-300"
+                          />
+                          
+                          {/* Navigation Arrows for Multiple Images */}
+                          {hasMultipleImages && (
+                            <>
+                              <button
+                                onClick={(e) => prevImage(product.id, e)}
+                                className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white text-amber-900 rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md"
+                              >
+                                <ChevronLeft className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={(e) => nextImage(product.id, e)}
+                                className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white text-amber-900 rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md"
+                              >
+                                <ChevronRight className="w-4 h-4" />
+                              </button>
+                            </>
+                          )}
+                          
+                          {/* Image Dots Indicator */}
+                          {hasMultipleImages && (
+                            <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 flex gap-1.5">
+                              {product.images.map((_, index) => (
+                                <button
+                                  key={index}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setCurrentImageIndexes(prev => ({
+                                      ...prev,
+                                      [product.id]: index
+                                    }));
+                                  }}
+                                  className={`w-2 h-2 rounded-full transition-all ${
+                                    index === currentImageIndex
+                                      ? 'bg-orange-500'
+                                      : 'bg-white/80 hover:bg-white'
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                          )}
+                          
+                          {/* Image Counter */}
+                          {hasMultipleImages && (
+                            <div className="absolute top-3 left-3 bg-black/50 text-white text-xs px-2 py-1 rounded-full">
+                              {currentImageIndex + 1} / {product.images.length}
+                            </div>
+                          )}
+                        </>
                       ) : (
                         <div className="text-6xl">{productEmoji}</div>
                       )}
-                      <div className="absolute top-4 left-4 flex gap-2">
-                        <span className="w-2 h-2 bg-gray-300 rounded-full"></span>
-                        <span className="w-2 h-2 bg-gray-300 rounded-full"></span>
-                        <span className="w-2 h-2 bg-gray-300 rounded-full"></span>
-                      </div>
+                      
+                      {/* Top Right Discount Badge */}
                       {discountPercentage > 0 && (
-                        <div className="absolute top-4 right-4 bg-red-500 text-white px-2 py-1 rounded-full text-sm font-bold">
+                        <div className="absolute top-3 right-3 bg-red-500 text-white px-2 py-1 rounded-full text-sm font-bold">
                           -{discountPercentage}%
                         </div>
                       )}
