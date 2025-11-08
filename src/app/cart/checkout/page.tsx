@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, MapPin, Phone, User, Home } from "lucide-react";
+import { ArrowLeft, MapPin, Phone, User, Home, CreditCard } from "lucide-react";
 import FloatingElements from "@/app/components/FloatingElements";
 import Header from "@/app/components/Header";
 
@@ -40,78 +40,77 @@ export default function CheckoutPage() {
   const [success, setSuccess] = useState(false);
 
   // Only allow delivery inside Al Ain
- const areasInAlAin = [
-  "Asharij",
-  "Abu Hiraybah",
-  "Abu Samrah",
-  "Ain Al Faydah",
-  "Al 'Ajban",
-  "Al 'Arad",
-  "Al 'Iqabiyyah",
-  "Al Aamerah",
-  "Al Aflaj",
-  "Al Ain International Airport",
-  "Al Bateen",
-  "Al Dahma",
-  "Al Dhahir",
-  "Al Dhahrah",
-  "Al Faqa'",
-  "Al Fou'ah",
-  "Al Hiyar",
-  "Al Jahili",
-  "Al Jimi",
-  "Al Khaznah",
-  "Al Khibeesi",
-  "Al Khirayr",
-  "Al Maqam",
-  "Al Markhaniyyah",
-  "Al Mas'oudi",
-  "Al Mu'tarid",
-  "Al Mutaw'ah",
-  "Al Muwaij'i",
-  "Al Nabbagh",
-  "Al Qattarah",
-  "Al Qisees",
-  "Al Qou'",
-  "Al Rawdah",
-  "Al Rawdah Al Sharqiyah",
-  "Al Ruwaydat",
-  "Al Sad",
-  "Al Salamat",
-  "Al Sarouj",
-  "Al Shiwayb",
-  "Al Shuwaymah",
-  "Al Tiwayya",
-  "Al Wiqan",
-  "Bad' Bint Sa'oud",
-  "Bu Kirayyah",
-  "Central District",
-  "Falaj Hazza'",
-  "Ghireebah",
-  "Ghnaymah",
-  "Hili",
-  "Industrial Area",
-  "Industrial City",
-  "Jabal Hafeet",
-  "Khatm Al Shiklah",
-  "Malaqit",
-  "Masakin",
-  "Mazyad",
-  "Mbazzarah Al Khadra",
-  "Nahil",
-  "Ni'mah",
-  "Niqa Al Dheeb",
-  "Ramlat Sweihan",
-  "Rimah",
-  "Sa'",
-  "Shi'bat Al Wutah",
-  "Shiab Al Ashkhar",
-  "Sweihan",
-  "Um Al Zumoul",
-  "Um Ghafah",
-  "Zakhir",
-];
-
+  const areasInAlAin = [
+    "Asharij",
+    "Abu Hiraybah",
+    "Abu Samrah",
+    "Ain Al Faydah",
+    "Al 'Ajban",
+    "Al 'Arad",
+    "Al 'Iqabiyyah",
+    "Al Aamerah",
+    "Al Aflaj",
+    "Al Ain International Airport",
+    "Al Bateen",
+    "Al Dahma",
+    "Al Dhahir",
+    "Al Dhahrah",
+    "Al Faqa'",
+    "Al Fou'ah",
+    "Al Hiyar",
+    "Al Jahili",
+    "Al Jimi",
+    "Al Khaznah",
+    "Al Khibeesi",
+    "Al Khirayr",
+    "Al Maqam",
+    "Al Markhaniyyah",
+    "Al Mas'oudi",
+    "Al Mu'tarid",
+    "Al Mutaw'ah",
+    "Al Muwaij'i",
+    "Al Nabbagh",
+    "Al Qattarah",
+    "Al Qisees",
+    "Al Qou'",
+    "Al Rawdah",
+    "Al Rawdah Al Sharqiyah",
+    "Al Ruwaydat",
+    "Al Sad",
+    "Al Salamat",
+    "Al Sarouj",
+    "Al Shiwayb",
+    "Al Shuwaymah",
+    "Al Tiwayya",
+    "Al Wiqan",
+    "Bad' Bint Sa'oud",
+    "Bu Kirayyah",
+    "Central District",
+    "Falaj Hazza'",
+    "Ghireebah",
+    "Ghnaymah",
+    "Hili",
+    "Industrial Area",
+    "Industrial City",
+    "Jabal Hafeet",
+    "Khatm Al Shiklah",
+    "Malaqit",
+    "Masakin",
+    "Mazyad",
+    "Mbazzarah Al Khadra",
+    "Nahil",
+    "Ni'mah",
+    "Niqa Al Dheeb",
+    "Ramlat Sweihan",
+    "Rimah",
+    "Sa'",
+    "Shi'bat Al Wutah",
+    "Shiab Al Ashkhar",
+    "Sweihan",
+    "Um Al Zumoul",
+    "Um Ghafah",
+    "Zakhir",
+  ];
 
   useEffect(() => {
     fetchCart();
@@ -123,7 +122,7 @@ export default function CheckoutPage() {
       if (response.ok) {
         const data = await response.json();
         setCart(data);
-        console.log("in check cart",data)
+        console.log("in check cart", data);
       } else {
         router.push('/cart');
       }
@@ -139,68 +138,66 @@ export default function CheckoutPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // In your checkout page component
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setError("");
-  setSuccess(false);
-  setSubmitting(true);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setSuccess(false);
+    setSubmitting(true);
 
-  // Basic validation
-  if (
-    !formData.fullName ||
-    !formData.mobile ||
-    !formData.area ||
-    !formData.street ||
-    !formData.building
-  ) {
-    setError("Please fill all required fields.");
-    setSubmitting(false);
-    return;
-  }
-
-  // UAE mobile validation
-  const mobilePattern = /^(05\d{8}|5\d{8}|\+9715\d{8})$/;
-  if (!mobilePattern.test(formData.mobile.replace(/\s/g, ''))) {
-    setError("Enter a valid UAE mobile number (e.g., 0501234567 or 501234567).");
-    setSubmitting(false);
-    return;
-  }
-
-  try {
-    console.log('Submitting order with cart:', cart);
-    
-    const response = await fetch('/api/userside/orders', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        customerName: formData.fullName,
-        // customerEmail: user?.email || '', // Include user email if available
-        customerPhone: formData.mobile,
-        shippingAddress: `${formData.street}, ${formData.building}${formData.flat ? `, Flat ${formData.flat}` : ''}, ${formData.area}, Al Ain`
-      }),
-    });
-
-    const result = await response.json();
-    console.log('Order response:', result);
-
-    if (response.ok) {
-      setSuccess(true);
-      setTimeout(() => {
-        router.push(`/order-confirmation?orderId=${result.orderId}`);
-      }, 2000);
-    } else {
-      setError(result.error || 'Checkout failed. Please try again.');
+    // Basic validation
+    if (
+      !formData.fullName ||
+      !formData.mobile ||
+      !formData.area ||
+      !formData.street ||
+      !formData.building
+    ) {
+      setError("Please fill all required fields.");
+      setSubmitting(false);
+      return;
     }
-  } catch (err) {
-    console.error('Checkout error:', err);
-    setError("Checkout failed. Please try again.");
-  } finally {
-    setSubmitting(false);
-  }
-};
+
+    // UAE mobile validation
+    const mobilePattern = /^(05\d{8}|5\d{8}|\+9715\d{8})$/;
+    if (!mobilePattern.test(formData.mobile.replace(/\s/g, ''))) {
+      setError("Enter a valid UAE mobile number (e.g., 0501234567 or 501234567).");
+      setSubmitting(false);
+      return;
+    }
+
+    try {
+      console.log('Submitting order with cart:', cart);
+      
+      const response = await fetch('/api/userside/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          customerName: formData.fullName,
+          customerPhone: formData.mobile,
+          shippingAddress: `${formData.street}, ${formData.building}${formData.flat ? `, Flat ${formData.flat}` : ''}, ${formData.area}, Al Ain`
+        }),
+      });
+
+      const result = await response.json();
+      console.log('Order response:', result);
+
+      if (response.ok) {
+        setSuccess(true);
+        setTimeout(() => {
+          router.push(`/order-confirmation?orderId=${result.orderId}`);
+        }, 2000);
+      } else {
+        setError(result.error || 'Checkout failed. Please try again.');
+      }
+    } catch (err) {
+      console.error('Checkout error:', err);
+      setError("Checkout failed. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -254,6 +251,21 @@ const handleSubmit = async (e: React.FormEvent) => {
           <div className="bg-white rounded-3xl p-8 shadow-lg">
             <h1 className="text-3xl font-bold text-amber-900 mb-2">Checkout</h1>
             <p className="text-amber-700 mb-6">Complete your order with delivery information</p>
+
+            {/* Cash on Delivery Notice */}
+            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <CreditCard className="w-5 h-5 text-amber-600" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-amber-900">Cash on Delivery Only</h4>
+                  <p className="text-sm text-amber-700">
+                    We currently accept cash payments only. Please have the exact amount ready when our delivery partner arrives.
+                  </p>
+                </div>
+              </div>
+            </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Personal Information */}
@@ -387,8 +399,18 @@ const handleSubmit = async (e: React.FormEvent) => {
                 disabled={submitting}
                 className="w-full bg-gradient-to-r from-orange-500 to-amber-600 text-white py-4 rounded-xl font-medium hover:shadow-lg transform hover:-translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {submitting ? 'Processing...' : `Confirm Order - AED ${cart.total.toFixed(2)}`}
+                {submitting ? 'Processing...' : `Place Order - AED ${(cart.total * 1.05).toFixed(2)}`}
               </button>
+
+              {/* Payment Method Reminder */}
+              <div className="text-center">
+                <p className="text-sm text-amber-600">
+                  💰 Payment method: <span className="font-semibold">Cash on Delivery</span>
+                </p>
+                <p className="text-xs text-amber-500 mt-1">
+                  No online payment required. Pay when you receive your order.
+                </p>
+              </div>
             </form>
           </div>
 
@@ -442,6 +464,19 @@ const handleSubmit = async (e: React.FormEvent) => {
                   </div>
                 </div>
               </div>
+
+              {/* Payment Summary */}
+              <div className="mt-4 p-4 bg-amber-50 rounded-xl border border-amber-200">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-amber-800">Payment Method:</span>
+                  <span className="text-sm font-semibold text-amber-900 bg-amber-100 px-3 py-1 rounded-full">
+                    Cash on Delivery
+                  </span>
+                </div>
+                <p className="text-xs text-amber-600 mt-2 text-center">
+                  Pay this amount when your order arrives
+                </p>
+              </div>
             </div>
 
             {/* Delivery Info */}
@@ -462,9 +497,12 @@ const handleSubmit = async (e: React.FormEvent) => {
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
-                    <span className="text-orange-600 font-bold">✓</span>
+                    <span className="text-orange-600 font-bold">💰</span>
                   </div>
-                  Cash on delivery available
+                  <div>
+                    <span className="font-semibold">Cash on Delivery</span>
+                    <p className="text-xs text-amber-600">No online payment required</p>
+                  </div>
                 </div>
               </div>
             </div>
