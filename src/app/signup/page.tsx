@@ -23,8 +23,54 @@ export default function SignupPage() {
   const [step, setStep] = useState(1); // 1: Basic info, 2: OTP verification
   const [otpSent, setOtpSent] = useState(false);
 
+  // UAE phone number validation
+  const validateUAEPhone = (phone: string): boolean => {
+    // Remove any spaces, dashes, or parentheses
+    const cleanedPhone = phone.replace(/[\s\-\(\)]/g, '');
+    
+    // UAE phone number patterns:
+    // - Starts with +971 or 971 followed by 9 digits
+    // - Starts with 05 followed by 8 digits
+    // - Starts with 5 followed by 8 digits (without 0)
+    const uaePhoneRegex = /^(?:\+971|971|0)?5[0-9]{8}$/;
+    
+    return uaePhoneRegex.test(cleanedPhone);
+  };
+
+  const formatUAEPhone = (phone: string): string => {
+    // Remove any non-digit characters except +
+    const cleaned = phone.replace(/[^\d+]/g, '');
+    
+    // If it starts with 05, convert to +9715
+    if (cleaned.startsWith('05') && cleaned.length === 10) {
+      return `+971${cleaned.slice(1)}`;
+    }
+    
+    // If it starts with 5 (without 0) and has 9 digits, add +971
+    if (cleaned.startsWith('5') && cleaned.length === 9 && !cleaned.startsWith('+')) {
+      return `+971${cleaned}`;
+    }
+    
+    // If it starts with 971 and has 12 digits, add +
+    if (cleaned.startsWith('971') && cleaned.length === 12 && !cleaned.startsWith('+')) {
+      return `+${cleaned}`;
+    }
+    
+    return cleaned;
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    
+    // Special handling for phone number
+    if (name === 'phone') {
+      // Allow only numbers, +, and common separators
+      const phoneValue = value.replace(/[^\d+\-\s\(\)]/g, '');
+      setFormData({ ...formData, [name]: phoneValue });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
+    
     setError('');
   };
 
@@ -41,11 +87,21 @@ export default function SignupPage() {
 
   const sendOtp = async () => {
     try {
+      // Validate UAE phone number if provided
+      if (formData.phone && !validateUAEPhone(formData.phone)) {
+        setError('Please enter a valid UAE phone number (e.g., 05XXXXXXXX or +9715XXXXXXXX)');
+        return;
+      }
+
       setLoading(true);
       const response = await fetch('/api/auth/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email }),
+        body: JSON.stringify({ 
+          email: formData.email,
+          // Send formatted phone number to backend
+          phone: formData.phone ? formatUAEPhone(formData.phone) : null 
+        }),
       });
 
       const data = await response.json();
@@ -82,6 +138,13 @@ export default function SignupPage() {
         return;
       }
 
+      // Validate UAE phone number if provided
+      if (formData.phone && !validateUAEPhone(formData.phone)) {
+        setError('Please enter a valid UAE phone number (e.g., 05XXXXXXXX or +9715XXXXXXXX)');
+        setLoading(false);
+        return;
+      }
+
       await sendOtp();
       return;
     }
@@ -96,7 +159,7 @@ export default function SignupPage() {
           name: formData.name,
           email: formData.email,
           password: formData.password,
-          phone: formData.phone,
+          phone: formData.phone ? formatUAEPhone(formData.phone) : null,
           otp: formData.otp,
         }),
       });
@@ -144,6 +207,17 @@ export default function SignupPage() {
       setError('An error occurred. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Helper function to show phone validation hint
+  const getPhoneValidationHint = () => {
+    if (!formData.phone) return 'Enter your UAE phone number (optional)';
+    
+    if (validateUAEPhone(formData.phone)) {
+      return '✓ Valid UAE number';
+    } else {
+      return 'Please enter a valid UAE number (05XXXXXXXX or +9715XXXXXXXX)';
     }
   };
 
@@ -214,16 +288,31 @@ export default function SignupPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-amber-800 mb-2">
-                      Phone Number
+                      Phone Number (UAE)
                     </label>
                     <input
                       type="tel"
                       name="phone"
                       value={formData.phone}
                       onChange={handleChange}
-                      className="w-full border-2 border-amber-200 rounded-xl px-4 py-3 focus:border-orange-400 outline-none transition-all bg-amber-50"
-                      placeholder="Enter your phone number"
+                      className={`w-full border-2 rounded-xl px-4 py-3 focus:border-orange-400 outline-none transition-all bg-amber-50 ${
+                        formData.phone 
+                          ? validateUAEPhone(formData.phone) 
+                            ? 'border-green-400' 
+                            : 'border-red-300'
+                          : 'border-amber-200'
+                      }`}
+                      placeholder="e.g., 05XXXXXXXX or +9715XXXXXXXX"
                     />
+                    <p className={`text-xs mt-1 ${
+                      formData.phone 
+                        ? validateUAEPhone(formData.phone) 
+                          ? 'text-green-600' 
+                          : 'text-red-600'
+                        : 'text-amber-600'
+                    }`}>
+                      {getPhoneValidationHint()}
+                    </p>
                   </div>
 
                   <div>
