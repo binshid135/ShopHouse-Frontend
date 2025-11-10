@@ -1,19 +1,24 @@
 import { NextResponse } from 'next/server';
-import { getDB } from '../../../../../lib/database';
+import { query } from '../../../../../lib/neon';
 
 export async function GET() {
   try {
-    const db = await getDB();
-    const products = await db.all(`
+    const result = await query(`
       SELECT * FROM products 
-      ORDER BY isMostRecommended DESC, recommendationOrder ASC, createdAt DESC
+      ORDER BY is_most_recommended DESC, recommendation_order ASC, created_at DESC
     `);
     
-    const productsWithImages = products.map((product: any) => ({
+    const productsWithImages = result.rows.map((product: any) => ({
       ...product,
-      images: product.images ? JSON.parse(product.images) : [],
-      isRecommended: Boolean(product.isRecommended),
-      isMostRecommended: Boolean(product.isMostRecommended)
+      originalPrice: parseFloat(product.original_price),
+      discountedPrice: parseFloat(product.discounted_price),
+      stock: parseInt(product.stock),
+      isRecommended: Boolean(product.is_recommended),
+      isMostRecommended: Boolean(product.is_most_recommended),
+      recommendationOrder: parseInt(product.recommendation_order),
+      images: Array.isArray(product.images) ? product.images : [],
+      createdAt: product.created_at,
+      updatedAt: product.updated_at
     }));
     
     return NextResponse.json(productsWithImages);

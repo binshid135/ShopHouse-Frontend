@@ -1,4 +1,3 @@
-// lib/auth.ts
 import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
 

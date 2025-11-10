@@ -1,6 +1,7 @@
+// app/api/auth/forgot-password/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserByEmail } from '../../../../../lib/auth-user';
-import { generatePasswordResetToken } from '../../../../../lib/password-reset-utils.ts';
+import { generatePasswordResetToken } from '../../../../../lib/password-reset-utils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,36 +14,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log(`🔐 Password reset requested for: ${email}`);
+
     // Check if user exists
     const user = await getUserByEmail(email);
     if (!user) {
       // Don't reveal whether user exists for security
+      console.log(`⚠️  Password reset requested for non-existent email: ${email}`);
       return NextResponse.json({
         success: true,
         message: 'If an account with that email exists, reset instructions have been sent.'
       });
     }
 
-    // Generate reset token
-    const resetToken = await generatePasswordResetToken(user.id);
-
-    // In production, you would send this via email
-    // For development, we'll log it and return in response
-    const resetLink = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
-    
-    console.log(`🔐 Password reset link for ${email}: ${resetLink}`);
+    // Generate reset token and send email
+    await generatePasswordResetToken(user.id, user.email);
 
     return NextResponse.json({
       success: true,
-      message: 'If an account with that email exists, reset instructions have been sent.',
-      // Remove in production, only for development
-      resetLink: process.env.NODE_ENV === 'development' ? resetLink : undefined
+      message: 'If an account with that email exists, reset instructions have been sent.'
     });
 
   } catch (error) {
     console.error('Forgot password error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Failed to process request' },
       { status: 500 }
     );
   }

@@ -1,7 +1,6 @@
-// app/api/users/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAdminSession } from './../../../../lib/auth';
-import { getDB } from './../../../../lib/database';
+import { query } from './../../../../lib/neon';
 
 export async function GET() {
   const session = await verifyAdminSession();
@@ -10,11 +9,11 @@ export async function GET() {
   }
   
   try {
-    const db = await getDB();
-    const users = await db.all('SELECT * FROM users ORDER BY createdAt DESC');
+    const result = await query('SELECT * FROM users ORDER BY created_at DESC');
     
-    return NextResponse.json(users);
+    return NextResponse.json(result.rows);
   } catch (error) {
+    console.error('Failed to fetch users:', error);
     return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
   }
 }

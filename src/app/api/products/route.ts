@@ -1,10 +1,10 @@
 // Add these imports if not already present
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAdminSession } from './../../../../lib/auth';
-import { getDB } from './../../../../lib/database';
+import { query } from './../../../../lib/neon';
 import { handleFileUploadAndFormData, deleteUploadedFile } from './../../../../lib/upload';
-import { v4 as uuidv4 } from 'uuid';
 
+// In your GET function, add proper parsing:
 export async function GET() {
   const session = await verifyAdminSession();
   if (!session) {
@@ -12,24 +12,42 @@ export async function GET() {
   }
   
   try {
-    const db = await getDB();
-    const products = await db.all('SELECT * FROM products ORDER BY isMostRecommended DESC, recommendationOrder ASC, createdAt DESC');
+    const result = await query(`
+      SELECT *, 
+             id as "id",
+             name as "name", 
+             short_description as "shortDescription",
+             original_price as "originalPrice",
+             discounted_price as "discountedPrice",
+             stock as "stock",
+             category as "category",
+             images as "images",
+             is_recommended as "isRecommended",
+             is_most_recommended as "isMostRecommended",
+             recommendation_order as "recommendationOrder",
+             created_at as "createdAt",
+             updated_at as "updatedAt"
+      FROM products 
+      ORDER BY is_most_recommended DESC, recommendation_order ASC, created_at DESC
+    `);
     
-    const productsWithImages = products.map((product: any) => ({
+    // Convert string numbers to actual numbers
+    const products = result.rows.map((product: any) => ({
       ...product,
-      images: product.images ? JSON.parse(product.images) : [],
+      originalPrice: parseFloat(product.originalPrice),
+      discountedPrice: parseFloat(product.discountedPrice),
+      stock: parseInt(product.stock),
+      recommendationOrder: parseInt(product.recommendationOrder),
       isRecommended: Boolean(product.isRecommended),
       isMostRecommended: Boolean(product.isMostRecommended)
     }));
     
-    return NextResponse.json(productsWithImages);
+    return NextResponse.json(products);
   } catch (error) {
     console.error('Failed to fetch products:', error);
     return NextResponse.json({ error: 'Failed to fetch products' }, { status: 500 });
   }
 }
-
-// In POST function - add stock and category handling
 export async function POST(request: NextRequest) {
   const session = await verifyAdminSession();
   if (!session) {
@@ -37,32 +55,25 @@ export async function POST(request: NextRequest) {
   }
   
   try {
-    const db = await getDB();
-    
     const { uploadedImages, formData } = await handleFileUploadAndFormData(request);
     
-    // Validate that at least one image is provided
     if (uploadedImages.length === 0) {
       return NextResponse.json({ 
         error: 'At least one image is required' 
       }, { status: 400 });
     }
     
-    // Handle recommendation logic
     const isRecommended = formData.isRecommended === 'true';
     const isMostRecommended = formData.isMostRecommended === 'true';
     let recommendationOrder = parseInt(formData.recommendationOrder as string) || 0;
 
-    // Validate recommendations
     if (isMostRecommended) {
-      // Check if there's already a most recommended product
-      const existingMostRecommended = await db.get(
-        'SELECT id FROM products WHERE isMostRecommended = 1'
+      const existingMostRecommended = await query(
+        'SELECT id FROM products WHERE is_most_recommended = true'
       );
-      if (existingMostRecommended) {
-        // Clean up uploaded images since we're rejecting the creation
-        for (const imagePath of uploadedImages) {
-          await deleteUploadedFile(imagePath);
+      if (existingMostRecommended.rows.length > 0) {
+        for (const imageUrl of uploadedImages) {
+          await deleteUploadedFile(imageUrl);
         }
         return NextResponse.json({ 
           error: 'There can only be one most recommended product' 
@@ -72,25 +83,21 @@ export async function POST(request: NextRequest) {
     }
 
     if (isRecommended && !isMostRecommended) {
-      // Check if we've reached the limit of 3 recommended products
-      const recommendedCount = await db.get(
-        'SELECT COUNT(*) as count FROM products WHERE isRecommended = 1 AND isMostRecommended = 0'
+      const recommendedCount = await query(
+        'SELECT COUNT(*) as count FROM products WHERE is_recommended = true AND is_most_recommended = false'
       );
-      if (recommendedCount.count >= 3) {
-        // Clean up uploaded images since we're rejecting the creation
-        for (const imagePath of uploadedImages) {
-          await deleteUploadedFile(imagePath);
+      if (parseInt(recommendedCount.rows[0].count) >= 3) {
+        for (const imageUrl of uploadedImages) {
+          await deleteUploadedFile(imageUrl);
         }
         return NextResponse.json({ 
           error: 'Maximum of 3 recommended products allowed' 
         }, { status: 400 });
       }
       
-      // Validate recommendation order for new recommended products
       if (recommendationOrder < 1 || recommendationOrder > 3) {
-        // Clean up uploaded images since we're rejecting the creation
-        for (const imagePath of uploadedImages) {
-          await deleteUploadedFile(imagePath);
+        for (const imageUrl of uploadedImages) {
+          await deleteUploadedFile(imageUrl);
         }
         return NextResponse.json({ 
           error: 'Recommendation order must be between 1 and 3' 
@@ -98,36 +105,39 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const product = {
-      id: uuidv4(),
-      name: formData.name as string,
-      shortDescription: formData.shortDescription as string || null,
-      originalPrice: parseFloat(formData.originalPrice as string),
-      discountedPrice: parseFloat(formData.discountedPrice as string),
-      stock: parseInt(formData.stock as string) || 0, // Add this
-      category: formData.category as string || 'Uncategorized', // Add this
-      images: JSON.stringify(uploadedImages),
-      isRecommended: isRecommended ? 1 : 0,
-      isMostRecommended: isMostRecommended ? 1 : 0,
-      recommendationOrder: recommendationOrder,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    
-    await db.run(
-      `INSERT INTO products (id, name, shortDescription, originalPrice, discountedPrice, stock, category, images, isRecommended, isMostRecommended, recommendationOrder, createdAt, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      Object.values(product)
+    const result = await query(
+      `INSERT INTO products (name, short_description, original_price, discounted_price, stock, category, images, is_recommended, is_most_recommended, recommendation_order)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       RETURNING *`,
+      [
+        formData.name as string,
+        formData.shortDescription as string || null,
+        parseFloat(formData.originalPrice as string),
+        parseFloat(formData.discountedPrice as string),
+        parseInt(formData.stock as string) || 0,
+        formData.category as string || 'Uncategorized',
+        uploadedImages,
+        isRecommended,
+        isMostRecommended,
+        recommendationOrder
+      ]
     );
+
+    const product = result.rows[0];
 
     return NextResponse.json({ 
       success: true, 
-      product: { 
-        ...product, 
-        images: JSON.parse(product.images),
-        isRecommended: Boolean(product.isRecommended),
-        isMostRecommended: Boolean(product.isMostRecommended)
-      } 
+      product: {
+        ...product,
+        shortDescription: product.short_description,
+        originalPrice: product.original_price,
+        discountedPrice: product.discounted_price,
+        isRecommended: product.is_recommended,
+        isMostRecommended: product.is_most_recommended,
+        recommendationOrder: product.recommendation_order,
+        createdAt: product.created_at,
+        updatedAt: product.updated_at
+      }
     });
 
   } catch (error) {
@@ -136,7 +146,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// In PUT function - add stock and category handling
 export async function PUT(request: NextRequest) {
   const session = await verifyAdminSession();
   if (!session) {
@@ -144,56 +153,47 @@ export async function PUT(request: NextRequest) {
   }
   
   try {
-    const db = await getDB();
-    
     const { uploadedImages, formData } = await handleFileUploadAndFormData(request);
     const productId = formData.id as string;
     
-    // Get existing product
-    const existingProduct = await db.get('SELECT * FROM products WHERE id = ?', [productId]);
-    let existingImages: string[] = [];
+    const existingProduct = await query(
+      'SELECT * FROM products WHERE id = $1',
+      [productId]
+    );
     
-    if (existingProduct?.images) {
-      existingImages = JSON.parse(existingProduct.images);
+    if (existingProduct.rows.length === 0) {
+      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
-    
-    // Combine existing and new images
-    const allImages = [...existingImages, ...uploadedImages];
-    
-    // Handle image deletions
+
+    let allImages = existingProduct.rows[0].images || [];
+    allImages = [...allImages, ...uploadedImages];
+
     const deletedImages = formData.deletedImages as string;
     if (deletedImages) {
       const imagesToDelete = JSON.parse(deletedImages) as string[];
-      const filteredImages = allImages.filter(img => !imagesToDelete.includes(img));
+      allImages = allImages.filter((img: string) => !imagesToDelete.includes(img));
       
-      for (const imagePath of imagesToDelete) {
-        await deleteUploadedFile(imagePath);
+      for (const imageUrl of imagesToDelete) {
+        await deleteUploadedFile(imageUrl);
       }
-      
-      allImages.length = 0;
-      allImages.push(...filteredImages);
     }
 
-    // Validate that at least one image remains
     if (allImages.length === 0) {
       return NextResponse.json({ 
         error: 'At least one image is required' 
       }, { status: 400 });
     }
 
-    // Handle recommendation logic
     const isRecommended = formData.isRecommended === 'true';
     const isMostRecommended = formData.isMostRecommended === 'true';
     let recommendationOrder = parseInt(formData.recommendationOrder as string) || 0;
 
-    // Validate recommendations
     if (isMostRecommended) {
-      // Check if there's already a most recommended product (excluding current product)
-      const existingMostRecommended = await db.get(
-        'SELECT id FROM products WHERE isMostRecommended = 1 AND id != ?', 
+      const existingMostRecommended = await query(
+        'SELECT id FROM products WHERE is_most_recommended = true AND id != $1',
         [productId]
       );
-      if (existingMostRecommended) {
+      if (existingMostRecommended.rows.length > 0) {
         return NextResponse.json({ 
           error: 'There can only be one most recommended product' 
         }, { status: 400 });
@@ -202,18 +202,16 @@ export async function PUT(request: NextRequest) {
     }
 
     if (isRecommended && !isMostRecommended) {
-      // Check if we've reached the limit of 3 recommended products (excluding current product)
-      const recommendedCount = await db.get(
-        'SELECT COUNT(*) as count FROM products WHERE isRecommended = 1 AND isMostRecommended = 0 AND id != ?',
+      const recommendedCount = await query(
+        'SELECT COUNT(*) as count FROM products WHERE is_recommended = true AND is_most_recommended = false AND id != $1',
         [productId]
       );
-      if (recommendedCount.count >= 3) {
+      if (parseInt(recommendedCount.rows[0].count) >= 3) {
         return NextResponse.json({ 
           error: 'Maximum of 3 recommended products allowed' 
         }, { status: 400 });
       }
       
-      // Validate recommendation order
       if (recommendationOrder < 1 || recommendationOrder > 3) {
         return NextResponse.json({ 
           error: 'Recommendation order must be between 1 and 3' 
@@ -221,32 +219,30 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    // If product is no longer recommended, reset order
     if (!isRecommended && !isMostRecommended) {
       recommendationOrder = 0;
     }
     
-    const product = {
-      name: formData.name as string,
-      shortDescription: formData.shortDescription as string || null,
-      originalPrice: parseFloat(formData.originalPrice as string),
-      discountedPrice: parseFloat(formData.discountedPrice as string),
-      stock: parseInt(formData.stock as string) || 0, // Add this
-      category: formData.category as string || 'Uncategorized', // Add this
-      images: JSON.stringify(allImages),
-      isRecommended: isRecommended ? 1 : 0,
-      isMostRecommended: isMostRecommended ? 1 : 0,
-      recommendationOrder: recommendationOrder,
-      updatedAt: new Date().toISOString(),
-      id: productId
-    };
-    
-    await db.run(
+    const result = await query(
       `UPDATE products 
-       SET name = ?, shortDescription = ?, originalPrice = ?, discountedPrice = ?, stock = ?, category = ?, images = ?, 
-           isRecommended = ?, isMostRecommended = ?, recommendationOrder = ?, updatedAt = ?
-       WHERE id = ?`,
-      Object.values(product)
+       SET name = $1, short_description = $2, original_price = $3, discounted_price = $4, 
+           stock = $5, category = $6, images = $7, is_recommended = $8, 
+           is_most_recommended = $9, recommendation_order = $10, updated_at = NOW()
+       WHERE id = $11
+       RETURNING *`,
+      [
+        formData.name as string,
+        formData.shortDescription as string || null,
+        parseFloat(formData.originalPrice as string),
+        parseFloat(formData.discountedPrice as string),
+        parseInt(formData.stock as string) || 0,
+        formData.category as string || 'Uncategorized',
+        allImages,
+        isRecommended,
+        isMostRecommended,
+        recommendationOrder,
+        productId
+      ]
     );
     
     return NextResponse.json({ success: true });

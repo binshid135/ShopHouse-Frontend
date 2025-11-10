@@ -119,97 +119,74 @@ export default function SignupPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
+  // In your handleSubmit function, update the OTP verification part:
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setLoading(true);
+  setError('');
 
-    // Validation
-    if (step === 1) {
-      if (formData.password !== formData.confirmPassword) {
-        setError('Passwords do not match');
-        setLoading(false);
-        return;
-      }
-
-      if (formData.password.length < 6) {
-        setError('Password must be at least 6 characters long');
-        setLoading(false);
-        return;
-      }
-
-      // Validate UAE phone number if provided
-      if (formData.phone && !validateUAEPhone(formData.phone)) {
-        setError('Please enter a valid UAE phone number (e.g., 05XXXXXXXX or +9715XXXXXXXX)');
-        setLoading(false);
-        return;
-      }
-
-      await sendOtp();
+  // Validation
+  if (step === 1) {
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      setLoading(false);
       return;
     }
 
-    // Step 2: Verify OTP and complete signup
-    try {
-      const response = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-          phone: formData.phone ? formatUAEPhone(formData.phone) : null,
-          otp: formData.otp,
-        }),
-      });
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters long');
+      setLoading(false);
+      return;
+    }
 
-      const data = await response.json();
+    // Validate UAE phone number if provided
+    if (formData.phone && !validateUAEPhone(formData.phone)) {
+      setError('Please enter a valid UAE phone number (e.g., 05XXXXXXXX or +9715XXXXXXXX)');
+      setLoading(false);
+      return;
+    }
 
-      if (response.ok) {
-        // Get guest cart ID before migration
-        const guestCartId = getCookie('cartId');
-        console.log("🔍 Guest cart ID for migration:", guestCartId);
-        
-        if (guestCartId) {
-          try {
-            console.log('🔄 Starting cart migration after signup...');
-            
-            // Wait a bit for the session to be fully established
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            const migrateResponse = await fetch('/api/userside/cart/migrate', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              credentials: 'include',
-              body: JSON.stringify({ guestCartId }),
-            });
-            
-            if (migrateResponse.ok) {
-              const migrateData = await migrateResponse.json();
-              console.log('✅ Cart migration successful after signup:', migrateData);
-            } else {
-              const errorData = await migrateResponse.json();
-              console.warn('⚠️ Cart migration failed after signup:', errorData);
-            }
-          } catch (migrateError) {
-            console.error('❌ Cart migration error after signup:', migrateError);
-            // Don't block the signup process
-          }
-        }
-        
-        router.push('/products');
-        router.refresh();
+    await sendOtp();
+    return;
+  }
+
+  // Step 2: Verify OTP and complete signup
+  try {
+    const response = await fetch('/api/auth/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        phone: formData.phone ? formatUAEPhone(formData.phone) : null,
+        otp: formData.otp,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      // ... your existing success code ...
+    } else {
+      // Handle specific error cases
+      if (data.error?.includes('already exists')) {
+        setError('An account with this email already exists. Please login instead.');
+        // Optionally reset the form or redirect to login
+        setStep(1);
+      } else if (data.error?.includes('OTP')) {
+        setError(data.error);
       } else {
         setError(data.error || 'Signup failed');
       }
-    } catch (error) {
-      setError('An error occurred. Please try again.');
-    } finally {
-      setLoading(false);
     }
-  };
-
+  } catch (error) {
+    setError('An error occurred. Please try again.');
+  } finally {
+    setLoading(false);
+  }
+};
   // Helper function to show phone validation hint
   const getPhoneValidationHint = () => {
     if (!formData.phone) return 'Enter your UAE phone number (optional)';

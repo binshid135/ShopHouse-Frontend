@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyPasswordResetToken, updateUserPassword } from '../../../../../lib/password-reset-utils.ts';
+import { verifyPasswordResetToken, updateUserPassword } from '../../../../../lib/password-reset-utils';
 
 export async function POST(request: NextRequest) {
   try {

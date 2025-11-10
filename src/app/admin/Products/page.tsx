@@ -273,7 +273,7 @@ export default function ProductsPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className={`text-sm font-medium ${product.stock > 10 ? 'text-green-600' :
-                          product.stock > 0 ? 'text-yellow-600' : 'text-red-600'
+                        product.stock > 0 ? 'text-yellow-600' : 'text-red-600'
                         }`}>
                         {product.stock} in stock
                       </div>
@@ -304,15 +304,15 @@ export default function ProductsPage() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
                         <span className="line-through text-gray-500 mr-2">
-                          ${product.originalPrice.toFixed(2)}
+                          ${Number(product.originalPrice).toFixed(2)}
                         </span>
                         <span className="font-semibold">
-                          ${product.discountedPrice.toFixed(2)}
+                          ${Number(product.discountedPrice).toFixed(2)}
                         </span>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {(((product.originalPrice - product.discountedPrice) / product.originalPrice) * 100).toFixed(1)}% off
+                      {(((Number(product.originalPrice) - Number(product.discountedPrice)) / Number(product.originalPrice)) * 100).toFixed(1)}% off
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {product.isMostRecommended ? (

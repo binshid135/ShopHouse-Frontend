@@ -1,26 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDB } from '../../../../../../lib/database';
+import { query } from '../../../../../../lib/neon';
 
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> } // 👈 mark params as a Promise
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await context.params; // 👈 await it here
+    // Await the params first
+    const { id } = await params;
 
-    const db = await getDB();
-    const product = await db.get(
-      'SELECT * FROM products WHERE id = ?',
+    const result = await query(
+      'SELECT * FROM products WHERE id = $1',
       [id]
     );
 
-    if (!product) {
+    if (result.rows.length === 0) {
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
 
+    const product = result.rows[0];
     const productWithImages = {
       ...product,
-      images: product.images ? JSON.parse(product.images) : []
+      originalPrice: parseFloat(product.original_price),
+      discountedPrice: parseFloat(product.discounted_price),
+      stock: parseInt(product.stock),
+      isRecommended: Boolean(product.is_recommended),
+      isMostRecommended: Boolean(product.is_most_recommended),
+      recommendationOrder: parseInt(product.recommendation_order),
+      images: Array.isArray(product.images) ? product.images : [],
+      createdAt: product.created_at,
+      updatedAt: product.updated_at
     };
 
     return NextResponse.json(productWithImages);

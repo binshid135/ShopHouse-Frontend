@@ -1,62 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDB } from '../../../../../lib/database';
+import { query } from '../../../../../lib/neon';
 import { v4 as uuidv4 } from 'uuid';
 import { verifyUserSession } from '../../../../../lib/auth-user';
 
-interface TableColumnInfo {
-  name: string;
-  type: string;
-  notnull: number;
-  dflt_value: any;
-  pk: number;
-}
-
 // Get cart ID based on user authentication
-// In your cart API route
 function getCartId(request: NextRequest) {
   const token = request.cookies.get('userToken')?.value;
   
   if (token) {
-    // For authenticated users, generate a consistent cart ID based on user ID
-    // We'll use the first 8 chars of user ID for consistency
     return `user_${token.substring(0, 8)}`;
   } else {
-    // For guests, use session-based cart ID
     const guestCartId = request.cookies.get('cartId')?.value;
     return guestCartId || `guest_${uuidv4()}`;
-  }
-}
-
-async function ensureCartTables(db: any) {
-  try {
-    await db.exec(`
-      CREATE TABLE IF NOT EXISTS cart_items (
-        id TEXT PRIMARY KEY,
-        cartId TEXT NOT NULL,
-        productId TEXT NOT NULL,
-        quantity INTEGER NOT NULL DEFAULT 1,
-        userId TEXT,
-        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (productId) REFERENCES products (id)
-      );
-    `);
-    
-    // Check if userId column exists, if not add it
-    const tableInfo = await db.all(`PRAGMA table_info(cart_items)`);
-const columns = tableInfo.map((col: TableColumnInfo) => col.name);    
-    if (!columns.includes('userId')) {
-      await db.run(`ALTER TABLE cart_items ADD COLUMN userId TEXT`);
-    }
-  } catch (error) {
-    console.error('Error ensuring cart tables:', error);
   }
 }
 
 export async function GET(request: NextRequest) {
   try {
     const cartId = getCartId(request);
-    const db = await getDB();
-    await ensureCartTables(db);
     
     // Get user from session for additional filtering
     const token = request.cookies.get('userToken')?.value;
@@ -67,38 +28,40 @@ export async function GET(request: NextRequest) {
       userId = user?.id || null;
     }
     
-    let cartItems;
-    let query: string;
+    let result;
+    let queryText: string;
     let params: any[];
 
     if (userId) {
       // For authenticated users, get cart by user ID
-      query = `
-        SELECT ci.*, p.name, p.images, p.discountedPrice as price
+      queryText = `
+        SELECT ci.*, p.name, p.images, p.discounted_price as price
         FROM cart_items ci
-        JOIN products p ON ci.productId = p.id
-        WHERE ci.userId = ?
+        JOIN products p ON ci.product_id = p.id
+        WHERE ci.user_id = $1
       `;
       params = [userId];
     } else {
-      // For guests, get cart by cartId
-      query = `
-        SELECT ci.*, p.name, p.images, p.discountedPrice as price
+      // For guests, get cart by cart_id
+      queryText = `
+        SELECT ci.*, p.name, p.images, p.discounted_price as price
         FROM cart_items ci
-        JOIN products p ON ci.productId = p.id
-        WHERE ci.cartId = ?
+        JOIN products p ON ci.product_id = p.id
+        WHERE ci.cart_id = $1
       `;
       params = [cartId];
     }
     
-    cartItems = await db.all(query, params);
+    result = await query(queryText, params);
     
-    const itemsWithImages = cartItems.map(item => ({
+    const itemsWithImages = result.rows.map((item: any) => ({
       ...item,
-      images: item.images ? JSON.parse(item.images) : []
+      images: Array.isArray(item.images) ? item.images : [],
+      price: parseFloat(item.price),
+      quantity: parseInt(item.quantity)
     }));
     
-    const total = itemsWithImages.reduce((sum, item) => 
+    const total = itemsWithImages.reduce((sum: number, item: any) => 
       sum + (item.price * item.quantity), 0
     );
     
@@ -111,7 +74,7 @@ export async function GET(request: NextRequest) {
     // Set cart ID cookie if not exists (for guests)
     if (!request.cookies.get('cartId') && !token) {
       response.cookies.set('cartId', cartId, {
-        maxAge: 30 * 24 * 60 * 60, // 30 days
+        maxAge: 30 * 24 * 60 * 60,
         path: '/',
       });
     }
@@ -123,13 +86,10 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// app/api/userside/cart/route.ts - Update POST function
 export async function POST(request: NextRequest) {
   try {
     const { productId, quantity = 1 } = await request.json();
     const cartId = getCartId(request);
-    const db = await getDB();
-    await ensureCartTables(db);
     
     // Get user from session
     const token = request.cookies.get('userToken')?.value;
@@ -141,14 +101,16 @@ export async function POST(request: NextRequest) {
     }
     
     // Check if product exists and has stock
-    const product = await db.get(
-      'SELECT id, stock FROM products WHERE id = ?',
+    const productResult = await query(
+      'SELECT id, stock FROM products WHERE id = $1',
       [productId]
     );
     
-    if (!product) {
+    if (productResult.rows.length === 0) {
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
+    
+    const product = productResult.rows[0];
     
     // Check stock availability
     if (product.stock <= 0) {
@@ -158,19 +120,21 @@ export async function POST(request: NextRequest) {
     // For authenticated users, always use user ID for queries
     let existingItem;
     if (userId) {
-      existingItem = await db.get(
-        'SELECT * FROM cart_items WHERE userId = ? AND productId = ?',
+      const existingResult = await query(
+        'SELECT * FROM cart_items WHERE user_id = $1 AND product_id = $2',
         [userId, productId]
       );
+      existingItem = existingResult.rows[0];
     } else {
-      existingItem = await db.get(
-        'SELECT * FROM cart_items WHERE cartId = ? AND productId = ?',
+      const existingResult = await query(
+        'SELECT * FROM cart_items WHERE cart_id = $1 AND product_id = $2',
         [cartId, productId]
       );
+      existingItem = existingResult.rows[0];
     }
     
     // Check if adding this item would exceed available stock
-    const currentQuantity = existingItem ? existingItem.quantity : 0;
+    const currentQuantity = existingItem ? parseInt(existingItem.quantity) : 0;
     const newTotalQuantity = currentQuantity + quantity;
     
     if (newTotalQuantity > product.stock) {
@@ -182,19 +146,19 @@ export async function POST(request: NextRequest) {
     if (existingItem) {
       // Update quantity
       const updateQuery = userId 
-        ? 'UPDATE cart_items SET quantity = quantity + ? WHERE userId = ? AND productId = ?'
-        : 'UPDATE cart_items SET quantity = quantity + ? WHERE cartId = ? AND productId = ?';
+        ? 'UPDATE cart_items SET quantity = quantity + $1 WHERE user_id = $2 AND product_id = $3'
+        : 'UPDATE cart_items SET quantity = quantity + $1 WHERE cart_id = $2 AND product_id = $3';
       
       const updateParams = userId 
         ? [quantity, userId, productId]
         : [quantity, cartId, productId];
       
-      await db.run(updateQuery, updateParams);
+      await query(updateQuery, updateParams);
     } else {
       // Add new item
-      await db.run(
-        'INSERT INTO cart_items (id, cartId, productId, quantity, userId) VALUES (?, ?, ?, ?, ?)',
-        [uuidv4(), cartId, productId, quantity, userId]
+      await query(
+        'INSERT INTO cart_items (cart_id, product_id, quantity, user_id) VALUES ($1, $2, $3, $4)',
+        [cartId, productId, quantity, userId]
       );
     }
     
@@ -215,13 +179,10 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Also update the PUT function for quantity updates
 export async function PUT(request: NextRequest) {
   try {
     const { itemId, quantity } = await request.json();
     const cartId = getCartId(request);
-    const db = await getDB();
-    await ensureCartTables(db);
     
     // Get user from session for additional security
     const token = request.cookies.get('userToken')?.value;
@@ -235,21 +196,23 @@ export async function PUT(request: NextRequest) {
     // Get product info to check stock
     let cartItem;
     if (userId) {
-      cartItem = await db.get(
+      const cartResult = await query(
         `SELECT ci.*, p.stock 
          FROM cart_items ci 
-         JOIN products p ON ci.productId = p.id 
-         WHERE ci.id = ? AND ci.userId = ?`,
+         JOIN products p ON ci.product_id = p.id 
+         WHERE ci.id = $1 AND ci.user_id = $2`,
         [itemId, userId]
       );
+      cartItem = cartResult.rows[0];
     } else {
-      cartItem = await db.get(
+      const cartResult = await query(
         `SELECT ci.*, p.stock 
          FROM cart_items ci 
-         JOIN products p ON ci.productId = p.id 
-         WHERE ci.id = ? AND ci.cartId = ?`,
+         JOIN products p ON ci.product_id = p.id 
+         WHERE ci.id = $1 AND ci.cart_id = $2`,
         [itemId, cartId]
       );
+      cartItem = cartResult.rows[0];
     }
     
     if (!cartItem) {
@@ -266,26 +229,26 @@ export async function PUT(request: NextRequest) {
     if (quantity <= 0) {
       // Remove item if quantity is 0 or less
       if (userId) {
-        await db.run(
-          'DELETE FROM cart_items WHERE id = ? AND userId = ?',
+        await query(
+          'DELETE FROM cart_items WHERE id = $1 AND user_id = $2',
           [itemId, userId]
         );
       } else {
-        await db.run(
-          'DELETE FROM cart_items WHERE id = ? AND cartId = ?',
+        await query(
+          'DELETE FROM cart_items WHERE id = $1 AND cart_id = $2',
           [itemId, cartId]
         );
       }
     } else {
       // Update quantity
       if (userId) {
-        await db.run(
-          'UPDATE cart_items SET quantity = ? WHERE id = ? AND userId = ?',
+        await query(
+          'UPDATE cart_items SET quantity = $1 WHERE id = $2 AND user_id = $3',
           [quantity, itemId, userId]
         );
       } else {
-        await db.run(
-          'UPDATE cart_items SET quantity = ? WHERE id = ? AND cartId = ?',
+        await query(
+          'UPDATE cart_items SET quantity = $1 WHERE id = $2 AND cart_id = $3',
           [quantity, itemId, cartId]
         );
       }
@@ -303,8 +266,6 @@ export async function DELETE(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const itemId = searchParams.get('itemId');
     const cartId = getCartId(request);
-    const db = await getDB();
-    await ensureCartTables(db);
     
     // Get user from session for additional security
     const token = request.cookies.get('userToken')?.value;
@@ -316,13 +277,13 @@ export async function DELETE(request: NextRequest) {
     }
     
     if (userId) {
-      await db.run(
-        'DELETE FROM cart_items WHERE id = ? AND userId = ?',
+      await query(
+        'DELETE FROM cart_items WHERE id = $1 AND user_id = $2',
         [itemId, userId]
       );
     } else {
-      await db.run(
-        'DELETE FROM cart_items WHERE id = ? AND cartId = ?',
+      await query(
+        'DELETE FROM cart_items WHERE id = $1 AND cart_id = $2',
         [itemId, cartId]
       );
     }

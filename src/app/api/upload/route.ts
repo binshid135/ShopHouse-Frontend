@@ -1,4 +1,3 @@
-// app/api/upload/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAdminSession } from './../../../../lib/auth';
 import { handleFileUploadAndFormData } from './../../../../lib/upload';
@@ -10,7 +9,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const uploadedImages = await handleFileUploadAndFormData(request);
+    const { uploadedImages } = await handleFileUploadAndFormData(request);
     return NextResponse.json({ 
       success: true, 
       uploadedImages 

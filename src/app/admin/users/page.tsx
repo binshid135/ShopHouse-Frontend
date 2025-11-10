@@ -204,33 +204,37 @@ export default function AdminUsersPage() {
     }
   };
 
-  const deleteUser = async (userId: string) => {
-    if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-      return;
-    }
+ const deleteUser = async (userId: string) => {
+  if (!confirm('Are you sure you want to delete this user? This will deactivate their account.')) {
+    return;
+  }
 
-    setUpdatingUser(userId);
-    try {
-      const response = await fetch(`/api/users/${userId}`, {
-        method: 'DELETE',
-      });
+  setUpdatingUser(userId);
+  try {
+    const response = await fetch(`/api/users/${userId}`, {
+      method: 'DELETE',
+    });
 
-      if (response.ok) {
-        fetchUsers();
-        if (selectedUser?.id === userId) {
-          setShowUserModal(false);
-          setSelectedUser(null);
-        }
-      } else {
-        alert('Failed to delete user');
+    const result = await response.json();
+    console.log('Delete response:', result);
+
+    if (response.ok) {
+      fetchUsers(); // Refresh users list
+      if (selectedUser?.id === userId) {
+        setShowUserModal(false);
+        setSelectedUser(null);
       }
-    } catch (error) {
-      console.error('Failed to delete user:', error);
-      alert('Error deleting user');
-    } finally {
-      setUpdatingUser(null);
+      alert('User successfully deleted');
+    } else {
+      alert(`Failed to delete user: ${result.error}${result.details ? ` - ${result.details}` : ''}`);
     }
-  };
+  } catch (error) {
+    console.error('Failed to delete user:', error);
+    alert('Error deleting user');
+  } finally {
+    setUpdatingUser(null);
+  }
+};
 
   const getRoleIcon = (role: string) => {
     switch (role) {

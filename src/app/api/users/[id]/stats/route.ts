@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAdminSession } from '../../../../../../lib/auth';
-import { getDB } from '../../../../../../lib/database';
+import { query } from '../../../../../../lib/neon';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await verifyAdminSession();
   if (!session) {
@@ -12,23 +12,26 @@ export async function GET(
   }
 
   try {
-    const db = await getDB();
-    const userId = params.id;
+    // Await the params first
+    const { id } = await params;
 
     // Get order count and total spent
-    const orderStats = await db.get(`
+    const result = await query(`
       SELECT 
-        COUNT(*) as orderCount,
-        SUM(o.total) as totalSpent
+        COUNT(*) as "orderCount",
+        SUM(o.total) as "totalSpent"
       FROM orders o
-      WHERE o.userId = ?
-    `, [userId]);
+      WHERE o.user_id = $1
+    `, [id]);
 
+    const stats = result.rows[0] || { orderCount: 0, totalSpent: 0 };
+    
     return NextResponse.json({
-      orderCount: orderStats?.orderCount || 0,
-      totalSpent: orderStats?.totalSpent || 0
+      orderCount: parseInt(stats.orderCount) || 0,
+      totalSpent: parseFloat(stats.totalSpent) || 0
     });
   } catch (error) {
+    console.error('Failed to fetch user stats:', error);
     return NextResponse.json({ error: 'Failed to fetch user stats' }, { status: 500 });
   }
 }

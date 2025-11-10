@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserByEmail, verifyPassword, createUserSession } from '../../../../../lib/auth-user';
-import { getDB } from '../../../../../lib/database';
+import { query } from '../../../../../lib/neon';
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,23 +14,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get user
-    const user = await getUserByEmail(email);
-    if (!user) {
+    // Get user with password
+    const userResult = await query(
+      'SELECT * FROM users WHERE email = $1 AND is_active = true',
+      [email]
+    );
+
+    if (userResult.rows.length === 0) {
       return NextResponse.json(
         { error: 'Invalid email or password' },
         { status: 401 }
       );
     }
 
-    // Verify password
-    const db = await getDB();
-    const userWithPassword = await db.get(
-      'SELECT * FROM users WHERE email = ? AND isActive = true',
-      [email]
-    );
+    const user = userResult.rows[0];
 
-    const isPasswordValid = await verifyPassword(password, userWithPassword.password);
+    // Verify password
+    const isPasswordValid = await verifyPassword(password, user.password);
     if (!isPasswordValid) {
       return NextResponse.json(
         { error: 'Invalid email or password' },

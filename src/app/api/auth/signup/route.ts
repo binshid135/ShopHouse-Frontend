@@ -1,3 +1,4 @@
+// app/api/auth/signup/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createUser, getUserByEmail, createUserSession } from '../../../../../lib/auth-user';
 import { verifyOtp } from '../../../../../lib/otp-utils';
@@ -30,27 +31,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify OTP from database
+    // ✅ Check if user already exists FIRST (before OTP verification)
+    const existingUser = await getUserByEmail(email);
+    if (existingUser) {
+      console.log('❌ User already exists:', email);
+      return NextResponse.json(
+        { error: 'User with this email already exists. Please login instead.' },
+        { status: 409 }
+      );
+    }
+
+    // ✅ Verify OTP BEFORE creating user
     const isOtpValid = await verifyOtp(email, otp);
     console.log(`🔍 OTP validation result for ${email}:`, isOtpValid);
 
     if (!isOtpValid) {
+      console.log('❌ OTP verification failed for:', email);
       return NextResponse.json(
         { error: 'Invalid or expired OTP. Please request a new OTP.' },
         { status: 400 }
       );
     }
 
-    // Check if user already exists (double check)
-    const existingUser = await getUserByEmail(email);
-    if (existingUser) {
-      return NextResponse.json(
-        { error: 'User with this email already exists' },
-        { status: 409 }
-      );
-    }
-
-    // Create user
+    // ✅ Only create user AFTER OTP is verified
+    console.log('✅ OTP verified, creating user:', email);
     const user = await createUser({ 
       email, 
       password, 
@@ -84,8 +88,17 @@ export async function POST(request: NextRequest) {
     console.log('✅ User created successfully:', user.email);
     return response;
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Signup error:', error);
+    
+    // Handle specific database errors
+    if (error.message?.includes('unique constraint') || error.message?.includes('duplicate key')) {
+      return NextResponse.json(
+        { error: 'User with this email already exists. Please login instead.' },
+        { status: 409 }
+      );
+    }
+    
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

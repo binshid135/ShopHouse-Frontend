@@ -1,6 +1,6 @@
-// app/api/auth/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAdminCredentials, createAdminSession, destroyAdminSession, verifyAdminSession } from './../../../../lib/auth';
+import { query } from './../../../../lib/neon';
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,16 +23,35 @@ export async function POST(request: NextRequest) {
     
     return response;
   } catch (error) {
+    console.error('Admin login error:', error);
     return NextResponse.json({ error: 'Login failed' }, { status: 500 });
   }
 }
 
 export async function DELETE() {
-  await destroyAdminSession();
-  return NextResponse.json({ success: true });
+  try {
+    await destroyAdminSession();
+    const response = NextResponse.json({ success: true });
+    response.cookies.set('admin-token', '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 0,
+      path: '/',
+    });
+    return response;
+  } catch (error) {
+    console.error('Admin logout error:', error);
+    return NextResponse.json({ error: 'Logout failed' }, { status: 500 });
+  }
 }
 
 export async function GET() {
-  const session = await verifyAdminSession();
-  return NextResponse.json({ authenticated: !!session });
+  try {
+    const session = await verifyAdminSession();
+    return NextResponse.json({ authenticated: !!session });
+  } catch (error) {
+    console.error('Admin session check error:', error);
+    return NextResponse.json({ authenticated: false });
+  }
 }
