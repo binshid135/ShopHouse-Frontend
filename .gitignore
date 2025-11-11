@@ -42,6 +42,6 @@ next-env.d.ts
 
 admin.db
 /public/uploads
-/scripts
+scripts/
 
 
