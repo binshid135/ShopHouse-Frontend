@@ -4,6 +4,7 @@ import { Users, Award, Clock, Shield, Truck, Heart } from 'lucide-react';
 import Header from '../components/Header';
 import FloatingElements from '../components/FloatingElements';
 import { useRouter } from 'next/navigation';
+import Footer from '../components/Footer';
 
 export default function About() {
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -14,13 +15,19 @@ export default function About() {
     router.push("/products");
   };
 
+  const handleContactUs = () => {
+    // Replace with your actual phone number
+    window.open('tel:+971507191804');
+  };
 
-  // const stats = [
-  //   { number: '10K+', label: 'Happy Customers', icon: Users },
-  //   { number: '15+', label: 'Years Experience', icon: Award },
-  //   { number: '100%', label: 'Support', icon: Clock },
-  //   // { number: '5Y', label: 'Warranty', icon: Shield }
-  // ];
+  const handleViewLocation = () => {
+    // Replace with your actual business coordinates or address
+    // Using coordinates for more precise location
+    window.open('https://maps.app.goo.gl/jGW3mBkYN4oUXA9z8', '_blank');
+    
+    // Alternative using address:
+    // window.open('https://www.google.com/maps/search/?api=1&query=Your+Business+Name+Your+Address+City+State', '_blank');
+  };
 
   const values = [
     {
@@ -45,7 +52,6 @@ export default function About() {
     }
   ];
 
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100 overflow-hidden">
       <FloatingElements />
@@ -64,7 +70,10 @@ export default function About() {
                 kitchen equipment to culinary professionals and passionate home cooks alike.
               </p>
               <div className="flex gap-4">
-                <button className="bg-gradient-to-r from-orange-500 to-amber-600 text-white px-8 py-3 rounded-full font-medium hover:shadow-lg transform hover:-translate-y-1 transition-all">
+                <button 
+                  onClick={handleViewLocation}
+                  className="bg-gradient-to-r from-orange-500 to-amber-600 text-white px-8 py-3 rounded-full font-medium hover:shadow-lg transform hover:-translate-y-1 transition-all"
+                >
                   View our location
                 </button>
               </div>
@@ -76,10 +85,6 @@ export default function About() {
                   <span className="text-sm font-semibold text-amber-900">Since 2025</span>
                 </div>
 
-                {/* <div className="relative w-64 h-64 bg-white rounded-2xl flex items-center justify-center shadow-xl">
-                  <div className="text-8xl">👨‍🍳</div>
-                </div> */}
-
                 <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 bg-white px-6 py-3 rounded-full shadow-lg">
                   <span className="text-xl font-bold text-amber-900">Shop House</span>
                 </div>
@@ -88,26 +93,6 @@ export default function About() {
           </div>
         </div>
       </section>
-
-      {/* Stats Section */}
-      {/* <section className="px-6 py-12">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {stats.map((stat, index) => (
-              <div
-                key={index}
-                className="bg-white rounded-3xl p-6 text-center shadow-lg hover:shadow-xl transition-all"
-              >
-                <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <stat.icon className="w-6 h-6 text-white" />
-                </div>
-                <div className="text-2xl font-bold text-amber-900 mb-2">{stat.number}</div>
-                <div className="text-sm text-amber-700 font-medium">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section> */}
 
       {/* Values Section */}
       <section className="px-6 py-12">
@@ -136,36 +121,6 @@ export default function About() {
         </div>
       </section>
 
-      {/* Team Section */}
-      {/* <section className="px-6 py-12">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-amber-900 mb-4">Meet Our Team</h2>
-            <p className="text-lg text-amber-800 max-w-2xl mx-auto">
-              Culinary experts and equipment specialists dedicated to your success
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {team.map((member, index) => (
-              <div
-                key={index}
-                className="bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-xl transform hover:-translate-y-2 transition-all duration-300"
-              >
-                <div className="h-48 bg-gradient-to-br from-orange-100 to-amber-100 flex items-center justify-center">
-                  <div className="text-6xl">{member.image}</div>
-                </div>
-                <div className="p-6 text-center">
-                  <h3 className="text-xl font-bold text-amber-900 mb-2">{member.name}</h3>
-                  <div className="text-orange-600 font-medium mb-3">{member.role}</div>
-                  <p className="text-amber-700 text-sm">{member.description}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section> */}
-
       {/* CTA Section */}
       <section className="px-6 py-16">
         <div className="max-w-4xl mx-auto text-center">
@@ -179,12 +134,16 @@ export default function About() {
             <button onClick={handleOrderNow} className="bg-gradient-to-r from-orange-500 to-amber-600 text-white px-8 py-3 rounded-full font-medium hover:shadow-lg transform hover:-translate-y-1 transition-all">
               Shop Now
             </button>
-            <button className="border-2 border-orange-500 text-orange-600 px-8 py-3 rounded-full font-medium hover:bg-orange-50 transition-all">
+            <button 
+              onClick={handleContactUs}
+              className="border-2 border-orange-500 text-orange-600 px-8 py-3 rounded-full font-medium hover:bg-orange-50 transition-all"
+            >
               Contact Us
             </button>
           </div>
         </div>
       </section>
+      <Footer />
     </div>
   );
 }

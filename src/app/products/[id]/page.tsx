@@ -1,9 +1,12 @@
+// app/products/[id]/page.tsx
 "use client";
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ShoppingCart, Star, Heart, Shield, Truck, ArrowLeft, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import FloatingElements from './../../components/FloatingElements';
 import Header from './../../components/Header';
+import LoadingSpinner from '@/app/components/LoadingSpinner';
+import { useCart } from '@/app/context/cartContext';
 
 interface Product {
   id: string;
@@ -30,6 +33,7 @@ interface CartItem {
 export default function ProductDetail() {
   const params = useParams();
   const router = useRouter();
+  const { addToCart } = useCart();
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [quantity, setQuantity] = useState(1);
@@ -40,7 +44,7 @@ export default function ProductDetail() {
   const [error, setError] = useState<string | null>(null);
   const [addedProductIds, setAddedProductIds] = useState<string[]>([]);
   const [cartError, setCartError] = useState<string | null>(null);
-  const [currentImageIndexes, setCurrentImageIndexes] = useState<{[key: string]: number}>({});
+  const [currentImageIndexes, setCurrentImageIndexes] = useState<{ [key: string]: number }>({});
 
   useEffect(() => {
     if (params.id) {
@@ -56,7 +60,7 @@ export default function ProductDetail() {
       if (response.ok) {
         const data = await response.json();
         setProduct(data);
-        
+
         // Initialize image index for main product
         setCurrentImageIndexes(prev => ({
           ...prev,
@@ -81,9 +85,9 @@ export default function ProductDetail() {
         // Get 3 random products as related products
         const shuffled = [...data].sort(() => 0.5 - Math.random());
         setRelatedProducts(shuffled.slice(0, 3));
-        
+
         // Initialize image indexes for related products
-        const indexes: {[key: string]: number} = {};
+        const indexes: { [key: string]: number } = {};
         shuffled.slice(0, 3).forEach((product: Product) => {
           indexes[product.id] = 0;
         });
@@ -110,7 +114,7 @@ export default function ProductDetail() {
     event.stopPropagation();
     const relatedProduct = relatedProducts.find(p => p.id === productId);
     if (!relatedProduct || relatedProduct.images.length <= 1) return;
-    
+
     setCurrentImageIndexes(prev => ({
       ...prev,
       [productId]: (prev[productId] + 1) % relatedProduct.images.length
@@ -121,7 +125,7 @@ export default function ProductDetail() {
     event.stopPropagation();
     const relatedProduct = relatedProducts.find(p => p.id === productId);
     if (!relatedProduct || relatedProduct.images.length <= 1) return;
-    
+
     setCurrentImageIndexes(prev => ({
       ...prev,
       [productId]: (prev[productId] - 1 + relatedProduct.images.length) % relatedProduct.images.length
@@ -130,50 +134,43 @@ export default function ProductDetail() {
 
   const handleAddToCart = async (productId: string, quantityToAdd: number = 1, productName?: string) => {
     try {
-      setCartError(null); // Clear previous errors
+      setCartError(null);
+
+      // Validate stock before adding to cart
+      if (!product) return false;
+
+      if (product.stock <= 0) {
+        setCartError('This product is currently out of stock');
+        setTimeout(() => setCartError(null), 5000);
+        return false;
+      }
+
+      if (quantityToAdd > product.stock) {
+        setCartError(`Only ${product.stock} items available in stock`);
+        setTimeout(() => setCartError(null), 5000);
+        return false;
+      }
+
+      const result = await addToCart(productId, quantityToAdd);
       
-      const response = await fetch('/api/userside/cart', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          productId,
-          quantity: quantityToAdd,
-        }),
-      });
-
-      if (response.ok) {
-        // Mark as added
+      if (result.success) {
+        // Mark as added for visual feedback
         setAddedProductIds((prev) => [...prev, productId]);
-
-        // Auto-remove after 2 seconds
         setTimeout(() => {
           setAddedProductIds((prev) => prev.filter((id) => id !== productId));
         }, 2000);
-
         return true;
       } else {
-        const errorData = await response.json();
-        const errorMessage = errorData.error || 'Failed to add product to cart';
-        setCartError(errorMessage);
-        
-        // Auto-hide error after 5 seconds
-        setTimeout(() => {
-          setCartError(null);
-        }, 5000);
-        
+        // Handle API-level errors
+        setCartError(result.error || 'Failed to add to cart');
+        setTimeout(() => setCartError(null), 5000);
         return false;
       }
     } catch (error) {
       console.error('Failed to add to cart:', error);
       const errorMessage = 'Error adding to cart. Please try again.';
       setCartError(errorMessage);
-      
-      setTimeout(() => {
-        setCartError(null);
-      }, 5000);
-      
+      setTimeout(() => setCartError(null), 5000);
       return false;
     }
   };
@@ -203,7 +200,7 @@ export default function ProductDetail() {
 
   const handleRelatedProductAddToCart = async (productId: string, event: React.MouseEvent, relatedProduct?: Product) => {
     event.stopPropagation(); // Prevent navigation to product detail
-    
+
     if (relatedProduct) {
       // Validate stock for related product
       if (relatedProduct.stock <= 0) {
@@ -212,7 +209,7 @@ export default function ProductDetail() {
         return;
       }
     }
-    
+
     const success = await handleAddToCart(productId, 1, relatedProduct?.name);
     if (success) {
       // Success feedback is handled by the addedProductIds state
@@ -246,7 +243,7 @@ export default function ProductDetail() {
         </span>
       );
     }
-    
+
     if (stock < 5) {
       return (
         <span className="px-3 py-1 bg-yellow-100 text-yellow-600 rounded-full text-sm font-medium">
@@ -254,7 +251,7 @@ export default function ProductDetail() {
         </span>
       );
     }
-    
+
     return (
       <span className="px-3 py-1 bg-green-100 text-green-600 rounded-full text-sm font-medium">
         In Stock
@@ -289,9 +286,9 @@ export default function ProductDetail() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100 overflow-hidden">
         <FloatingElements />
-        <Header searchQuery={""} setSearchQuery={() => {}} />
+        <Header searchQuery={""} setSearchQuery={() => { }} />
         <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-orange-500"></div>
+          <LoadingSpinner />
         </div>
       </div>
     );
@@ -301,11 +298,11 @@ export default function ProductDetail() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100 overflow-hidden">
         <FloatingElements />
-        <Header searchQuery={""} setSearchQuery={() => {}} />
+        <Header searchQuery={""} setSearchQuery={() => { }} />
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
             <p className="text-xl text-amber-800 mb-4">{error || 'Product not found'}</p>
-            <button 
+            <button
               onClick={() => router.push('/products')}
               className="bg-orange-500 text-white px-6 py-3 rounded-full hover:bg-orange-600 transition-colors"
             >
@@ -326,11 +323,11 @@ export default function ProductDetail() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100 overflow-hidden">
       <FloatingElements />
-      <Header searchQuery={""} setSearchQuery={() => {}} />
-      
+      <Header searchQuery={""} setSearchQuery={() => { }} />
+
       {/* Back Button */}
       <div className="max-w-7xl mx-auto px-6 pt-6">
-        <button 
+        <button
           onClick={() => router.push('/products')}
           className="flex items-center gap-2 text-amber-900 hover:text-orange-600 transition-colors mb-6"
         >
@@ -345,7 +342,7 @@ export default function ProductDetail() {
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl flex items-center gap-3">
             <AlertCircle className="w-5 h-5 flex-shrink-0" />
             <p className="font-medium">{cartError}</p>
-            <button 
+            <button
               onClick={() => setCartError(null)}
               className="ml-auto text-red-500 hover:text-red-700 transition-colors"
             >
@@ -366,12 +363,12 @@ export default function ProductDetail() {
               <div className="bg-white rounded-3xl p-8 shadow-lg relative group">
                 {product.images && product.images.length > 0 ? (
                   <>
-                    <img 
-                      src={product.images[selectedImage]} 
+                    <img
+                      src={product.images[selectedImage]}
                       alt={product.name}
                       className="w-full h-96 object-contain rounded-2xl mb-6"
                     />
-                    
+
                     {/* Navigation Arrows for Multiple Images */}
                     {hasMultipleImages && (
                       <>
@@ -389,7 +386,7 @@ export default function ProductDetail() {
                         </button>
                       </>
                     )}
-                    
+
                     {/* Image Counter */}
                     {hasMultipleImages && (
                       <div className="absolute top-4 left-4 bg-black/50 text-white text-sm px-3 py-1 rounded-full">
@@ -400,7 +397,7 @@ export default function ProductDetail() {
                 ) : (
                   <div className="text-9xl text-center mb-6">{productEmoji}</div>
                 )}
-                
+
                 {/* Image Dots Indicator */}
                 {hasMultipleImages && (
                   <div className="flex justify-center gap-2">
@@ -408,9 +405,8 @@ export default function ProductDetail() {
                       <button
                         key={index}
                         onClick={() => setSelectedImage(index)}
-                        className={`w-3 h-3 rounded-full transition-all ${
-                          selectedImage === index ? 'bg-orange-500' : 'bg-gray-300 hover:bg-gray-400'
-                        }`}
+                        className={`w-3 h-3 rounded-full transition-all ${selectedImage === index ? 'bg-orange-500' : 'bg-gray-300 hover:bg-gray-400'
+                          }`}
                       />
                     ))}
                   </div>
@@ -424,14 +420,13 @@ export default function ProductDetail() {
                     <button
                       key={index}
                       onClick={() => setSelectedImage(index)}
-                      className={`flex-shrink-0 w-20 h-20 bg-white rounded-xl border-2 overflow-hidden transition-all ${
-                        selectedImage === index 
-                          ? 'border-orange-500 shadow-md' 
+                      className={`flex-shrink-0 w-20 h-20 bg-white rounded-xl border-2 overflow-hidden transition-all ${selectedImage === index
+                          ? 'border-orange-500 shadow-md'
                           : 'border-gray-200 hover:border-orange-300'
-                      }`}
+                        }`}
                     >
-                      <img 
-                        src={image} 
+                      <img
+                        src={image}
                         alt={`${product.name} view ${index + 1}`}
                         className="w-full h-full object-cover"
                       />
@@ -450,7 +445,7 @@ export default function ProductDetail() {
                   </span>
                 )}
                 {getStockBadge(product.stock)}
-                
+
                 {/* Category Badge */}
                 {product.category && product.category !== 'Uncategorized' && (
                   <span className="inline-flex items-center gap-1 px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-sm font-medium">
@@ -461,7 +456,7 @@ export default function ProductDetail() {
               </div>
 
               <h1 className="text-4xl font-bold text-amber-900">{product.name}</h1>
-              
+
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-1">
@@ -544,38 +539,34 @@ export default function ProductDetail() {
               <div className="space-y-4">
                 <div className="flex items-center gap-4">
                   <span className="text-lg font-medium text-amber-900">Quantity:</span>
-                  <div className={`flex items-center gap-3 rounded-full px-4 py-2 ${
-                    isOutOfStock ? 'bg-gray-100' : 'bg-white'
-                  }`}>
-                    <button 
+                  <div className={`flex items-center gap-3 rounded-full px-4 py-2 ${isOutOfStock ? 'bg-gray-100' : 'bg-white'
+                    }`}>
+                    <button
                       onClick={() => setQuantity(Math.max(1, quantity - 1))}
                       disabled={isOutOfStock}
-                      className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
-                        isOutOfStock 
-                          ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
+                      className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${isOutOfStock
+                          ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                           : 'bg-gray-100 hover:bg-gray-200'
-                      }`}
+                        }`}
                     >
                       -
                     </button>
-                    <span className={`font-bold w-8 text-center ${
-                      isOutOfStock ? 'text-gray-400' : 'text-amber-900'
-                    }`}>
+                    <span className={`font-bold w-8 text-center ${isOutOfStock ? 'text-gray-400' : 'text-amber-900'
+                      }`}>
                       {quantity}
                     </span>
-                    <button 
+                    <button
                       onClick={() => setQuantity(quantity + 1)}
                       disabled={isOutOfStock || quantity >= product.stock}
-                      className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
-                        isOutOfStock || quantity >= product.stock
-                          ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
+                      className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${isOutOfStock || quantity >= product.stock
+                          ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                           : 'bg-gray-100 hover:bg-gray-200'
-                      }`}
+                        }`}
                     >
                       +
                     </button>
                   </div>
-                  
+
                   {/* Max quantity warning */}
                   {quantity >= product.stock && product.stock > 0 && (
                     <span className="text-sm text-red-600 font-medium">
@@ -585,35 +576,33 @@ export default function ProductDetail() {
                 </div>
 
                 <div className="flex gap-4">
-                  <button 
+                  <button
                     onClick={handleMainProductAddToCart}
                     disabled={isOutOfStock}
-                    className={`flex-1 py-4 rounded-full font-medium transform transition-all flex items-center justify-center gap-3 ${
-                      isOutOfStock
+                    className={`flex-1 py-4 rounded-full font-medium transform transition-all flex items-center justify-center gap-3 ${isOutOfStock
                         ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                         : isInCart
-                        ? 'bg-green-500 text-white shadow-lg hover:shadow-xl'
-                        : 'bg-gradient-to-r from-orange-500 to-amber-600 text-white hover:shadow-lg hover:-translate-y-1'
-                    }`}
+                          ? 'bg-green-500 text-white shadow-lg hover:shadow-xl'
+                          : 'bg-gradient-to-r from-orange-500 to-amber-600 text-white hover:shadow-lg hover:-translate-y-1'
+                      }`}
                   >
                     <ShoppingCart className="w-5 h-5" />
-                    {isOutOfStock 
-                      ? 'Out of Stock' 
-                      : isInCart 
-                        ? 'Added to Cart!' 
+                    {isOutOfStock
+                      ? 'Out of Stock'
+                      : isInCart
+                        ? 'Added to Cart!'
                         : 'Add to Cart'
                     }
                   </button>
-                  <button 
+                  <button
                     onClick={() => setIsFavorite(!isFavorite)}
                     disabled={isOutOfStock}
-                    className={`p-4 rounded-full border-2 transition-all ${
-                      isOutOfStock
+                    className={`p-4 rounded-full border-2 transition-all ${isOutOfStock
                         ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed'
-                        : isFavorite 
-                          ? 'bg-red-50 border-red-200 text-red-500 hover:border-red-300' 
+                        : isFavorite
+                          ? 'bg-red-50 border-red-200 text-red-500 hover:border-red-300'
                           : 'bg-white border-amber-200 text-amber-900 hover:border-orange-300'
-                    }`}
+                      }`}
                   >
                     <Heart className={`w-5 h-5 ${isFavorite ? 'fill-red-500' : ''}`} />
                   </button>
@@ -649,26 +638,25 @@ export default function ProductDetail() {
               const isRelatedLowStock = relatedProduct.stock > 0 && relatedProduct.stock < 5;
               const currentImageIndex = currentImageIndexes[relatedProduct.id] || 0;
               const hasMultipleRelatedImages = relatedProduct.images && relatedProduct.images.length > 1;
-              
+
               return (
                 <div
                   key={relatedProduct.id}
-                  className={`bg-white rounded-3xl overflow-hidden shadow-lg transform transition-all duration-300 cursor-pointer ${
-                    isRelatedOutOfStock 
-                      ? 'opacity-60 cursor-not-allowed' 
+                  className={`bg-white rounded-3xl overflow-hidden shadow-lg transform transition-all duration-300 cursor-pointer ${isRelatedOutOfStock
+                      ? 'opacity-60 cursor-not-allowed'
                       : 'hover:shadow-xl hover:-translate-y-2'
-                  }`}
+                    }`}
                   onClick={() => !isRelatedOutOfStock && router.push(`/products/${relatedProduct.id}`)}
                 >
                   <div className="h-48 bg-gradient-to-br from-orange-100 to-amber-100 flex items-center justify-center relative group">
                     {relatedProduct.images && relatedProduct.images.length > 0 ? (
                       <>
-                        <img 
-                          src={relatedProduct.images[currentImageIndex]} 
+                        <img
+                          src={relatedProduct.images[currentImageIndex]}
                           alt={relatedProduct.name}
                           className="w-full h-full object-contain"
                         />
-                        
+
                         {/* Navigation Arrows for Related Products */}
                         {hasMultipleRelatedImages && (
                           <>
@@ -686,7 +674,7 @@ export default function ProductDetail() {
                             </button>
                           </>
                         )}
-                        
+
                         {/* Image Dots Indicator for Related Products */}
                         {hasMultipleRelatedImages && (
                           <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex gap-1">
@@ -700,16 +688,15 @@ export default function ProductDetail() {
                                     [relatedProduct.id]: index
                                   }));
                                 }}
-                                className={`w-1.5 h-1.5 rounded-full transition-all ${
-                                  index === currentImageIndex
+                                className={`w-1.5 h-1.5 rounded-full transition-all ${index === currentImageIndex
                                     ? 'bg-orange-500'
                                     : 'bg-white/80 hover:bg-white'
-                                }`}
+                                  }`}
                               />
                             ))}
                           </div>
                         )}
-                        
+
                         {/* Image Counter for Related Products */}
                         {hasMultipleRelatedImages && (
                           <div className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded-full">
@@ -720,13 +707,13 @@ export default function ProductDetail() {
                     ) : (
                       <div className="text-6xl">{relatedEmoji}</div>
                     )}
-                    
+
                     {relatedDiscount > 0 && (
                       <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded-full text-sm font-bold">
                         -{relatedDiscount}%
                       </div>
                     )}
-                    
+
                     {/* Stock badge for related products */}
                     {isRelatedOutOfStock && (
                       <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded-full text-sm font-bold">
@@ -748,9 +735,8 @@ export default function ProductDetail() {
                     )}
                     <div className="flex items-center justify-between">
                       <div className="flex flex-col">
-                        <span className={`text-xl font-bold ${
-                          isRelatedOutOfStock ? 'text-gray-400' : 'text-amber-900'
-                        }`}>
+                        <span className={`text-xl font-bold ${isRelatedOutOfStock ? 'text-gray-400' : 'text-amber-900'
+                          }`}>
                           AED{relatedProduct.discountedPrice.toFixed(2)}
                         </span>
                         {relatedProduct.originalPrice > relatedProduct.discountedPrice && (
@@ -759,21 +745,20 @@ export default function ProductDetail() {
                           </span>
                         )}
                       </div>
-                      <button 
+                      <button
                         onClick={(e) => handleRelatedProductAddToCart(relatedProduct.id, e, relatedProduct)}
                         disabled={isRelatedOutOfStock}
-                        className={`p-3 rounded-full transition-all transform ${
-                          isRelatedOutOfStock
+                        className={`p-3 rounded-full transition-all transform ${isRelatedOutOfStock
                             ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                             : isAdded
-                            ? 'bg-green-500 text-white shadow-lg hover:scale-110'
-                            : 'bg-gradient-to-r from-orange-500 to-amber-600 text-white hover:shadow-lg hover:scale-110'
-                        }`}
+                              ? 'bg-green-500 text-white shadow-lg hover:scale-110'
+                              : 'bg-gradient-to-r from-orange-500 to-amber-600 text-white hover:shadow-lg hover:scale-110'
+                          }`}
                       >
-                        {isRelatedOutOfStock 
-                          ? 'Out of Stock' 
-                          : isAdded 
-                            ? '✓' 
+                        {isRelatedOutOfStock
+                          ? 'Out of Stock'
+                          : isAdded
+                            ? '✓'
                             : <ShoppingCart className="w-4 h-4" />
                         }
                       </button>

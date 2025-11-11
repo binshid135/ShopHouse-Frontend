@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { CheckCircle, Truck, Clock } from 'lucide-react';
 import Header from '../components/Header';
 import FloatingElements from '../components/FloatingElements';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 interface Order {
   id: string;
@@ -49,7 +50,7 @@ export default function OrderConfirmationPage() {
         <FloatingElements />
         <Header searchQuery={""} setSearchQuery={() => {}} />
         <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-orange-500"></div>
+          <LoadingSpinner />
         </div>
       </div>
     );

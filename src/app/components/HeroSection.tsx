@@ -111,7 +111,7 @@ const FeaturedProduct: React.FC<FeaturedProductProps> = ({ mostRecommendedProduc
               alt={mostRecommendedProduct.name} 
               fill
               sizes="(max-width: 768px) 80vw, 40vw"
-              className="object-contain scale-110" // Scale up the image
+              className="object-contain rounded-full" // Removed scale-110 and added rounded-lg
               priority
             />
           ) : (

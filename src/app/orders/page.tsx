@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { Package, Truck, CheckCircle, Clock, Star, ArrowRight, RefreshCw, LogIn, UserPlus } from 'lucide-react';
 import FloatingElements from '../components/FloatingElements';
 import Header from '../components/Header';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 interface OrderItem {
   id: string;
@@ -169,7 +170,7 @@ export default function Orders() {
         <FloatingElements />
         <Header searchQuery={""} setSearchQuery={() => {}} />
         <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-orange-500"></div>
+          <LoadingSpinner />
         </div>
       </div>
     );

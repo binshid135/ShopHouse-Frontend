@@ -19,9 +19,6 @@ const PopularProducts: React.FC<PopularProductsProps> = ({ products, onProductCl
             <h3 className="text-xl font-semibold text-amber-700 mb-2">
               No Recommended Products
             </h3>
-            <p className="text-amber-600">
-              Add recommended products in the admin panel to see them here.
-            </p>
           </div>
         </div>
       </section>

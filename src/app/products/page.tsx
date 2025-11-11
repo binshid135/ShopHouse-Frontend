@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { Filter, Grid, List, Star, ShoppingCart, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import Header from './../components/Header'
 import FloatingElements from './../components/FloatingElements';
+import LoadingSpinner from '../components/LoadingSpinner';
+import Footer from '../components/Footer';
 
 interface Product {
   id: string;
@@ -238,7 +240,7 @@ export default function Products() {
         <FloatingElements />
         <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
         <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-orange-500"></div>
+          <LoadingSpinner />
         </div>
       </div>
     );
@@ -682,6 +684,7 @@ export default function Products() {
           )}
         </div>
       </section>
+      <Footer />
     </div>
   );
 }

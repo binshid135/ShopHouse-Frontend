@@ -1,4 +1,4 @@
-// contexts/CartContext.tsx - Update to handle auth changes
+// contexts/CartContext.tsx
 "use client";
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
@@ -22,7 +22,7 @@ interface CartContextType {
     cartCount: number;
     loading: boolean;
     refreshCart: () => void;
-    addToCart: (productId: string, quantity?: number) => Promise<void>;
+    addToCart: (productId: string, quantity?: number) => Promise<{ success: boolean; error?: string }>;
     updateCartItem: (itemId: string, quantity: number) => Promise<void>;
     removeFromCart: (itemId: string) => Promise<void>;
 }
@@ -36,7 +36,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const fetchCart = async () => {
         try {
             const response = await fetch('/api/userside/cart', {
-                credentials: 'include' // Important for cookies
+                credentials: 'include'
             });
             if (response.ok) {
                 const data = await response.json();
@@ -49,7 +49,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     };
 
-    const addToCart = async (productId: string, quantity: number = 1) => {
+    const addToCart = async (productId: string, quantity: number = 1): Promise<{ success: boolean; error?: string }> => {
         try {
             const response = await fetch('/api/userside/cart', {
                 method: 'POST',
@@ -59,12 +59,15 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             });
 
             if (response.ok) {
-                await fetchCart(); // Refresh cart
+                await fetchCart();
+                return { success: true };
             } else {
-                console.error('Failed to add to cart');
+                const errorData = await response.json();
+                return { success: false, error: errorData.error || 'Failed to add to cart' };
             }
         } catch (error) {
             console.error('Failed to add to cart:', error);
+            return { success: false, error: 'Network error. Please try again.' };
         }
     };
 
@@ -78,7 +81,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             });
 
             if (response.ok) {
-                await fetchCart(); // Refresh cart
+                await fetchCart();
             }
         } catch (error) {
             console.error('Failed to update cart:', error);
@@ -93,7 +96,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             });
 
             if (response.ok) {
-                await fetchCart(); // Refresh cart
+                await fetchCart();
             }
         } catch (error) {
             console.error('Failed to remove from cart:', error);
@@ -107,7 +110,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Refresh cart when authentication state might change
     useEffect(() => {
         const handleFocus = () => {
-            fetchCart(); // Refresh cart when window gains focus
+            fetchCart();
         };
 
         window.addEventListener('focus', handleFocus);

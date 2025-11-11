@@ -30,6 +30,9 @@ export default function ForgotPasswordPage() {
 
       if (response.ok) {
         setSuccess('Password reset instructions have been sent to your email.');
+        setTimeout(() => {
+          router.push('/login');
+        }, 6000);
       } else {
         setError(data.error || 'Failed to send reset instructions');
       }
@@ -43,8 +46,8 @@ export default function ForgotPasswordPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100 overflow-hidden">
       <FloatingElements />
-      <Header searchQuery={""} setSearchQuery={() => {}} />
-      
+      <Header searchQuery={""} setSearchQuery={() => { }} />
+
       <div className="flex items-center justify-center min-h-[80vh] px-4">
         <div className="max-w-md w-full">
           <div className="bg-white rounded-3xl shadow-lg p-8">

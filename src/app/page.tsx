@@ -7,6 +7,7 @@ import PopularProducts from './components/PopularProducts';
 import AboutUs from './components/AboutUs';
 import Footer from './components/Footer';
 import FloatingElements from './components/FloatingElements';
+import LoadingSpinner from './components/LoadingSpinner';
 
 export interface Product {
   id: string;
@@ -64,7 +65,7 @@ export default function Home() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-orange-600"></div>
+        <LoadingSpinner />
       </div>
     );
   }
@@ -73,19 +74,19 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100 overflow-hidden">
       <FloatingElements />
       <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
-      
+
       <main>
-        <HeroSection 
-          mostRecommendedProduct={mostRecommendedProduct} 
+        <HeroSection
+          mostRecommendedProduct={mostRecommendedProduct}
           onProductClick={handleProductClick}
         />
-        <PopularProducts 
-          products={recommendedProducts} 
+        <PopularProducts
+          products={recommendedProducts}
           onProductClick={handleProductClick}
         />
         <AboutUs />
       </main>
-      
+
       <Footer />
     </div>
   );

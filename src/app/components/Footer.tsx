@@ -10,7 +10,7 @@ import {
   Youtube,
   CreditCard,
   Shield,
-  Truck
+  Truck,
 } from 'lucide-react';
 
 const Footer: React.FC = () => {
@@ -30,9 +30,9 @@ const Footer: React.FC = () => {
               </p>
               <div className="flex space-x-4">
                 <SocialIcon href="#" icon={<Facebook className="w-5 h-5" />} />
-                <SocialIcon href="#" icon={<Twitter className="w-5 h-5" />} />
+                {/* <SocialIcon href="#" icon={<Twitter className="w-5 h-5" />} /> */}
                 <SocialIcon href="#" icon={<Instagram className="w-5 h-5" />} />
-                <SocialIcon href="#" icon={<Youtube className="w-5 h-5" />} />
+                {/* <SocialIcon href="#" icon={<Youtube className="w-5 h-5" />} /> */}
               </div>
             </div>
 
@@ -42,10 +42,10 @@ const Footer: React.FC = () => {
               <ul className="space-y-2">
                 <FooterLink href="/products" text="All Products" />
                 <FooterLink href="/about" text="About Us" />
-                <FooterLink href="/contact" text="Contact" />
+                {/* <FooterLink href="/contact" text="Contact" />
                 <FooterLink href="/blog" text="Blog" />
                 <FooterLink href="/faq" text="FAQ" />
-                <FooterLink href="/support" text="Support" />
+                <FooterLink href="/support" text="Support" /> */}
               </ul>
             </div>
 

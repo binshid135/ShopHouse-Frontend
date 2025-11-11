@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from 'react';
 import { Eye, Search, Filter, RefreshCw, Package, Truck, CheckCircle, XCircle, Clock } from 'lucide-react';
+import LoadingSpinner from '@/app/components/LoadingSpinner';
 
 interface Order {
   id: string;
@@ -167,7 +168,7 @@ export default function AdminOrdersPage() {
   if (loading) {
     return (
       <div className="p-8">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-orange-500 mx-auto"></div>
+        <LoadingSpinner />
       </div>
     );
   }

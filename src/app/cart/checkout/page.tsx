@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, MapPin, Phone, User, Home, CreditCard } from "lucide-react";
 import FloatingElements from "@/app/components/FloatingElements";
 import Header from "@/app/components/Header";
+import LoadingSpinner from "@/app/components/LoadingSpinner";
 
 interface CartItem {
   id: string;
@@ -243,7 +244,7 @@ export default function CheckoutPage() {
         <FloatingElements />
         <Header searchQuery={""} setSearchQuery={() => {}} />
         <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-orange-500"></div>
+          <LoadingSpinner />
         </div>
       </div>
     );
@@ -556,14 +557,14 @@ export default function CheckoutPage() {
                   <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
                     <MapPin className="w-4 h-4 text-orange-600" />
                   </div>
-                  Free delivery within Al Ain
+                  Free delivery within Al Ain on orders above aed 100
                 </div>
-                <div className="flex items-center gap-3">
+                {/* <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
                     <span className="text-orange-600 font-bold">⏱</span>
                   </div>
                   Same-day delivery for orders before 6 PM
-                </div>
+                </div> */}
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
                     <span className="text-orange-600 font-bold">💰</span>

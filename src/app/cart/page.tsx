@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { ShoppingCart, Trash2, Plus, Minus, Ticket, ArrowRight, RefreshCw, LogIn, UserPlus, AlertCircle } from 'lucide-react';
 import Header from '../components/Header';
 import FloatingElements from '../components/FloatingElements';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 interface CartItem {
   id: string;
@@ -272,7 +273,7 @@ export default function Cart() {
         <FloatingElements />
         <Header searchQuery={""} setSearchQuery={() => {}} />
         <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-orange-500"></div>
+          <LoadingSpinner />
         </div>
       </div>
     );

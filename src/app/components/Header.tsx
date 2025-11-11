@@ -1,7 +1,10 @@
+// components/Header.tsx
+"use client";
 import React, { useState, useEffect } from 'react';
 import { ShoppingCart, ChefHat, User, LogOut, Menu, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useCart } from '../context/cartContext';
 
 interface HeaderProps {
     searchQuery: string;
@@ -21,6 +24,7 @@ const Header: React.FC<HeaderProps> = ({ searchQuery, setSearchQuery }) => {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const { cartCount } = useCart();
 
     useEffect(() => {
         checkAuth();
@@ -72,6 +76,7 @@ const Header: React.FC<HeaderProps> = ({ searchQuery, setSearchQuery }) => {
                     user={user}
                     onLogout={handleLogout}
                     loading={loading}
+                    cartCount={cartCount}
                 />
             </div>
 
@@ -181,58 +186,37 @@ interface HeaderActionsProps {
     user: User | null;
     onLogout: () => void;
     loading: boolean;
+    cartCount: number;
 }
 
 const HeaderActions: React.FC<HeaderActionsProps> = ({ 
     user, 
     onLogout,
-    loading 
+    loading,
+    cartCount
 }) => (
     <div className="flex items-center gap-3 sm:gap-4">
-        <CartButton />
+        <CartButton cartCount={cartCount} />
         <UserMenu user={user} onLogout={onLogout} loading={loading} />
     </div>
 );
 
-const CartButton: React.FC = () => {
-    const [cartCount, setCartCount] = useState(0);
+interface CartButtonProps {
+    cartCount: number;
+}
 
-    useEffect(() => {
-        fetchCartCount();
-        
-        const handleCartUpdate = () => {
-            fetchCartCount();
-        };
-
-        window.addEventListener('cartUpdated', handleCartUpdate);
-        return () => window.removeEventListener('cartUpdated', handleCartUpdate);
-    }, []);
-
-    const fetchCartCount = async () => {
-        try {
-            const response = await fetch('/api/userside/cart');
-            if (response.ok) {
-                const data = await response.json();
-                setCartCount(data.items?.length || 0);
-            }
-        } catch (error) {
-            console.error('Failed to fetch cart count:', error);
-        }
-    };
-
-    return (
-        <button className="relative p-2 hover:bg-amber-50 rounded-full transition-colors">
-            <Link href="/cart">
-                <ShoppingCart className="w-6 h-6 text-amber-900" />
-                {cartCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
-                        {cartCount > 9 ? '9+' : cartCount}
-                    </span>
-                )}
-            </Link>
-        </button>
-    );
-};
+const CartButton: React.FC<CartButtonProps> = ({ cartCount }) => (
+    <button className="relative p-2 hover:bg-amber-50 rounded-full transition-colors">
+        <Link href="/cart">
+            <ShoppingCart className="w-6 h-6 text-amber-900" />
+            {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                    {cartCount > 9 ? '9+' : cartCount}
+                </span>
+            )}
+        </Link>
+    </button>
+);
 
 interface UserMenuProps {
     user: User | null;

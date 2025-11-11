@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from 'react';
 import { Eye, Search, Filter, RefreshCw, User, Mail, Phone, MapPin, Calendar, Shield, Ban, CheckCircle, Edit, Trash2 } from 'lucide-react';
+import LoadingSpinner from '@/app/components/LoadingSpinner';
 
 interface User {
   id: string;
@@ -314,7 +315,7 @@ export default function AdminUsersPage() {
   if (loading) {
     return (
       <div className="p-8">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-orange-500 mx-auto"></div>
+        <LoadingSpinner />
       </div>
     );
   }
