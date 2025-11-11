@@ -168,7 +168,43 @@ const handleSubmit = async (e: React.FormEvent) => {
     const data = await response.json();
 
     if (response.ok) {
-      // ... your existing success code ...
+      // ✅ SUCCESS CODE with cart migration
+      console.log('✅ Signup successful:', data.user);
+      
+      // Get guest cart ID before migration
+      const guestCartId = getCookie('cartId');
+      console.log("🔍 Guest cart ID for migration:", guestCartId);
+      
+      if (guestCartId) {
+        try {
+          console.log('🔄 Starting cart migration after signup...');
+          
+          // Wait a bit for the session to be fully established
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          const migrateResponse = await fetch('/api/userside/cart/migrate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ guestCartId }),
+          });
+          
+          if (migrateResponse.ok) {
+            const migrateData = await migrateResponse.json();
+            console.log('✅ Cart migration successful after signup:', migrateData);
+          } else {
+            const errorData = await migrateResponse.json();
+            console.warn('⚠️ Cart migration failed after signup:', errorData);
+          }
+        } catch (migrateError) {
+          console.error('❌ Cart migration error after signup:', migrateError);
+          // Don't block the signup process
+        }
+      }
+      
+      router.push('/products');
+      router.refresh();
+      
     } else {
       // Handle specific error cases
       if (data.error?.includes('already exists')) {

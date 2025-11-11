@@ -167,3 +167,15 @@ export async function getUserWithPassword(email: string): Promise<(User & { pass
     return null;
   }
 }
+
+export async function cleanupFailedSignups(): Promise<void> {
+  try {
+    // Delete users who were created but never completed OTP verification
+    // You might want to add a `signup_completed` flag to your users table
+    await query(
+      'DELETE FROM users WHERE created_at < NOW() - INTERVAL \'1 hour\' AND signup_completed = false'
+    );
+  } catch (error) {
+    console.error('Error cleaning up failed signups:', error);
+  }
+}

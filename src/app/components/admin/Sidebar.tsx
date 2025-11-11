@@ -16,7 +16,7 @@ export default function Sidebar() {
     { name: 'Products', path: '/admin/Products' },
     { name: 'Orders', path: '/admin/orders' },
     { name: 'Users', path: '/admin/users' },
-    { name: 'Coupons', path: '/admin/coupons' },
+    // { name: 'Coupons', path: '/admin/coupons' },
   ];
 
   return (

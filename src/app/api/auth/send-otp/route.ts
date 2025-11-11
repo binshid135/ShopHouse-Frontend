@@ -1,3 +1,4 @@
+// app/api/auth/send-otp/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserByEmail } from '../../../../../lib/auth-user';
 import { generateAndStoreOtp, cleanupExpiredOtps } from '../../../../../lib/otp-utils';
@@ -27,9 +28,6 @@ export async function POST(request: NextRequest) {
 
     // Generate and store OTP in database
     const otp = await generateAndStoreOtp(email);
-
-    // In production, you would send this via email service
-    console.log(`📧 OTP for ${email}: ${otp}`);
 
     return NextResponse.json({
       success: true,

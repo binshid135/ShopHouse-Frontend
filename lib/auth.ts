@@ -3,8 +3,8 @@ import { cookies } from 'next/headers';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const ADMIN_CREDENTIALS = {
-  username: process.env.ADMIN_USERNAME || 'admin',
-  password: process.env.ADMIN_PASSWORD || 'admin123'
+  username: process.env.ADMIN_USERNAME,
+  password: process.env.ADMIN_PASSWORD
 };
 
 export async function verifyAdminCredentials(username: string, password: string) {
