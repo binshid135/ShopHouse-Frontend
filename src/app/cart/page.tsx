@@ -13,7 +13,7 @@ interface CartItem {
   price: number;
   quantity: number;
   images: string[];
-  stock: number; // Add stock information
+  stock: number;
 }
 
 interface Cart {
@@ -41,7 +41,6 @@ export default function Cart() {
       setLoading(true);
       setCartError(null);
       
-      // Check if user is authenticated
       const authResponse = await fetch('/api/auth/me');
       const authData = await authResponse.json();
       
@@ -49,7 +48,6 @@ export default function Cart() {
         setUser(authData.user);
       }
       
-      // Fetch cart (API handles both authenticated and guest users)
       const cartResponse = await fetch('/api/userside/cart');
       if (cartResponse.ok) {
         const cartData = await cartResponse.json();
@@ -71,7 +69,6 @@ export default function Cart() {
       return;
     }
 
-    // Validate stock before updating
     if (newQuantity > currentStock) {
       setCartError(`Only ${currentStock} items available for ${productName}`);
       setTimeout(() => setCartError(null), 5000);
@@ -91,7 +88,7 @@ export default function Cart() {
       });
 
       if (response.ok) {
-        checkAuthAndFetchCart(); // Refresh cart data
+        checkAuthAndFetchCart();
       } else {
         const errorData = await response.json();
         setCartError(errorData.error || 'Failed to update quantity');
@@ -111,7 +108,7 @@ export default function Cart() {
       });
 
       if (response.ok) {
-        checkAuthAndFetchCart(); // Refresh cart data
+        checkAuthAndFetchCart();
       } else {
         setCartError('Failed to remove item');
         setTimeout(() => setCartError(null), 5000);
@@ -163,13 +160,11 @@ export default function Cart() {
 
   const proceedToCheckout = () => {
     if (!user) {
-      // Save current cart and redirect to login
       localStorage.setItem('redirectAfterLogin', '/checkout');
       router.push('/login');
       return;
     }
     
-    // Check if any items are out of stock before proceeding
     const outOfStockItems = cart?.items.filter(item => item.stock <= 0) || [];
     if (outOfStockItems.length > 0) {
       setCartError('Some items in your cart are out of stock. Please remove them before checkout.');
@@ -177,7 +172,6 @@ export default function Cart() {
       return;
     }
 
-    // Check if any items have insufficient stock
     const insufficientStockItems = cart?.items.filter(item => item.quantity > item.stock) || [];
     if (insufficientStockItems.length > 0) {
       setCartError('Some items in your cart have insufficient stock. Please update quantities before checkout.');
@@ -202,7 +196,6 @@ export default function Cart() {
     return '🍴';
   };
 
-  // Get stock status for an item
   const getStockStatus = (item: CartItem) => {
     if (item.stock <= 0) {
       return {
@@ -256,23 +249,21 @@ export default function Cart() {
     };
   };
 
-  // Calculate order summary
   const subtotal = cart?.total || 0;
   const shipping = subtotal > 100 ? 0 : 10;
-  const tax = subtotal * 0.05; // 5% VAT
+  const tax = subtotal * 0.05;
   const total = Math.max(0, subtotal + shipping + tax - discount);
 
-  // Check if cart has any issues that prevent checkout
   const hasCartIssues = cart?.items.some(item => 
     item.stock <= 0 || item.quantity > item.stock
   );
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100 overflow-hidden">
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100 overflow-x-hidden">
         <FloatingElements />
         <Header searchQuery={""} setSearchQuery={() => {}} />
-        <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex items-center justify-center min-h-[60vh] px-4">
           <LoadingSpinner />
         </div>
       </div>
@@ -280,20 +271,21 @@ export default function Cart() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100 overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100 overflow-x-hidden">
       <FloatingElements />
       <Header searchQuery={""} setSearchQuery={() => {}} />
       
-      <div className="max-w-7xl mx-auto px-6 py-12">
+      {/* Main Container with Safe Area Handling */}
+      <div className="w-full max-w-[100vw] px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 lg:py-12 box-border">
         {/* Error Message */}
         {cartError && (
-          <div className="mb-6">
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl flex items-center gap-3">
-              <AlertCircle className="w-5 h-5 flex-shrink-0" />
-              <p className="font-medium">{cartError}</p>
+          <div className="mb-4 w-full max-w-full">
+            <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-3 rounded-2xl flex items-center gap-2 w-full">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <p className="font-medium text-sm flex-1 break-words">{cartError}</p>
               <button 
                 onClick={() => setCartError(null)}
-                className="ml-auto text-red-500 hover:text-red-700 transition-colors"
+                className="ml-2 text-red-500 hover:text-red-700 transition-colors flex-shrink-0"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -303,30 +295,31 @@ export default function Cart() {
           </div>
         )}
 
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-          <div className="flex items-center gap-3">
-            <ShoppingCart className="w-8 h-8 text-orange-600" />
-            <h1 className="text-4xl font-bold text-amber-900">Shopping Cart</h1>
+        {/* Header Section */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-6 w-full">
+          <div className="flex items-center gap-2">
+            <ShoppingCart className="w-6 h-6 text-orange-600 flex-shrink-0" />
+            <h1 className="text-2xl font-bold text-amber-900 break-words">Shopping Cart</h1>
             {cart && cart.items.length > 0 && (
-              <span className="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-medium">
-                {cart.items.length} items
+              <span className="bg-orange-500 text-white px-2 py-1 rounded-full text-xs font-medium flex-shrink-0">
+                {cart.items.length} {cart.items.length === 1 ? 'item' : 'items'}
               </span>
             )}
           </div>
           
           {cart && cart.items.length > 0 && (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               {!user && (
-                <div className="text-sm text-amber-700 bg-amber-100 px-3 py-1 rounded-full">
+                <div className="text-xs text-amber-700 bg-amber-100 px-2 py-1 rounded-full whitespace-nowrap">
                   Shopping as Guest
                 </div>
               )}
               <button
                 onClick={checkAuthAndFetchCart}
-                className="flex items-center gap-2 bg-white text-amber-900 px-4 py-2 rounded-full hover:bg-orange-50 transition-colors"
+                className="flex items-center gap-1 bg-white text-amber-900 px-3 py-2 rounded-full hover:bg-orange-50 transition-colors text-sm"
               >
                 <RefreshCw className="w-4 h-4" />
-                Refresh
+                <span className="sm:hidden">Refresh</span>
               </button>
             </div>
           )}
@@ -334,21 +327,21 @@ export default function Cart() {
 
         {/* User Not Logged In Warning */}
         {!user && cart && cart.items.length > 0 && (
-          <div className="bg-amber-50 border border-amber-200 text-amber-800 px-6 py-4 rounded-2xl mb-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <p className="font-medium mb-1">💡 Sign in for a better experience!</p>
-                <p className="text-sm">Create an account to save your cart and view order history.</p>
+          <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-2xl mb-4 w-full">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex-1">
+                <p className="font-medium mb-1 text-sm">💡 Sign in for a better experience!</p>
+                <p className="text-xs">Create an account to save your cart and view order history.</p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 mt-2 sm:mt-0">
                 <button 
                   onClick={() => {
                     localStorage.setItem('redirectAfterLogin', '/cart');
                     router.push('/login');
                   }}
-                  className="flex items-center gap-2 bg-orange-500 text-white px-4 py-2 rounded-full hover:bg-orange-600 transition-colors text-sm"
+                  className="flex items-center gap-1 bg-orange-500 text-white px-3 py-2 rounded-full hover:bg-orange-600 transition-colors text-xs flex-1 justify-center"
                 >
-                  <LogIn className="w-4 h-4" />
+                  <LogIn className="w-3 h-3" />
                   Sign In
                 </button>
                 <button 
@@ -356,9 +349,9 @@ export default function Cart() {
                     localStorage.setItem('redirectAfterLogin', '/cart');
                     router.push('/signup');
                   }}
-                  className="flex items-center gap-2 border border-orange-500 text-orange-500 px-4 py-2 rounded-full hover:bg-orange-50 transition-colors text-sm"
+                  className="flex items-center gap-1 border border-orange-500 text-orange-500 px-3 py-2 rounded-full hover:bg-orange-50 transition-colors text-xs flex-1 justify-center"
                 >
-                  <UserPlus className="w-4 h-4" />
+                  <UserPlus className="w-3 h-3" />
                   Sign Up
                 </button>
               </div>
@@ -366,17 +359,18 @@ export default function Cart() {
           </div>
         )}
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Cart Items */}
-          <div className="lg:col-span-2 space-y-6">
+        {/* Main Content Grid */}
+        <div className="w-full grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+          {/* Cart Items - Full width on mobile, 2/3 on desktop */}
+          <div className="lg:col-span-2 space-y-4 w-full">
             {!cart || cart.items.length === 0 ? (
-              <div className="bg-white rounded-3xl p-12 text-center shadow-lg">
-                <ShoppingCart className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-2xl font-bold text-amber-900 mb-2">Your cart is empty</h3>
-                <p className="text-amber-700 mb-6">Add some delicious kitchen tools to get started!</p>
+              <div className="bg-white rounded-2xl p-6 text-center shadow-lg w-full">
+                <ShoppingCart className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                <h3 className="text-xl font-bold text-amber-900 mb-2">Your cart is empty</h3>
+                <p className="text-amber-700 mb-4 text-sm">Add some delicious kitchen tools to get started!</p>
                 <button 
                   onClick={() => router.push('/products')}
-                  className="bg-gradient-to-r from-orange-500 to-amber-600 text-white px-8 py-3 rounded-full font-medium hover:shadow-lg transition-all"
+                  className="bg-gradient-to-r from-orange-500 to-amber-600 text-white px-6 py-3 rounded-full font-medium hover:shadow-lg transition-all text-sm w-full sm:w-auto"
                 >
                   Continue Shopping
                 </button>
@@ -389,11 +383,12 @@ export default function Cart() {
                 const hasInsufficientStock = item.quantity > item.stock;
                 
                 return (
-                  <div key={item.id} className={`bg-white rounded-3xl p-6 shadow-lg transition-all ${
+                  <div key={item.id} className={`bg-white rounded-2xl p-4 shadow-lg transition-all w-full ${
                     isOutOfStock ? 'opacity-60' : 'hover:shadow-xl'
                   }`}>
-                    <div className="flex gap-6">
-                      <div className="w-24 h-24 bg-gradient-to-br from-orange-100 to-amber-100 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    <div className="flex gap-3">
+                      {/* Product Image */}
+                      <div className="w-16 h-16 bg-gradient-to-br from-orange-100 to-amber-100 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden">
                         {item.images && item.images.length > 0 ? (
                           <img 
                             src={item.images[0]} 
@@ -401,15 +396,16 @@ export default function Cart() {
                             className="w-full h-full object-contain"
                           />
                         ) : (
-                          <div className="text-3xl">{productEmoji}</div>
+                          <div className="text-xl">{productEmoji}</div>
                         )}
                       </div>
                       
-                      <div className="flex-1">
-                        <div className="flex justify-between items-start mb-3">
-                          <div>
-                            <h3 className="text-xl font-bold text-amber-900 mb-1">{item.name}</h3>
-                            <span className="text-orange-600 font-medium">AED {item.price.toFixed(2)} each</span>
+                      {/* Product Details */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-start mb-2 gap-2">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-base font-bold text-amber-900 mb-1 line-clamp-2 break-words">{item.name}</h3>
+                            <span className="text-orange-600 font-medium text-sm">AED {item.price.toFixed(2)} each</span>
                             
                             {/* Stock Status Badge */}
                             <div className="mt-2">
@@ -418,21 +414,22 @@ export default function Cart() {
                           </div>
                           <button 
                             onClick={() => removeItem(item.id)}
-                            className="text-gray-400 hover:text-red-500 transition-colors"
+                            className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0 ml-1"
                           >
-                            <Trash2 className="w-5 h-5" />
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
 
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <div className={`flex items-center gap-3 rounded-full px-4 py-2 ${
+                        {/* Quantity and Price */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-3">
+                          <div className="flex items-center gap-2">
+                            <div className={`flex items-center gap-2 rounded-full px-3 py-2 ${
                               isOutOfStock ? 'bg-gray-100' : 'bg-amber-50'
                             }`}>
                               <button 
                                 onClick={() => updateQuantity(item.id, item.quantity - 1, item.stock, item.name)}
                                 disabled={isOutOfStock}
-                                className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${
+                                className={`w-5 h-5 rounded-full flex items-center justify-center transition-colors ${
                                   isOutOfStock 
                                     ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
                                     : 'bg-white hover:bg-gray-100'
@@ -440,7 +437,7 @@ export default function Cart() {
                               >
                                 <Minus className="w-3 h-3" />
                               </button>
-                              <span className={`font-bold w-8 text-center ${
+                              <span className={`font-bold w-6 text-center text-sm ${
                                 isOutOfStock ? 'text-gray-400' : 'text-amber-900'
                               }`}>
                                 {item.quantity}
@@ -448,7 +445,7 @@ export default function Cart() {
                               <button 
                                 onClick={() => updateQuantity(item.id, item.quantity + 1, item.stock, item.name)}
                                 disabled={isOutOfStock || item.quantity >= item.stock}
-                                className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${
+                                className={`w-5 h-5 rounded-full flex items-center justify-center transition-colors ${
                                   isOutOfStock || item.quantity >= item.stock
                                     ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
                                     : 'bg-white hover:bg-gray-100'
@@ -458,7 +455,7 @@ export default function Cart() {
                               </button>
                             </div>
                           </div>
-                          <span className={`text-2xl font-bold ${
+                          <span className={`text-lg font-bold ${
                             isOutOfStock ? 'text-gray-400' : 'text-amber-900'
                           }`}>
                             AED {(item.price * item.quantity).toFixed(2)}
@@ -467,16 +464,16 @@ export default function Cart() {
 
                         {/* Warning Messages */}
                         {isOutOfStock && (
-                          <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-xl">
-                            <p className="text-red-700 text-sm font-medium">
+                          <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded-xl text-xs">
+                            <p className="text-red-700 font-medium">
                               This item is out of stock. Please remove it to proceed with checkout.
                             </p>
                           </div>
                         )}
                         
                         {hasInsufficientStock && !isOutOfStock && (
-                          <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-xl">
-                            <p className="text-yellow-700 text-sm font-medium">
+                          <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded-xl text-xs">
+                            <p className="text-yellow-700 font-medium">
                               Only {item.stock} items available. Please reduce quantity to proceed.
                             </p>
                           </div>
@@ -489,21 +486,21 @@ export default function Cart() {
             )}
           </div>
 
-          {/* Order Summary */}
-          <div className="space-y-6">
-            <div className="bg-white rounded-3xl p-6 shadow-lg sticky top-6">
-              <h3 className="text-xl font-bold text-amber-900 mb-6">Order Summary</h3>
+          {/* Order Summary - Full width on mobile, 1/3 on desktop */}
+          <div className="space-y-4 w-full">
+            <div className="bg-white rounded-2xl p-4 shadow-lg">
+              <h3 className="text-lg font-bold text-amber-900 mb-4">Order Summary</h3>
               
               {/* User Status */}
               {user ? (
-                <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl mb-4 text-sm">
+                <div className="bg-green-50 border border-green-200 text-green-700 px-3 py-2 rounded-xl mb-3 text-xs">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     Signed in as {user.name}
                   </div>
                 </div>
               ) : (
-                <div className="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-xl mb-4 text-sm">
+                <div className="bg-amber-50 border border-amber-200 text-amber-700 px-3 py-2 rounded-xl mb-3 text-xs">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
                     Shopping as guest
@@ -513,17 +510,17 @@ export default function Cart() {
               
               {/* Cart Issues Warning */}
               {hasCartIssues && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-4">
+                <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-xl mb-3">
                   <div className="flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                    <p className="text-sm font-medium">Some items need attention before checkout</p>
+                    <AlertCircle className="w-3 h-3 flex-shrink-0" />
+                    <p className="text-xs font-medium">Some items need attention before checkout</p>
                   </div>
                 </div>
               )}
               
               {/* Coupon Section */}
-              <div className="mb-6">
-                <div className="flex gap-2 mb-3">
+              <div className="mb-4">
+                <div className="flex flex-col gap-2 mb-2">
                   <input
                     type="text"
                     placeholder="Enter coupon code"
@@ -534,18 +531,18 @@ export default function Cart() {
                         applyCoupon();
                       }
                     }}
-                    className="flex-1 px-4 py-2 border-2 border-amber-200 rounded-full focus:border-orange-400 outline-none transition-all"
+                    className="flex-1 px-3 py-2 border-2 border-amber-200 rounded-full focus:border-orange-400 outline-none transition-all text-sm"
                   />
                   <button 
                     onClick={applyCoupon}
-                    className="bg-gradient-to-r from-orange-500 to-amber-600 text-white px-4 py-2 rounded-full hover:shadow-lg transition-all flex items-center gap-2"
+                    className="bg-gradient-to-r from-orange-500 to-amber-600 text-white px-3 py-2 rounded-full hover:shadow-lg transition-all flex items-center gap-1 justify-center text-sm"
                   >
                     <Ticket className="w-4 h-4" />
-                    Apply
+                    Apply Coupon
                   </button>
                 </div>
                 {couponMessage && (
-                  <p className={`text-sm ${
+                  <p className={`text-xs ${
                     couponMessage.includes('Invalid') || couponMessage.includes('Error') 
                       ? 'text-red-500' 
                       : 'text-green-500'
@@ -556,27 +553,27 @@ export default function Cart() {
               </div>
 
               {/* Pricing */}
-              <div className="space-y-3 mb-6">
-                <div className="flex justify-between text-amber-800">
+              <div className="space-y-2 mb-4">
+                <div className="flex justify-between text-amber-800 text-sm">
                   <span>Subtotal</span>
                   <span>AED {subtotal.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between text-amber-800">
+                <div className="flex justify-between text-amber-800 text-sm">
                   <span>Delivery charge</span>
                   <span>{shipping === 0 ? 'FREE' : `AED ${shipping.toFixed(2)}`}</span>
                 </div>
-                <div className="flex justify-between text-amber-800">
+                <div className="flex justify-between text-amber-800 text-sm">
                   <span>Tax (5%)</span>
                   <span>AED {tax.toFixed(2)}</span>
                 </div>
                 {discount > 0 && (
-                  <div className="flex justify-between text-green-600">
+                  <div className="flex justify-between text-green-600 text-sm">
                     <span>Discount</span>
                     <span>-AED {discount.toFixed(2)}</span>
                   </div>
                 )}
-                <div className="border-t border-amber-200 pt-3">
-                  <div className="flex justify-between text-lg font-bold text-amber-900">
+                <div className="border-t border-amber-200 pt-2">
+                  <div className="flex justify-between text-base font-bold text-amber-900">
                     <span>Total</span>
                     <span>AED {total.toFixed(2)}</span>
                   </div>
@@ -586,50 +583,50 @@ export default function Cart() {
               <button 
                 onClick={proceedToCheckout}
                 disabled={!cart || cart.items.length === 0 || hasCartIssues}
-                className="w-full bg-gradient-to-r from-orange-500 to-amber-600 text-white py-4 rounded-full font-medium hover:shadow-lg transform hover:-translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                className="w-full bg-gradient-to-r from-orange-500 to-amber-600 text-white py-3 rounded-full font-medium hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm mb-2"
               >
                 {!user ? 'Sign In to Checkout' : `Proceed to Checkout`}
-                <ArrowRight className="w-5 h-5" />
+                <ArrowRight className="w-4 h-4" />
               </button>
 
               {shipping > 0 && subtotal < 100 && (
-                <p className="text-center text-sm text-amber-700 mt-4">
+                <p className="text-center text-xs text-amber-700">
                   Add AED {(100 - subtotal).toFixed(2)} more for FREE Delivery!
                 </p>
               )}
 
               {!user && (
-                <p className="text-center text-xs text-amber-600 mt-3">
+                <p className="text-center text-xs text-amber-600 mt-1">
                   You'll be asked to sign in or create an account before checkout
                 </p>
               )}
 
               {hasCartIssues && (
-                <p className="text-center text-xs text-red-600 mt-3">
+                <p className="text-center text-xs text-red-600 mt-1">
                   Please resolve stock issues before checkout
                 </p>
               )}
             </div>
 
             {/* Trust Badges */}
-            <div className="bg-white rounded-3xl p-6 shadow-lg">
-              <h4 className="font-bold text-amber-900 mb-4">Why Shop With Us?</h4>
-              <div className="space-y-3 text-sm text-amber-700">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                    <span className="text-green-600 font-bold">✓</span>
+            <div className="bg-white rounded-2xl p-4 shadow-lg">
+              <h4 className="font-bold text-amber-900 mb-3 text-sm">Why Shop With Us?</h4>
+              <div className="space-y-2 text-xs text-amber-700">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-green-600 font-bold text-xs">✓</span>
                   </div>
                   Free Delivery on orders over AED 100
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                    <span className="text-green-600 font-bold">✓</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-green-600 font-bold text-xs">✓</span>
                   </div>
                   Secure payment processing
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                    <span className="text-green-600 font-bold">✓</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-green-600 font-bold text-xs">✓</span>
                   </div>
                   Dedicated customer support
                 </div>
@@ -637,27 +634,27 @@ export default function Cart() {
             </div>
 
             {/* Security Badge */}
-            <div className="bg-white rounded-3xl p-6 shadow-lg">
-              <h4 className="font-bold text-amber-900 mb-4">Secure Shopping</h4>
-              <div className="space-y-3 text-sm text-amber-700">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                    <span className="text-blue-600 font-bold">🔒</span>
+            <div className="bg-white rounded-2xl p-4 shadow-lg">
+              <h4 className="font-bold text-amber-900 mb-3 text-sm">Secure Shopping</h4>
+              <div className="space-y-2 text-xs text-amber-700">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-blue-600 font-bold text-xs">🔒</span>
                   </div>
                   Your cart is saved securely
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                    <span className="text-blue-600 font-bold">🛡️</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-blue-600 font-bold text-xs">🛡️</span>
                   </div>
                   Privacy protected
                 </div>
                 {!user && (
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
-                      <span className="text-orange-600 font-bold">💡</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <span className="text-orange-600 font-bold text-xs">💡</span>
                     </div>
-                    <span className="text-orange-600">
+                    <span className="text-orange-600 text-xs">
                       <button 
                         onClick={() => router.push('/signup')}
                         className="underline hover:no-underline"

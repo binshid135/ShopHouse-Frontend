@@ -31,7 +31,7 @@ export async function sendOtpEmail(email: string, otp: string): Promise<boolean>
     console.log(`📧 Attempting to send OTP email to: ${email}`);
     
     const { data, error } = await resend.emails.send({
-      from: 'ShopHouse <onboarding@resend.dev>',
+      from: 'ShopHouse <noreply@shophousealain.com>',
       to: [email],
       subject: 'Your OTP Verification Code - ShopHouse',
       html: `
@@ -104,7 +104,7 @@ export async function sendPasswordResetEmail(email: string, resetLink: string): 
     console.log(`📧 Attempting to send password reset email to: ${email}`);
     
     const { data, error } = await resend.emails.send({
-      from: 'ShopHouse <onboarding@resend.dev>',
+      from: 'ShopHouse <noreply@shophousealain.com>',
       to: [email],
       subject: 'Reset Your Password - ShopHouse',
       html: `

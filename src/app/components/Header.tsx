@@ -84,6 +84,8 @@ const Header: React.FC<HeaderProps> = ({ searchQuery, setSearchQuery }) => {
             <MobileNavigation 
                 isOpen={mobileMenuOpen}
                 onClose={() => setMobileMenuOpen(false)}
+                user={user}
+                onLogout={handleLogout}
             />
         </header>
     );
@@ -140,9 +142,11 @@ const DesktopNavigation: React.FC = () => {
 interface MobileNavigationProps {
     isOpen: boolean;
     onClose: () => void;
+    user: User | null;
+    onLogout: () => void;
 }
 
-const MobileNavigation: React.FC<MobileNavigationProps> = ({ isOpen, onClose }) => {
+const MobileNavigation: React.FC<MobileNavigationProps> = ({ isOpen, onClose, user, onLogout }) => {
     const currentPath = usePathname();
 
     const navItems = [
@@ -178,6 +182,45 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ isOpen, onClose }) 
                         {item.label}
                     </Link>
                 ))}
+                
+                {/* Auth Section */}
+                <div className="pt-2 border-t border-amber-200 mt-2 space-y-2">
+                    {!user ? (
+                        <>
+                            <Link
+                                href="/login"
+                                onClick={onClose}
+                                className="block px-4 py-3 rounded-lg text-base font-medium text-amber-900 hover:text-orange-600 hover:bg-amber-50 transition-all"
+                            >
+                                Sign In
+                            </Link>
+                            <Link
+                                href="/signup"
+                                onClick={onClose}
+                                className="block px-4 py-3 rounded-lg text-base font-medium bg-gradient-to-r from-orange-500 to-orange-300 text-white shadow-md transition-all"
+                            >
+                                Sign Up
+                            </Link>
+                        </>
+                    ) : (
+                        <>
+                            <div className="px-4 py-2">
+                                <p className="text-sm font-medium text-amber-900">{user.name}</p>
+                                <p className="text-xs text-amber-600 truncate">{user.email}</p>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    onLogout();
+                                    onClose();
+                                }}
+                                className="w-full text-left px-4 py-3 rounded-lg text-base font-medium text-red-600 hover:bg-red-50 transition-all flex items-center gap-2"
+                            >
+                                <LogOut className="w-4 h-4" />
+                                Sign Out
+                            </button>
+                        </>
+                    )}
+                </div>
             </nav>
         </div>
     );
@@ -196,9 +239,12 @@ const HeaderActions: React.FC<HeaderActionsProps> = ({
     loading,
     cartCount
 }) => (
-    <div className="flex items-center gap-3 sm:gap-4">
+    <div className="flex items-center gap-2 sm:gap-4">
         <CartButton cartCount={cartCount} />
-        <UserMenu user={user} onLogout={onLogout} loading={loading} />
+        {/* Hide auth buttons on mobile, show in mobile menu instead */}
+        <div className="hidden md:block">
+            <UserMenu user={user} onLogout={onLogout} loading={loading} />
+        </div>
     </div>
 );
 
