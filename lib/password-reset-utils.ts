@@ -21,7 +21,7 @@ export async function generatePasswordResetToken(userId: string, userEmail: stri
     console.log(`🔐 Password reset token stored for user ${userId}`);
     
     // Send password reset email
-    const resetLink = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/reset-password?token=${token}`;
+    const resetLink = `${process.env.NEXTAUTH_URL}/reset-password?token=${token}`;
     const emailSent = await sendPasswordResetEmail(userEmail, resetLink);
     
     if (emailSent) {
