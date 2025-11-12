@@ -152,7 +152,7 @@ export default function ProductDetail() {
       }
 
       const result = await addToCart(productId, quantityToAdd);
-      
+
       if (result.success) {
         // Mark as added for visual feedback
         setAddedProductIds((prev) => [...prev, productId]);
@@ -421,8 +421,8 @@ export default function ProductDetail() {
                       key={index}
                       onClick={() => setSelectedImage(index)}
                       className={`flex-shrink-0 w-20 h-20 bg-white rounded-xl border-2 overflow-hidden transition-all ${selectedImage === index
-                          ? 'border-orange-500 shadow-md'
-                          : 'border-gray-200 hover:border-orange-300'
+                        ? 'border-orange-500 shadow-md'
+                        : 'border-gray-200 hover:border-orange-300'
                         }`}
                     >
                       <img
@@ -478,9 +478,6 @@ export default function ProductDetail() {
                 )}
               </div>
 
-              {product.shortDescription && (
-                <p className="text-lg text-amber-800 leading-relaxed">{product.shortDescription}</p>
-              )}
 
               {/* Stock Warning for Low Stock */}
               {isLowStock && (
@@ -512,28 +509,18 @@ export default function ProductDetail() {
                 </div>
               )}
 
-              {/* Features */}
-              <div className="space-y-3">
-                <h3 className="text-xl font-bold text-amber-900">Product Details</h3>
-                <ul className="space-y-2">
-                  <li className="flex items-center gap-3 text-amber-800">
-                    <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                    Premium quality materials
-                  </li>
-                  <li className="flex items-center gap-3 text-amber-800">
-                    <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                    Professional grade performance
-                  </li>
-                  <li className="flex items-center gap-3 text-amber-800">
-                    <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                    Durable and long-lasting
-                  </li>
-                  <li className="flex items-center gap-3 text-amber-800">
-                    <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                    Easy to clean and maintain
-                  </li>
-                </ul>
-              </div>
+
+
+
+              {product.shortDescription && (
+                <div className="space-y-3">
+                  <h3 className="text-xl font-bold text-amber-900">Product Details</h3>
+                  <p className="text-lg text-amber-800 leading-relaxed">{product.shortDescription}</p>
+                </div>
+              )}
+
+
+
 
               {/* Quantity & Actions */}
               <div className="space-y-4">
@@ -545,8 +532,8 @@ export default function ProductDetail() {
                       onClick={() => setQuantity(Math.max(1, quantity - 1))}
                       disabled={isOutOfStock}
                       className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${isOutOfStock
-                          ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                          : 'bg-gray-100 hover:bg-gray-200'
+                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                        : 'bg-gray-100 hover:bg-gray-200'
                         }`}
                     >
                       -
@@ -559,8 +546,8 @@ export default function ProductDetail() {
                       onClick={() => setQuantity(quantity + 1)}
                       disabled={isOutOfStock || quantity >= product.stock}
                       className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${isOutOfStock || quantity >= product.stock
-                          ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                          : 'bg-gray-100 hover:bg-gray-200'
+                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                        : 'bg-gray-100 hover:bg-gray-200'
                         }`}
                     >
                       +
@@ -580,10 +567,10 @@ export default function ProductDetail() {
                     onClick={handleMainProductAddToCart}
                     disabled={isOutOfStock}
                     className={`flex-1 py-4 rounded-full font-medium transform transition-all flex items-center justify-center gap-3 ${isOutOfStock
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : isInCart
-                          ? 'bg-green-500 text-white shadow-lg hover:shadow-xl'
-                          : 'bg-gradient-to-r from-orange-500 to-amber-600 text-white hover:shadow-lg hover:-translate-y-1'
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : isInCart
+                        ? 'bg-green-500 text-white shadow-lg hover:shadow-xl'
+                        : 'bg-gradient-to-r from-orange-500 to-amber-600 text-white hover:shadow-lg hover:-translate-y-1'
                       }`}
                   >
                     <ShoppingCart className="w-5 h-5" />
@@ -598,10 +585,10 @@ export default function ProductDetail() {
                     onClick={() => setIsFavorite(!isFavorite)}
                     disabled={isOutOfStock}
                     className={`p-4 rounded-full border-2 transition-all ${isOutOfStock
-                        ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed'
-                        : isFavorite
-                          ? 'bg-red-50 border-red-200 text-red-500 hover:border-red-300'
-                          : 'bg-white border-amber-200 text-amber-900 hover:border-orange-300'
+                      ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed'
+                      : isFavorite
+                        ? 'bg-red-50 border-red-200 text-red-500 hover:border-red-300'
+                        : 'bg-white border-amber-200 text-amber-900 hover:border-orange-300'
                       }`}
                   >
                     <Heart className={`w-5 h-5 ${isFavorite ? 'fill-red-500' : ''}`} />
@@ -613,11 +600,11 @@ export default function ProductDetail() {
               <div className="flex items-center gap-6 pt-6 border-t border-amber-200">
                 <div className="flex items-center gap-2 text-sm text-amber-700">
                   <Truck className="w-4 h-4" />
-                  Free Delivery
+                  Free Delivery if total order is above 100
                 </div>
-                <div className="flex items-center gap-2 text-sm text-amber-700">
+                <div className="flex items-center gap-1 text-sm text-amber-700">
                   <Shield className="w-4 h-4" />
-                  2-Year Warranty
+                  Quality assured
                 </div>
               </div>
             </div>
@@ -643,8 +630,8 @@ export default function ProductDetail() {
                 <div
                   key={relatedProduct.id}
                   className={`bg-white rounded-3xl overflow-hidden shadow-lg transform transition-all duration-300 cursor-pointer ${isRelatedOutOfStock
-                      ? 'opacity-60 cursor-not-allowed'
-                      : 'hover:shadow-xl hover:-translate-y-2'
+                    ? 'opacity-60 cursor-not-allowed'
+                    : 'hover:shadow-xl hover:-translate-y-2'
                     }`}
                   onClick={() => !isRelatedOutOfStock && router.push(`/products/${relatedProduct.id}`)}
                 >
@@ -689,8 +676,8 @@ export default function ProductDetail() {
                                   }));
                                 }}
                                 className={`w-1.5 h-1.5 rounded-full transition-all ${index === currentImageIndex
-                                    ? 'bg-orange-500'
-                                    : 'bg-white/80 hover:bg-white'
+                                  ? 'bg-orange-500'
+                                  : 'bg-white/80 hover:bg-white'
                                   }`}
                               />
                             ))}
@@ -749,10 +736,10 @@ export default function ProductDetail() {
                         onClick={(e) => handleRelatedProductAddToCart(relatedProduct.id, e, relatedProduct)}
                         disabled={isRelatedOutOfStock}
                         className={`p-3 rounded-full transition-all transform ${isRelatedOutOfStock
-                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                            : isAdded
-                              ? 'bg-green-500 text-white shadow-lg hover:scale-110'
-                              : 'bg-gradient-to-r from-orange-500 to-amber-600 text-white hover:shadow-lg hover:scale-110'
+                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                          : isAdded
+                            ? 'bg-green-500 text-white shadow-lg hover:scale-110'
+                            : 'bg-gradient-to-r from-orange-500 to-amber-600 text-white hover:shadow-lg hover:scale-110'
                           }`}
                       >
                         {isRelatedOutOfStock
