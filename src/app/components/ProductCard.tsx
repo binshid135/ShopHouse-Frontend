@@ -8,12 +8,13 @@ interface ProductCardProps {
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, index }) => {
+  console.log("ppprprprppr",product)
   return (
     <div
       className="bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transform hover:-translate-y-2 transition-all duration-300"
       style={{animationDelay: `${index * 0.1}s`}}
     >
-      <ProductImage image={product.image} />
+      {/* <ProductImage image={product.image} /> */}
       <ProductInfo product={product} />
     </div>
   );
@@ -44,13 +45,13 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product }) => (
       <div>
         <h3 className="text-xl font-bold text-amber-900 mb-2">{product.name}</h3>
         <div className="flex items-center gap-2">
-          <span className="text-2xl font-bold text-amber-900">{product.price} K</span>
+          {/* <span className="text-2xl font-bold text-amber-900">{product.price} K</span> */}
         </div>
       </div>
     </div>
 
     <div className="flex items-center justify-between">
-      <ProductTags category={product.category} tag={product.tag} />
+      {/* <ProductTags category={product.category} tag={product.tag} /> */}
       <AddToCartButton />
     </div>
   </div>

@@ -9,6 +9,7 @@ interface PopularProductsProps {
 }
 
 const PopularProducts: React.FC<PopularProductsProps> = ({ products, onProductClick }) => {
+  console.log(products)
   if (products.length === 0) {
     return (
       <section className="relative px-6 py-12">

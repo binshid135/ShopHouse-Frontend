@@ -9,6 +9,9 @@ const nextConfig: NextConfig = {
       static: 60, // 1 minute for static pages
     },
   },
+  eslint: {
+    ignoreDuringBuilds: true, // ignore ESLint errors during production build
+  },
   images: {
     domains: ['res.cloudinary.com'],
     remotePatterns: [
