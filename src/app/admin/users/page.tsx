@@ -503,7 +503,7 @@ export default function AdminUsersPage() {
                         {user.orderCount || 0} orders
                       </div>
                       <div className="text-gray-500">
-                        ${(user.totalSpent || 0).toFixed(2)} spent
+                        AED {(user.totalSpent || 0).toFixed(2)} spent
                       </div>
                     </div>
                   </td>

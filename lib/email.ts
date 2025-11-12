@@ -23,7 +23,7 @@ export async function sendOtpEmail(email: string, otp: string): Promise<boolean>
   
   // If Resend is not initialized, log and return false
   if (!resend) {
-    console.log(`📧 OTP for ${email}: ${otp} (Resend not configured - check RESEND_API_KEY)`);
+    // console.log(`📧 OTP for ${email}: ${otp} (Resend not configured - check RESEND_API_KEY)`);
     return false;
   }
 

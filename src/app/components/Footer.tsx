@@ -29,9 +29,9 @@ const Footer: React.FC = () => {
                 to create exceptional dining experiences.
               </p>
               <div className="flex space-x-4">
-                <SocialIcon href="#" icon={<Facebook className="w-5 h-5" />} />
+                <SocialIcon href="https://www.facebook.com/share/17iRxbWbFQ/" icon={<Facebook className="w-5 h-5" />} />
                 {/* <SocialIcon href="#" icon={<Twitter className="w-5 h-5" />} /> */}
-                <SocialIcon href="#" icon={<Instagram className="w-5 h-5" />} />
+                <SocialIcon href="https://www.instagram.com/shophousealain?igsh=MWk0dzAxYzdveWRxMA==" icon={<Instagram className="w-5 h-5" />} />
                 {/* <SocialIcon href="#" icon={<Youtube className="w-5 h-5" />} /> */}
               </div>
             </div>

@@ -208,7 +208,7 @@ export default function DashboardPage() {
             <div>
               <h3 className="text-lg font-semibold text-gray-600">Total Revenue</h3>
               <p className="text-3xl font-bold text-gray-800">
-                ${(stats?.totalRevenue || 0).toFixed(2)}
+                AED {(stats?.totalRevenue || 0).toFixed(2)}
               </p>
             </div>
           </div>
@@ -281,7 +281,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Refresh Button */}
-      <div className="mt-6 flex justify-end">
+      {/* <div className="mt-6 flex justify-end">
         <button
           onClick={fetchDashboardData}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
@@ -291,7 +291,7 @@ export default function DashboardPage() {
           </svg>
           Refresh Data
         </button>
-      </div>
+      </div> */}
     </div>
   );
 }

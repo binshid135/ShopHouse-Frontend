@@ -53,7 +53,7 @@ const Header: React.FC<HeaderProps> = ({ searchQuery, setSearchQuery }) => {
     };
 
     return (
-        <header className="relative z-10 px-4 py-4 sm:px-6">
+        <header className="relative z-10 px-4 py-2 sm:px-6">
             <div className="max-w-7xl mx-auto flex items-center justify-between">
                 {/* Mobile menu button */}
                 <button
@@ -90,13 +90,14 @@ const Header: React.FC<HeaderProps> = ({ searchQuery, setSearchQuery }) => {
 };
 
 const Logo: React.FC = () => (
-    <Link href="/" className="flex items-center gap-2">
-        <div className="bg-gradient-to-br from-orange-500 to-amber-600 p-2 rounded-lg shadow-lg">
-            <ChefHat className="w-6 h-6 text-white" />
+    <Link href="/" className="flex items-center">
+        <div className="w-52 h-16 sm:w-60 sm:h-18 md:w-72 md:h-20 lg:w-80 lg:h-22 rounded-lg overflow-hidden">
+            <img 
+                src="/shophouselogo.png" 
+                alt="Shop House Logo" 
+                className="w-full h-full object-cover"
+            />
         </div>
-        <span className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-amber-700 bg-clip-text text-transparent">
-            Shop House
-        </span>
     </Link>
 );
 

@@ -304,10 +304,10 @@ export default function ProductsPage() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
                         <span className="line-through text-gray-500 mr-2">
-                          ${Number(product.originalPrice).toFixed(2)}
+                          AED {Number(product.originalPrice).toFixed(2)}
                         </span>
                         <span className="font-semibold">
-                          ${Number(product.discountedPrice).toFixed(2)}
+                          AED {Number(product.discountedPrice).toFixed(2)}
                         </span>
                       </div>
                     </td>
