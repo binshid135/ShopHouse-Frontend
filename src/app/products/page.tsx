@@ -608,7 +608,7 @@ export default function Products() {
                           </span>
                           {discountPercentage > 0 && productTag !== 'Out of Stock' && (
                             <span className="px-2 py-1 bg-red-100 text-red-600 rounded-full text-xs font-medium">
-                              Save AED{(product.originalPrice - product.discountedPrice).toFixed(2)}
+                              Save AED {(product.originalPrice - product.discountedPrice).toFixed(2)}
                             </span>
                           )}
                         </div>
@@ -637,22 +637,22 @@ export default function Products() {
                           </div>
                         )}
                         
-                        <div className="flex items-center gap-2 mb-4">
+                        {/* <div className="flex items-center gap-2 mb-4">
                           <div className="flex items-center gap-1">
                             <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
                             <span className="text-sm font-medium text-amber-700">4.8</span>
                           </div>
-                        </div>
+                        </div> */}
                       </div>
 
                       <div className="flex items-center justify-between">
                         <div className="flex flex-col">
                           <span className="text-2xl font-bold text-amber-900">
-                            AED{product.discountedPrice.toFixed(2)}
+                            AED {product.discountedPrice.toFixed(2)}
                           </span>
                           {product.originalPrice > product.discountedPrice && (
                             <span className="text-sm text-gray-500 line-through">
-                              AED{product.originalPrice.toFixed(2)}
+                              AED {product.originalPrice.toFixed(2)}
                             </span>
                           )}
                         </div>

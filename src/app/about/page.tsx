@@ -5,6 +5,7 @@ import Header from '../components/Header';
 import FloatingElements from '../components/FloatingElements';
 import { useRouter } from 'next/navigation';
 import Footer from '../components/Footer';
+import Image from 'next/image';
 
 export default function About() {
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -80,14 +81,21 @@ export default function About() {
             </div>
 
             <div className="relative">
-              <div className="relative bg-gradient-to-br from-amber-900 to-orange-950 rounded-3xl w-full aspect-square flex items-center justify-center shadow-2xl">
-                <div className="absolute -top-4 right-8 bg-white px-6 py-3 rounded-full shadow-lg">
+              <div className="relative rounded-3xl w-full aspect-square overflow-hidden shadow-2xl">
+                <Image
+                  src="/shopphoto.jpeg"
+                  alt="Shop House Store"
+                  fill
+                  className="object-cover"
+                  priority
+                />
+                {/* <div className="absolute -top-4 right-8 bg-white px-6 py-3 rounded-full shadow-lg">
                   <span className="text-sm font-semibold text-amber-900">Since 2025</span>
                 </div>
 
                 <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 bg-white px-6 py-3 rounded-full shadow-lg">
                   <span className="text-xl font-bold text-amber-900">Shop House</span>
-                </div>
+                </div> */}
               </div>
             </div>
           </div>

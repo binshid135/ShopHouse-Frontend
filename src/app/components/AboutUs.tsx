@@ -1,6 +1,8 @@
 // components/AboutUs.tsx
 import React, { useState, useEffect } from 'react';
 import { Users, Target, Award, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
+import Image from "next/image";
+
 
 const AboutUs: React.FC = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -10,32 +12,41 @@ const AboutUs: React.FC = () => {
       id: 1,
       title: "Store Front",
       description: "Visit our modern and welcoming storefront",
-      placeholder: "bg-gradient-to-br from-orange-200 to-amber-300"
+      placeholder: "bg-gradient-to-br from-orange-200 to-amber-300",
+      image: "/shopphoto.jpeg"
     },
-    {
-      id: 2,
-      title: "Showroom",
-      description: "Explore our extensive product display",
-      placeholder: "bg-gradient-to-br from-amber-200 to-orange-300"
-    },
-    {
-      id: 3,
-      title: "Product Display",
-      description: "High-quality kitchen equipment on display",
-      placeholder: "bg-gradient-to-br from-orange-300 to-amber-400"
-    },
-    {
-      id: 4,
-      title: "Our Team",
-      description: "Meet our experienced and friendly staff",
-      placeholder: "bg-gradient-to-br from-amber-100 to-orange-200"
-    },
-    {
-      id: 5,
-      title: "Customer Service",
-      description: "Professional service and expert advice",
-      placeholder: "bg-gradient-to-br from-orange-100 to-amber-200"
-    }
+    // {
+    //   id: 2,
+    //   title: "Showroom",
+    //   description: "Explore our extensive product display",
+    //   placeholder: "bg-gradient-to-br from-amber-200 to-orange-300",
+    //   image: "/shopphoto.jpeg"
+
+    // },
+    // {
+    //   id: 3,
+    //   title: "Product Display",
+    //   description: "High-quality kitchen equipment on display",
+    //   placeholder: "bg-gradient-to-br from-orange-300 to-amber-400",
+    //   image: "/shopphoto.jpeg"
+
+    // },
+    // {
+    //   id: 4,
+    //   title: "Our Team",
+    //   description: "Meet our experienced and friendly staff",
+    //   placeholder: "bg-gradient-to-br from-amber-100 to-orange-200",
+    //   image: "/shopphoto.jpeg"
+
+    // },
+    // {
+    //   id: 5,
+    //   title: "Customer Service",
+    //   description: "Professional service and expert advice",
+    //   placeholder: "bg-gradient-to-br from-orange-100 to-amber-200",
+    //   image: "/shopphoto.jpeg"
+
+    // }
   ];
 
   const nextSlide = () => {
@@ -68,7 +79,7 @@ const AboutUs: React.FC = () => {
             About ShopHouse
           </h2>
           <p className="text-lg text-amber-700 max-w-2xl mx-auto">
-            Empowering culinary professionals with premium kitchen equipment since 2024. 
+            Empowering culinary professionals with premium kitchen equipment since 2024.
             We're committed to helping you create exceptional dining experiences.
           </p>
         </div>
@@ -83,31 +94,34 @@ const AboutUs: React.FC = () => {
               Get a glimpse of our well-stocked showroom and experienced team ready to serve you
             </p>
           </div>
-          
+
           {/* Carousel Container */}
           <div className="relative max-w-4xl mx-auto">
             {/* Carousel */}
-            <div className="relative overflow-hidden rounded-2xl shadow-2xl">
-              <div 
+            <div className="relative overflow-hidden rounded-2xl shadow-2xl bg-black">
+              <div
                 className="flex transition-transform duration-500 ease-in-out"
                 style={{ transform: `translateX(-${currentSlide * 100}%)` }}
               >
-                {storePhotos.map((photo, index) => (
-                  <div
-                    key={photo.id}
-                    className="w-full flex-shrink-0"
-                  >
-                    <div className={`aspect-[16/9] ${photo.placeholder} flex items-center justify-center relative`}>
-                      <div className="text-center text-amber-700 z-10">
-                        {/* <div className="text-4xl font-bold mb-2">{photo.title}</div>
-                        <p className="text-lg opacity-90">{photo.description}</p>
-                        <p className="text-sm opacity-75 mt-2">Add your photo here</p> */}
-                      </div>
-                      {/* Overlay for better text readability */}
-                      <div className="absolute inset-0 bg-black bg-opacity-10" />
+                {storePhotos.map((photo) => (
+                  <div key={photo.id} className="w-full flex-shrink-0">
+                    <div className="aspect-[16/9] relative">
+                      <Image
+                        src={photo.image}
+                        alt={photo.title}
+                        fill
+                        className="object-contain rounded-2xl"
+                        priority
+                      />
+                      {/* Optional text overlay */}
+                      {/* <div className="absolute inset-0 bg-black bg-opacity-20 flex flex-col items-center justify-center text-white text-center">
+                        <h3 className="text-2xl font-semibold mb-1 drop-shadow-lg">{photo.title}</h3>
+                        <p className="text-sm drop-shadow-md">{photo.description}</p>
+                      </div> */}
                     </div>
                   </div>
                 ))}
+
               </div>
 
               {/* Navigation Arrows */}
@@ -118,7 +132,7 @@ const AboutUs: React.FC = () => {
               >
                 <ChevronLeft className="w-6 h-6" />
               </button>
-              
+
               <button
                 onClick={nextSlide}
                 className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-80 hover:bg-opacity-100 text-amber-900 w-10 h-10 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110"
@@ -133,11 +147,10 @@ const AboutUs: React.FC = () => {
                   <button
                     key={index}
                     onClick={() => goToSlide(index)}
-                    className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                      index === currentSlide 
-                        ? 'bg-white scale-125' 
-                        : 'bg-white bg-opacity-50 hover:bg-opacity-75'
-                    }`}
+                    className={`w-3 h-3 rounded-full transition-all duration-300 ${index === currentSlide
+                      ? 'bg-white scale-125'
+                      : 'bg-white bg-opacity-50 hover:bg-opacity-75'
+                      }`}
                     aria-label={`Go to slide ${index + 1}`}
                   />
                 ))}
@@ -155,13 +168,19 @@ const AboutUs: React.FC = () => {
                 <button
                   key={photo.id}
                   onClick={() => goToSlide(index)}
-                  className={`w-16 h-12 rounded-lg overflow-hidden transition-all duration-300 ${
-                    index === currentSlide 
-                      ? 'ring-2 ring-orange-500 ring-offset-2 scale-110' 
-                      : 'opacity-70 hover:opacity-100 hover:scale-105'
-                  }`}
+                  className={`w-16 h-12 rounded-lg overflow-hidden transition-all duration-300 ${index === currentSlide
+                    ? 'ring-2 ring-orange-500 ring-offset-2 scale-110'
+                    : 'opacity-70 hover:opacity-100 hover:scale-105'
+                    }`}
                 >
-                  <div className={`w-full h-full ${photo.placeholder}`} />
+                  {/* <div className={`w-full h-full ${photo.placeholder}`} /> */}
+                  <Image
+                        src={photo.image}
+                        alt={photo.title}
+                        fill
+                        className="object-contain rounded-2xl"
+                        priority
+                      />
                 </button>
               ))}
             </div>
@@ -170,18 +189,18 @@ const AboutUs: React.FC = () => {
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-8 mb-12">
-          <StatCard 
+          <StatCard
             icon={<Users className="w-8 h-8" />}
             number="10,000+"
             label="Happy Customers"
           />
-          
-          <StatCard 
+
+          <StatCard
             icon={<Target className="w-8 h-8" />}
             number="500+"
             label="Products"
           />
-          <StatCard 
+          <StatCard
             icon={<Heart className="w-8 h-8" />}
             number="100%"
             label="Satisfaction Rate"
@@ -244,8 +263,8 @@ const MissionCard: React.FC = () => (
   <div className="bg-gradient-to-br from-orange-50 to-amber-100 rounded-2xl p-8">
     <h3 className="text-2xl font-bold text-amber-900 mb-4">Our Mission</h3>
     <p className="text-amber-700 leading-relaxed mb-4">
-      To provide professional chefs and culinary enthusiasts with reliable, 
-      high-performance kitchen equipment that enhances creativity and efficiency 
+      To provide professional chefs and culinary enthusiasts with reliable,
+      high-performance kitchen equipment that enhances creativity and efficiency
       in every kitchen we serve.
     </p>
     <ul className="space-y-2 text-amber-600">
@@ -269,8 +288,8 @@ const VisionCard: React.FC = () => (
   <div className="bg-gradient-to-br from-amber-50 to-orange-100 rounded-2xl p-8">
     <h3 className="text-2xl font-bold text-amber-900 mb-4">Our Vision</h3>
     <p className="text-amber-700 leading-relaxed mb-4">
-      To become the most trusted partner for professional kitchens worldwide, 
-      recognized for our unwavering commitment to quality, service, and 
+      To become the most trusted partner for professional kitchens worldwide,
+      recognized for our unwavering commitment to quality, service, and
       culinary excellence.
     </p>
     <ul className="space-y-2 text-amber-600">

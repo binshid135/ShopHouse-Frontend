@@ -5,6 +5,7 @@ import { ShoppingCart, Trash2, Plus, Minus, Ticket, ArrowRight, RefreshCw, LogIn
 import Header from '../components/Header';
 import FloatingElements from '../components/FloatingElements';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { useCart } from '../context/cartContext';
 
 interface CartItem {
   id: string;
@@ -31,6 +32,7 @@ export default function Cart() {
   const [discount, setDiscount] = useState(0);
   const [couponMessage, setCouponMessage] = useState('');
   const [cartError, setCartError] = useState<string | null>(null);
+  const { refreshCart } = useCart()
 
   useEffect(() => {
     checkAuthAndFetchCart();
@@ -89,6 +91,7 @@ export default function Cart() {
 
       if (response.ok) {
         checkAuthAndFetchCart();
+        refreshCart();
       } else {
         const errorData = await response.json();
         setCartError(errorData.error || 'Failed to update quantity');
@@ -109,6 +112,7 @@ export default function Cart() {
 
       if (response.ok) {
         checkAuthAndFetchCart();
+        refreshCart();
       } else {
         setCartError('Failed to remove item');
         setTimeout(() => setCartError(null), 5000);

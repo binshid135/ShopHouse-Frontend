@@ -117,7 +117,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return () => window.removeEventListener('focus', handleFocus);
     }, []);
 
-    const cartCount = cart?.items?.reduce((total, item) => total + item.quantity, 0) || 0;
+    const cartCount = cart?.items?.length || 0;
 
     return (
         <CartContext.Provider value={{ 

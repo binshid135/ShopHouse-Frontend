@@ -39,13 +39,13 @@ const HeroContent: React.FC<HeroContentProps> = ({ mostRecommendedProduct }) => 
   return (
     <div className="space-y-6">
       <h1 className="text-5xl md:text-6xl font-bold leading-tight">
-        Equip your <span className="text-orange-600">kitchen</span>
+        Equip your <span className="text-orange-600">kitchen</span> And <span className="text-orange-600">House</span>
         <br />
         before your service
       </h1>
 
       <p className="text-lg text-amber-800 max-w-md">
-        Boost your kitchen efficiency and build your culinary excellence with premium equipment every morning
+        Boost your kitchen efficiency and build your culinary excellence with best premium Household and kitchen equipment provider in Al-ain 
       </p>
 
       <div className="flex gap-4">

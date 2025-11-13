@@ -156,34 +156,65 @@ export async function PUT(request: NextRequest) {
     const { uploadedImages, formData } = await handleFileUploadAndFormData(request);
     const productId = formData.id as string;
     
+    // Validate product exists
     const existingProduct = await query(
       'SELECT * FROM products WHERE id = $1',
       [productId]
     );
     
     if (existingProduct.rows.length === 0) {
+      // Clean up any uploaded images if product not found
+      for (const imageUrl of uploadedImages) {
+        await deleteUploadedFile(imageUrl);
+      }
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
 
-    let allImages = existingProduct.rows[0].images || [];
-    allImages = [...allImages, ...uploadedImages];
-
+    // Start with existing images
+    let allImages = [...existingProduct.rows[0].images];
+    
+    // Handle deleted images
     const deletedImages = formData.deletedImages as string;
-    if (deletedImages) {
-      const imagesToDelete = JSON.parse(deletedImages) as string[];
-      allImages = allImages.filter((img: string) => !imagesToDelete.includes(img));
-      
-      for (const imageUrl of imagesToDelete) {
-        await deleteUploadedFile(imageUrl);
+    if (deletedImages && deletedImages.trim() !== '') {
+      try {
+        const imagesToDelete = JSON.parse(deletedImages) as string[];
+        console.log('Deleting images:', imagesToDelete);
+        
+        // Filter out deleted images
+        allImages = allImages.filter((img: string) => !imagesToDelete.includes(img));
+        
+        // Delete the files from storage
+        for (const imageUrl of imagesToDelete) {
+          try {
+            await deleteUploadedFile(imageUrl);
+          } catch (deleteError) {
+            console.error('Failed to delete image file:', imageUrl, deleteError);
+            // Continue with other operations even if file deletion fails
+          }
+        }
+      } catch (parseError) {
+        console.error('Error parsing deletedImages:', parseError);
+        // If parsing fails, continue without deleting any images
       }
     }
 
+    // Add newly uploaded images
+    if (uploadedImages && uploadedImages.length > 0) {
+      allImages = [...allImages, ...uploadedImages];
+    }
+
+    // Validate we have at least one image
     if (allImages.length === 0) {
+      // Clean up any uploaded images since we can't use them
+      for (const imageUrl of uploadedImages) {
+        await deleteUploadedFile(imageUrl);
+      }
       return NextResponse.json({ 
         error: 'At least one image is required' 
       }, { status: 400 });
     }
 
+    // Handle recommendation logic
     const isRecommended = formData.isRecommended === 'true';
     const isMostRecommended = formData.isMostRecommended === 'true';
     let recommendationOrder = parseInt(formData.recommendationOrder as string) || 0;
@@ -194,6 +225,10 @@ export async function PUT(request: NextRequest) {
         [productId]
       );
       if (existingMostRecommended.rows.length > 0) {
+        // Clean up uploaded images
+        for (const imageUrl of uploadedImages) {
+          await deleteUploadedFile(imageUrl);
+        }
         return NextResponse.json({ 
           error: 'There can only be one most recommended product' 
         }, { status: 400 });
@@ -207,12 +242,20 @@ export async function PUT(request: NextRequest) {
         [productId]
       );
       if (parseInt(recommendedCount.rows[0].count) >= 3) {
+        // Clean up uploaded images
+        for (const imageUrl of uploadedImages) {
+          await deleteUploadedFile(imageUrl);
+        }
         return NextResponse.json({ 
           error: 'Maximum of 3 recommended products allowed' 
         }, { status: 400 });
       }
       
       if (recommendationOrder < 1 || recommendationOrder > 3) {
+        // Clean up uploaded images
+        for (const imageUrl of uploadedImages) {
+          await deleteUploadedFile(imageUrl);
+        }
         return NextResponse.json({ 
           error: 'Recommendation order must be between 1 and 3' 
         }, { status: 400 });
@@ -223,6 +266,7 @@ export async function PUT(request: NextRequest) {
       recommendationOrder = 0;
     }
     
+    // Update the product
     const result = await query(
       `UPDATE products 
        SET name = $1, short_description = $2, original_price = $3, discounted_price = $4, 
@@ -244,8 +288,24 @@ export async function PUT(request: NextRequest) {
         productId
       ]
     );
+
+    const updatedProduct = result.rows[0];
     
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ 
+      success: true,
+      product: {
+        ...updatedProduct,
+        shortDescription: updatedProduct.short_description,
+        originalPrice: updatedProduct.original_price,
+        discountedPrice: updatedProduct.discounted_price,
+        isRecommended: updatedProduct.is_recommended,
+        isMostRecommended: updatedProduct.is_most_recommended,
+        recommendationOrder: updatedProduct.recommendation_order,
+        createdAt: updatedProduct.created_at,
+        updatedAt: updatedProduct.updated_at
+      }
+    });
+    
   } catch (error) {
     console.error('Failed to update product:', error);
     return NextResponse.json({ error: 'Failed to update product' }, { status: 500 });
