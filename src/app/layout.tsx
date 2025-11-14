@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Shop House Alain",
-  description: "Best Kitchen and household products in al ain",
+  title: "Best Household & Kitchen Items in Al Ain | ShopHouse",
+  description: "Discover high-quality household and kitchen items at our Al Ain shop. We provide everything from cookware to home essentials for homes and restaurants in the Al ain.",
 };
 
 export default function RootLayout({

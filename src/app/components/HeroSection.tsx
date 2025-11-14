@@ -125,11 +125,11 @@ const FeaturedProduct: React.FC<FeaturedProductProps> = ({ mostRecommendedProduc
         <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 bg-white px-6 py-3 rounded-full shadow-lg flex items-center gap-2">
           {mostRecommendedProduct.originalPrice > mostRecommendedProduct.discountedPrice && (
             <span className="text-sm text-gray-500 line-through">
-              AED{mostRecommendedProduct.originalPrice.toFixed(2)}
+              AED {mostRecommendedProduct.originalPrice.toFixed(2)}
             </span>
           )}
           <span className="text-2xl font-bold text-amber-900">
-            AED{mostRecommendedProduct.discountedPrice.toFixed(2)}
+            AED {mostRecommendedProduct.discountedPrice.toFixed(2)}
           </span>
           {discountPercentage > 0 && (
             <span className="text-xs bg-red-500 text-white px-2 py-1 rounded-full">

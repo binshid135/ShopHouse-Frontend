@@ -366,7 +366,7 @@ export default function ProductDetail() {
                     <img
                       src={product.images[selectedImage]}
                       alt={product.name}
-                      className="w-full h-96 object-contain rounded-2xl mb-6"
+                      className="w-full h-full object-cover rounded-2xl mb-6"
                     />
 
                     {/* Navigation Arrows for Multiple Images */}
@@ -469,11 +469,11 @@ export default function ProductDetail() {
 
               <div className="flex items-center gap-4">
                 <span className="text-3xl font-bold text-amber-900">
-                  AED{product.discountedPrice.toFixed(2)}
+                  AED {product.discountedPrice.toFixed(2)}
                 </span>
                 {product.originalPrice > product.discountedPrice && (
                   <span className="text-xl text-gray-500 line-through">
-                    AED{product.originalPrice.toFixed(2)}
+                    AED {product.originalPrice.toFixed(2)}
                   </span>
                 )}
               </div>
@@ -724,11 +724,11 @@ export default function ProductDetail() {
                       <div className="flex flex-col">
                         <span className={`text-xl font-bold ${isRelatedOutOfStock ? 'text-gray-400' : 'text-amber-900'
                           }`}>
-                          AED{relatedProduct.discountedPrice.toFixed(2)}
+                          AED {relatedProduct.discountedPrice.toFixed(2)}
                         </span>
                         {relatedProduct.originalPrice > relatedProduct.discountedPrice && (
                           <span className="text-sm text-gray-500 line-through">
-                            AED{relatedProduct.originalPrice.toFixed(2)}
+                            AED {relatedProduct.originalPrice.toFixed(2)}
                           </span>
                         )}
                       </div>

@@ -32,53 +32,63 @@ export default function Products() {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [categories, setCategories] = useState<string[]>(['All']);
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
-  const [currentImageIndexes, setCurrentImageIndexes] = useState<{[key: string]: number}>({});
+  const [currentImageIndexes, setCurrentImageIndexes] = useState<{ [key: string]: number }>({});
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(16); 
 
   useEffect(() => {
     fetchProducts();
   }, []);
 
- const fetchProducts = async () => {
-  try {
-    setLoading(true);
-    const response = await fetch('/api/userside/products');
-    if (response.ok) {
-      const data = await response.json();
-      setProducts(data);
-      
-      // Extract unique categories, filter out "Uncategorized" and empty categories
-      const uniqueCategories = ['All', ...new Set(
-        data
-          .map((product: Product) => product.category)
-          .filter((category: string | null | undefined) => 
-            category && category !== 'Uncategorized' && category.trim() !== ''
-          )
-      )] as string[];
-      
-      setCategories(uniqueCategories);
-      
-      // Initialize image indexes for each product
-      const indexes: {[key: string]: number} = {};
-      data.forEach((product: Product) => {
-        indexes[product.id] = 0;
-      });
-      setCurrentImageIndexes(indexes);
-    } else {
-      setError('Failed to fetch products');
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedCategory]);
+
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/userside/products');
+      if (response.ok) {
+        const data = await response.json();
+        setProducts(data);
+
+        // Extract unique categories, filter out "Uncategorized" and empty categories
+        const uniqueCategories = ['All', ...new Set(
+          data
+            .map((product: Product) => product.category)
+            .filter((category: string | null | undefined) =>
+              category && category !== 'Uncategorized' && category.trim() !== ''
+            )
+        )] as string[];
+
+        setCategories(uniqueCategories);
+
+        // Initialize image indexes for each product
+        const indexes: { [key: string]: number } = {};
+        data.forEach((product: Product) => {
+          indexes[product.id] = 0;
+        });
+        setCurrentImageIndexes(indexes);
+      } else {
+        setError('Failed to fetch products');
+      }
+    } catch (error) {
+      console.error('Failed to fetch products:', error);
+      setError('Error loading products');
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error('Failed to fetch products:', error);
-    setError('Error loading products');
-  } finally {
-    setLoading(false);
-  }
-};
+  };
+
   const addToCart = async (productId: string, event: React.MouseEvent) => {
     event.stopPropagation(); // Prevent navigation
 
     try {
       const product = products.find(p => p.id === productId);
-      
+
       // Check stock availability
       if (product && product.stock <= 0) {
         alert('This product is out of stock');
@@ -131,7 +141,7 @@ export default function Products() {
     event.stopPropagation();
     const product = products.find(p => p.id === productId);
     if (!product || product.images.length <= 1) return;
-    
+
     setCurrentImageIndexes(prev => ({
       ...prev,
       [productId]: (prev[productId] + 1) % product.images.length
@@ -142,7 +152,7 @@ export default function Products() {
     event.stopPropagation();
     const product = products.find(p => p.id === productId);
     if (!product || product.images.length <= 1) return;
-    
+
     setCurrentImageIndexes(prev => ({
       ...prev,
       [productId]: (prev[productId] - 1 + product.images.length) % product.images.length
@@ -153,11 +163,18 @@ export default function Products() {
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.shortDescription?.toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory;
-    
+
     return matchesSearch && matchesCategory;
   });
+
+  // Pagination calculations
+  const totalItems = filteredProducts.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentProducts = filteredProducts.slice(startIndex, endIndex);
 
   // Calculate discount percentage
   const getDiscountPercentage = (original: number, discounted: number) => {
@@ -168,7 +185,7 @@ export default function Products() {
   const getProductEmoji = (product: Product) => {
     const name = product.name.toLowerCase();
     const category = product.category.toLowerCase();
-    
+
     if (name.includes('knife') || name.includes('cutlery') || category.includes('knife')) return '🔪';
     if (name.includes('blender') || name.includes('processor') || name.includes('appliance') || category.includes('appliance')) return '🥤';
     if (name.includes('cookware') || name.includes('pan') || name.includes('pot') || category.includes('cookware')) return '🍳';
@@ -182,7 +199,7 @@ export default function Products() {
   // Get product tag based on discount and stock
   const getProductTag = (product: Product) => {
     if (product.stock <= 0) return 'Out of Stock';
-    
+
     const discount = getDiscountPercentage(product.originalPrice, product.discountedPrice);
     if (discount > 20) return 'Sale';
     if (discount > 0) return 'Discount';
@@ -199,7 +216,7 @@ export default function Products() {
         </span>
       );
     }
-    
+
     if (product.stock < 5) {
       return (
         <span className="px-2 py-1 bg-yellow-100 text-yellow-600 rounded-full text-xs font-medium">
@@ -207,7 +224,7 @@ export default function Products() {
         </span>
       );
     }
-    
+
     return null;
   };
 
@@ -232,6 +249,116 @@ export default function Products() {
       default:
         return '🏷️';
     }
+  };
+
+  // Pagination component
+  const Pagination = () => {
+    if (totalPages <= 1) return null;
+
+    const getPageNumbers = () => {
+      const delta = 2; // Number of pages to show on each side of current page
+      const range = [];
+      const rangeWithDots = [];
+
+      for (
+        let i = Math.max(2, currentPage - delta);
+        i <= Math.min(totalPages - 1, currentPage + delta);
+        i++
+      ) {
+        range.push(i);
+      }
+
+      if (currentPage - delta > 2) {
+        rangeWithDots.push(1, '...');
+      } else {
+        rangeWithDots.push(1);
+      }
+
+      rangeWithDots.push(...range);
+
+      if (currentPage + delta < totalPages - 1) {
+        rangeWithDots.push('...', totalPages);
+      } else {
+        rangeWithDots.push(totalPages);
+      }
+
+      return rangeWithDots;
+    };
+
+    return (
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-12 pt-8 border-t border-amber-200">
+        {/* Items per page selector */}
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-amber-700">Show:</span>
+          <select
+            value={itemsPerPage}
+            onChange={(e) => {
+              setItemsPerPage(Number(e.target.value));
+              setCurrentPage(1);
+            }}
+            className="bg-white border border-amber-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+          >
+            <option value={8}>8</option>
+            <option value={12}>12</option>
+            <option value={16}>16</option>
+            <option value={24}>24</option>
+          </select>
+          <span className="text-sm text-amber-700">per page</span>
+        </div>
+
+        {/* Page info */}
+        <div className="text-sm text-amber-700">
+          Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems} products
+        </div>
+
+        {/* Page navigation */}
+        <div className="flex items-center gap-2">
+          {/* Previous button */}
+          <button
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+            className={`p-2 rounded-lg border border-amber-200 transition-all ${
+              currentPage === 1
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-white text-amber-700 hover:bg-orange-50 hover:border-orange-300'
+            }`}
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+
+          {/* Page numbers */}
+          {getPageNumbers().map((page, index) => (
+            <button
+              key={index}
+              onClick={() => typeof page === 'number' && setCurrentPage(page)}
+              className={`min-w-[40px] px-3 py-2 rounded-lg border transition-all ${
+                page === currentPage
+                  ? 'bg-orange-500 text-white border-orange-500 shadow-sm'
+                  : page === '...'
+                  ? 'bg-white border-amber-200 text-amber-700 cursor-default'
+                  : 'bg-white border-amber-200 text-amber-700 hover:bg-orange-50 hover:border-orange-300'
+              }`}
+              disabled={page === '...'}
+            >
+              {page}
+            </button>
+          ))}
+
+          {/* Next button */}
+          <button
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages}
+            className={`p-2 rounded-lg border border-amber-200 transition-all ${
+              currentPage === totalPages
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-white text-amber-700 hover:bg-orange-50 hover:border-orange-300'
+            }`}
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    );
   };
 
   if (loading) {
@@ -344,9 +471,8 @@ export default function Products() {
                             setSelectedCategory(category);
                             setShowCategoryDropdown(false);
                           }}
-                          className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-all hover:bg-orange-50 ${
-                            selectedCategory === category ? 'bg-orange-50 text-orange-600' : 'text-amber-700'
-                          }`}
+                          className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-all hover:bg-orange-50 ${selectedCategory === category ? 'bg-orange-50 text-orange-600' : 'text-amber-700'
+                            }`}
                         >
                           <span className="text-lg">
                             {category === 'All' ? '📦' : getCategoryIcon(category)}
@@ -368,21 +494,19 @@ export default function Products() {
               <div className="flex bg-white rounded-full p-1 border border-amber-200">
                 <button
                   onClick={() => setViewMode('grid')}
-                  className={`p-2 rounded-full transition-all ${
-                    viewMode === 'grid' 
-                      ? 'bg-orange-500 text-white shadow-sm' 
+                  className={`p-2 rounded-full transition-all ${viewMode === 'grid'
+                      ? 'bg-orange-500 text-white shadow-sm'
                       : 'text-amber-900 hover:bg-amber-50'
-                  }`}
+                    }`}
                 >
                   <Grid className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setViewMode('list')}
-                  className={`p-2 rounded-full transition-all ${
-                    viewMode === 'list' 
-                      ? 'bg-orange-500 text-white shadow-sm' 
+                  className={`p-2 rounded-full transition-all ${viewMode === 'list'
+                      ? 'bg-orange-500 text-white shadow-sm'
                       : 'text-amber-900 hover:bg-amber-50'
-                  }`}
+                    }`}
                 >
                   <List className="w-4 h-4" />
                 </button>
@@ -394,9 +518,10 @@ export default function Products() {
           <div className="mb-6 flex flex-col sm:flex-row sm:items-center gap-4">
             <div className="flex items-center gap-3">
               <p className="text-amber-700">
-                Showing {filteredProducts.length} of {products.length} products
+                Showing {Math.min(totalItems, 1)}-{Math.min(endIndex, totalItems)} of {totalItems} products
+                {totalPages > 1 && ` (Page ${currentPage} of ${totalPages})`}
               </p>
-              
+
               {/* Active Category Badge */}
               {selectedCategory !== 'All' && (
                 <div className="flex items-center gap-2 bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-sm">
@@ -410,7 +535,7 @@ export default function Products() {
                   </button>
                 </div>
               )}
-              
+
               {/* Active Search Badge */}
               {searchQuery && (
                 <div className="flex items-center gap-2 bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-sm">
@@ -425,7 +550,7 @@ export default function Products() {
                 </div>
               )}
             </div>
-            
+
             {/* Clear All Filters Button */}
             {(selectedCategory !== 'All' || searchQuery) && (
               <button
@@ -449,11 +574,10 @@ export default function Products() {
                     <button
                       key={category}
                       onClick={() => setSelectedCategory(category)}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-all ${
-                        selectedCategory === category
+                      className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-all ${selectedCategory === category
                           ? 'bg-orange-500 text-white shadow-md'
                           : 'bg-white text-amber-700 border border-amber-200 hover:border-orange-300 hover:shadow-sm'
-                      }`}
+                        }`}
                     >
                       <span className="text-sm">
                         {category === 'All' ? '📦' : getCategoryIcon(category)}
@@ -469,15 +593,15 @@ export default function Products() {
           )}
 
           {/* Products Grid */}
-          {filteredProducts.length === 0 ? (
+          {currentProducts.length === 0 ? (
             <div className="text-center py-16">
               <div className="w-24 h-24 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <span className="text-3xl">🔍</span>
               </div>
               <h3 className="text-2xl font-bold text-amber-900 mb-2">No products found</h3>
               <p className="text-amber-700 mb-6 max-w-md mx-auto">
-                {searchQuery || selectedCategory !== 'All' 
-                  ? `We couldn't find any products matching your criteria. Try adjusting your filters.` 
+                {searchQuery || selectedCategory !== 'All'
+                  ? `We couldn't find any products matching your criteria. Try adjusting your filters.`
                   : "No products are currently available."}
               </p>
               {(searchQuery || selectedCategory !== 'All') && (
@@ -493,194 +617,187 @@ export default function Products() {
               )}
             </div>
           ) : (
-            <div className={`grid gap-6 ${viewMode === 'grid'
+            <>
+              <div className={`grid gap-6 ${viewMode === 'grid'
                 ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
                 : 'grid-cols-1'
-              }`}>
-              {filteredProducts.map((product) => {
-                const discountPercentage = getDiscountPercentage(product.originalPrice, product.discountedPrice);
-                const productEmoji = getProductEmoji(product);
-                const productTag = getProductTag(product);
-                const stockBadge = getStockBadge(product);
-                const isOutOfStock = product.stock <= 0;
-                const currentImageIndex = currentImageIndexes[product.id] || 0;
-                const hasMultipleImages = product.images && product.images.length > 1;
+                }`}>
+                {currentProducts.map((product) => {
+                  const discountPercentage = getDiscountPercentage(product.originalPrice, product.discountedPrice);
+                  const productEmoji = getProductEmoji(product);
+                  const productTag = getProductTag(product);
+                  const stockBadge = getStockBadge(product);
+                  const isOutOfStock = product.stock <= 0;
+                  const currentImageIndex = currentImageIndexes[product.id] || 0;
+                  const hasMultipleImages = product.images && product.images.length > 1;
 
-                return (
-                  <div
-                    key={product.id}
-                    onClick={() => !isOutOfStock && navigateToProduct(product.id)}
-                    className={`bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transform transition-all duration-300 cursor-pointer ${
-                      isOutOfStock 
-                        ? 'opacity-60 cursor-not-allowed' 
-                        : 'hover:-translate-y-2'
-                    } ${viewMode === 'list' ? 'flex' : ''}`}
-                  >
-                    <div className={`${viewMode === 'list'
-                        ? 'w-48 h-48 flex-shrink-0'
-                        : 'h-48'
-                      } bg-gradient-to-br from-orange-100 to-amber-100 flex items-center justify-center relative group`}>
-                      
-                      {/* Product Image or Slideshow */}
-                      {product.images && product.images.length > 0 ? (
-                        <>
-                          <img
-                            src={product.images[currentImageIndex]}
-                            alt={product.name}
-                            className="w-full h-full object-contain transition-opacity duration-300"
-                          />
-                          
-                          {/* Navigation Arrows for Multiple Images */}
-                          {hasMultipleImages && (
-                            <>
-                              <button
-                                onClick={(e) => prevImage(product.id, e)}
-                                className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white text-amber-900 rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md"
-                              >
-                                <ChevronLeft className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={(e) => nextImage(product.id, e)}
-                                className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white text-amber-900 rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md"
-                              >
-                                <ChevronRight className="w-4 h-4" />
-                              </button>
-                            </>
-                          )}
-                          
-                          {/* Image Dots Indicator */}
-                          {hasMultipleImages && (
-                            <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 flex gap-1.5">
-                              {product.images.map((_, index) => (
+                  return (
+                    <div
+                      key={product.id}
+                      onClick={() => !isOutOfStock && navigateToProduct(product.id)}
+                      className={`bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transform transition-all duration-300 cursor-pointer ${isOutOfStock
+                          ? 'opacity-60 cursor-not-allowed'
+                          : 'hover:-translate-y-2'
+                        } ${viewMode === 'list' ? 'flex' : ''}`}
+                    >
+                      <div className={`${viewMode === 'list'
+                        ? 'w-48 h-64 flex-shrink-0'
+                        : 'h-64'
+                        } bg-white flex items-center justify-center relative group p-2`}>
+                        {/* Product Image or Slideshow */}
+                        {product.images && product.images.length > 0 ? (
+                          <>
+                            <img
+                              src={product.images[currentImageIndex]}
+                              alt={product.name}
+                              className="w-full h-full object-scale-down transition-opacity duration-300 rounded-xl"
+                            />
+
+                            {/* Navigation Arrows for Multiple Images */}
+                            {hasMultipleImages && (
+                              <>
                                 <button
-                                  key={index}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setCurrentImageIndexes(prev => ({
-                                      ...prev,
-                                      [product.id]: index
-                                    }));
-                                  }}
-                                  className={`w-2 h-2 rounded-full transition-all ${
-                                    index === currentImageIndex
-                                      ? 'bg-orange-500'
-                                      : 'bg-white/80 hover:bg-white'
-                                  }`}
-                                />
-                              ))}
-                            </div>
-                          )}
-                          
-                          {/* Image Counter */}
-                          {hasMultipleImages && (
-                            <div className="absolute top-3 left-3 bg-black/50 text-white text-xs px-2 py-1 rounded-full">
-                              {currentImageIndex + 1} / {product.images.length}
-                            </div>
-                          )}
-                        </>
-                      ) : (
-                        <div className="text-6xl">{productEmoji}</div>
-                      )}
-                      
-                      {/* Top Right Discount Badge */}
-                      {discountPercentage > 0 && (
-                        <div className="absolute top-3 right-3 bg-red-500 text-white px-2 py-1 rounded-full text-sm font-bold">
-                          -{discountPercentage}%
-                        </div>
-                      )}
-                    </div>
+                                  onClick={(e) => prevImage(product.id, e)}
+                                  className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white text-amber-900 rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md"
+                                >
+                                  <ChevronLeft className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={(e) => nextImage(product.id, e)}
+                                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white text-amber-900 rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md"
+                                >
+                                  <ChevronRight className="w-4 h-4" />
+                                </button>
+                              </>
+                            )}
 
-                    <div className={`p-6 ${viewMode === 'list' ? 'flex-1 flex flex-col justify-between' : ''}`}>
-                      <div>
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            productTag === 'Out of Stock' 
-                              ? 'bg-red-100 text-red-600'
-                              : productTag === 'Low Stock'
-                              ? 'bg-yellow-100 text-yellow-600'
-                              : productTag === 'Sale'
-                              ? 'bg-red-100 text-red-600'
-                              : productTag === 'Discount'
-                              ? 'bg-green-100 text-green-600'
-                              : 'bg-blue-100 text-blue-600'
-                          }`}>
-                            {productTag}
-                          </span>
-                          {discountPercentage > 0 && productTag !== 'Out of Stock' && (
-                            <span className="px-2 py-1 bg-red-100 text-red-600 rounded-full text-xs font-medium">
-                              Save AED {(product.originalPrice - product.discountedPrice).toFixed(2)}
-                            </span>
-                          )}
-                        </div>
-                        
-                        {/* Category Badge */}
-                        {product.category && product.category !== 'Uncategorized' && (
-                          <div className="mb-2">
-                            <span className="inline-flex items-center gap-1 px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
-                              <span>{getCategoryIcon(product.category)}</span>
-                              {product.category}
-                            </span>
+                            {/* Image Dots Indicator */}
+                            {hasMultipleImages && (
+                              <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 flex gap-1.5">
+                                {product.images.map((_, index) => (
+                                  <button
+                                    key={index}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setCurrentImageIndexes(prev => ({
+                                        ...prev,
+                                        [product.id]: index
+                                      }));
+                                    }}
+                                    className={`w-2 h-2 rounded-full transition-all ${index === currentImageIndex
+                                        ? 'bg-orange-500'
+                                        : 'bg-white/80 hover:bg-white'
+                                      }`}
+                                  />
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Image Counter */}
+                            {hasMultipleImages && (
+                              <div className="absolute top-3 left-3 bg-black/50 text-white text-xs px-2 py-1 rounded-full">
+                                {currentImageIndex + 1} / {product.images.length}
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <div className="text-6xl">{productEmoji}</div>
+                        )}
+
+                        {/* Top Right Discount Badge */}
+                        {discountPercentage > 0 && (
+                          <div className="absolute top-3 right-3 bg-red-500 text-white px-2 py-1 rounded-full text-sm font-bold">
+                            -{discountPercentage}%
                           </div>
                         )}
-                        
-                        <h3 className="text-xl font-bold text-amber-900 mb-2">{product.name}</h3>
-                        {product.shortDescription && (
-                          <p className="text-amber-700 text-sm mb-3 line-clamp-2">
-                            {product.shortDescription}
-                          </p>
-                        )}
-                        
-                        {/* Stock Status */}
-                        {stockBadge && (
-                          <div className="mb-3">
-                            {stockBadge}
-                          </div>
-                        )}
-                        
-                        {/* <div className="flex items-center gap-2 mb-4">
-                          <div className="flex items-center gap-1">
-                            <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                            <span className="text-sm font-medium text-amber-700">4.8</span>
-                          </div>
-                        </div> */}
                       </div>
 
-                      <div className="flex items-center justify-between">
-                        <div className="flex flex-col">
-                          <span className="text-2xl font-bold text-amber-900">
-                            AED {product.discountedPrice.toFixed(2)}
-                          </span>
-                          {product.originalPrice > product.discountedPrice && (
-                            <span className="text-sm text-gray-500 line-through">
-                              AED {product.originalPrice.toFixed(2)}
+                      <div className={`p-6 ${viewMode === 'list' ? 'flex-1 flex flex-col justify-between' : ''}`}>
+                        <div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${productTag === 'Out of Stock'
+                                ? 'bg-red-100 text-red-600'
+                                : productTag === 'Low Stock'
+                                  ? 'bg-yellow-100 text-yellow-600'
+                                  : productTag === 'Sale'
+                                    ? 'bg-red-100 text-red-600'
+                                    : productTag === 'Discount'
+                                      ? 'bg-green-100 text-green-600'
+                                      : 'bg-blue-100 text-blue-600'
+                              }`}>
+                              {productTag}
                             </span>
+                            {discountPercentage > 0 && productTag !== 'Out of Stock' && (
+                              <span className="px-2 py-1 bg-red-100 text-red-600 rounded-full text-xs font-medium">
+                                Save AED {(product.originalPrice - product.discountedPrice).toFixed(2)}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Category Badge */}
+                          {product.category && product.category !== 'Uncategorized' && (
+                            <div className="mb-2">
+                              <span className="inline-flex items-center gap-1 px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
+                                <span>{getCategoryIcon(product.category)}</span>
+                                {product.category}
+                              </span>
+                            </div>
+                          )}
+
+                          <h3 className="text-xl font-bold text-amber-900 mb-2">{product.name}</h3>
+                          {product.shortDescription && (
+                            <p className="text-amber-700 text-sm mb-3 line-clamp-2">
+                              {product.shortDescription}
+                            </p>
+                          )}
+
+                          {/* Stock Status */}
+                          {stockBadge && (
+                            <div className="mb-3">
+                              {stockBadge}
+                            </div>
                           )}
                         </div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (!isOutOfStock) {
-                              addToCart(product.id, e);
-                            }
-                          }}
-                          disabled={isOutOfStock}
-                          className={`p-3 rounded-full transition-all transform ${
-                            isOutOfStock
-                              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                              : addedProductIds.includes(product.id)
-                              ? 'bg-green-500 text-white shadow-lg hover:scale-110'
-                              : 'bg-gradient-to-r from-orange-500 to-amber-600 text-white hover:shadow-lg hover:scale-110'
-                          }`}
-                        >
-                          {isOutOfStock ? 'Out of Stock' : 
-                           addedProductIds.includes(product.id) ? '✓ Added' : <ShoppingCart className="w-5 h-5" />}
-                        </button>
+
+                        <div className="flex items-center justify-between">
+                          <div className="flex flex-col">
+                            <span className="text-2xl font-bold text-amber-900">
+                              AED {product.discountedPrice.toFixed(2)}
+                            </span>
+                            {product.originalPrice > product.discountedPrice && (
+                              <span className="text-sm text-gray-500 line-through">
+                                AED {product.originalPrice.toFixed(2)}
+                              </span>
+                            )}
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!isOutOfStock) {
+                                addToCart(product.id, e);
+                              }
+                            }}
+                            disabled={isOutOfStock}
+                            className={`p-3 rounded-full transition-all transform ${isOutOfStock
+                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                : addedProductIds.includes(product.id)
+                                  ? 'bg-green-500 text-white shadow-lg hover:scale-110'
+                                  : 'bg-gradient-to-r from-orange-500 to-amber-600 text-white hover:shadow-lg hover:scale-110'
+                              }`}
+                          >
+                            {isOutOfStock ? 'Out of Stock' :
+                              addedProductIds.includes(product.id) ? '✓ Added' : <ShoppingCart className="w-5 h-5" />}
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+
+              {/* Pagination Component */}
+              <Pagination />
+            </>
           )}
         </div>
       </section>

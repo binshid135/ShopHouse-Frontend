@@ -60,25 +60,30 @@ export default function ProductsPage() {
     setFilteredProducts(filtered);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this product?')) return;
+// app/admin/products/page.tsx - Update the handleDelete function
+const handleDelete = async (id: string) => {
+  if (!confirm('Are you sure you want to delete this product? This action cannot be undone.')) return;
 
-    try {
-      const response = await fetch(`/api/products/${id}`, {
-        method: 'DELETE'
-      });
+  try {
+    const response = await fetch(`/api/products/${id}`, {
+      method: 'DELETE'
+    });
 
-      if (response.ok) {
-        fetchProducts();
-      } else {
-        alert('Failed to delete product');
-      }
-    } catch (error) {
-      console.error('Failed to delete product:', error);
-      alert('Error deleting product');
+    const result = await response.json();
+
+    if (response.ok) {
+      fetchProducts();
+      // Optional: Show success message
+      alert('Product deleted successfully');
+    } else {
+      // Show specific error message from API
+      alert(result.error || 'Failed to delete product');
     }
-  };
-
+  } catch (error) {
+    console.error('Failed to delete product:', error);
+    alert('Error deleting product. Please try again.');
+  }
+};
   const handleEdit = (product: Product) => {
     setEditingProduct(product);
     setShowForm(true);

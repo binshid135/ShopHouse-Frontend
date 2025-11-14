@@ -17,6 +17,36 @@ export async function DELETE(
     // Await the params first
     const { id } = await context.params;
     
+    // Check if product exists in orders
+    const orderCheck = await query(
+      `SELECT COUNT(*) as order_count 
+       FROM order_items 
+       WHERE product_id = $1`,
+      [id]
+    );
+    
+    const orderCount = parseInt(orderCheck.rows[0].order_count);
+    if (orderCount > 0) {
+      return NextResponse.json({ 
+        error: `Cannot delete product. It exists in ${orderCount} order(s). Please remove it from all orders first.` 
+      }, { status: 400 });
+    }
+    
+    // Check if product exists in cart items
+    const cartCheck = await query(
+      `SELECT COUNT(*) as cart_count 
+       FROM cart_items 
+       WHERE product_id = $1`,
+      [id]
+    );
+    
+    const cartCount = parseInt(cartCheck.rows[0].cart_count);
+    if (cartCount > 0) {
+      return NextResponse.json({ 
+        error: `Cannot delete product. It exists in ${cartCount} user cart(s). Please wait for users to remove it from their carts.` 
+      }, { status: 400 });
+    }
+
     // First, get the product to retrieve image URLs for cleanup
     const existingProduct = await query(
       'SELECT images FROM products WHERE id = $1',
@@ -49,6 +79,8 @@ export async function DELETE(
     });
   } catch (error) {
     console.error('Failed to delete product:', error);
-    return NextResponse.json({ error: 'Failed to delete product' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Failed to delete product due to a server error' 
+    }, { status: 500 });
   }
 }
