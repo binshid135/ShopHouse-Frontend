@@ -1,4 +1,17 @@
 // app/products/page.tsx
+export const metadata = {
+  title: "Products – Household, Kitchen & Restaurant Items in Al Ain",
+  description:
+    "Browse household tools, kitchen utensils, restaurant equipment, cookware, and home essentials at Shop House Al Ain.",
+  keywords: [
+    "kitchen supplies Al Ain",
+    "household tools Al Ain",
+    "restaurant equipment Al Ain",
+    "kitchen shop Al Ain",
+  ],
+  robots: { index: true, follow: true },
+};
+
 "use client";
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';

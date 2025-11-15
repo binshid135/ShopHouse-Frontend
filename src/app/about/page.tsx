@@ -1,3 +1,11 @@
+export const metadata = {
+  title: "About Shop House Al Ain – Household & Kitchen Store",
+  description:
+    "Shop House Al Ain is your trusted store for household items, kitchen accessories, restaurant tools, and home essentials. Affordable prices and quality products.",
+  keywords: ["Shop House Al Ain", "household store Al Ain"],
+  robots: { index: true, follow: true },
+};
+
 "use client";
 import { useState } from 'react';
 import { Users, Award, Clock, Shield, Truck, Heart } from 'lucide-react';
