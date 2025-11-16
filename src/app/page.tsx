@@ -1,13 +1,8 @@
-"use client";
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import Header from './components/Header';
-import HeroSection from './components/HeroSection';
-import PopularProducts from './components/PopularProducts';
-import AboutUs from './components/AboutUs';
-import Footer from './components/Footer';
-import FloatingElements from './components/FloatingElements';
-import LoadingSpinner from './components/LoadingSpinner';
+// app/page.tsx
+import { Metadata } from 'next';
+import { query } from '../../lib/neon';
+import HomeClient from './components/mains/HomeClient';
+import { unstable_cache } from 'next/cache';
 
 export interface Product {
   id: string;
@@ -23,71 +18,69 @@ export interface Product {
   updatedAt: string;
 }
 
-export default function Home() {
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const router = useRouter();
+export const revalidate = 86400; // 24h
 
-  useEffect(() => {
-    fetchProducts();
-  }, []);
+// ---------- CACHED QUERY ----------
+const getHomepageProductsCached = unstable_cache(
+  async () => {
+    const result = await query(`
+      SELECT * FROM products 
+      WHERE is_recommended = true OR is_most_recommended = true
+      ORDER BY is_most_recommended DESC, recommendation_order ASC, created_at DESC
+    `);
 
-  const fetchProducts = async () => {
-    try {
-      const response = await fetch('/api/userside/products');
-      if (response.ok) {
-        const data = await response.json();
-        setProducts(data);
-      } else {
-        console.error('Failed to fetch products');
-      }
-    } catch (error) {
-      console.error('Failed to fetch products:', error);
-    } finally {
-      setLoading(false);
-    }
+    return result.rows.map((product: any) => ({
+      id: product.id,
+      name: product.name,
+      shortDescription: product.short_description,
+      originalPrice: parseFloat(product.original_price),
+      discountedPrice: parseFloat(product.discounted_price),
+      images: Array.isArray(product.images) ? product.images : [],
+      isRecommended: Boolean(product.is_recommended),
+      isMostRecommended: Boolean(product.is_most_recommended),
+      recommendationOrder: parseInt(product.recommendation_order),
+      createdAt: product.created_at,
+      updatedAt: product.updated_at,
+    }));
+  },
+  ["homepage-products-cache"],
+  { revalidate: 86400 }
+);
+
+// ---------- METADATA ----------
+export async function generateMetadata(): Promise<Metadata> {
+  const products = await getHomepageProductsCached();
+  const mostRecommended = products.find((p) => p.isMostRecommended);
+
+  return {
+    title: 'Premium Kitchen Tools - Best Deals & Offers',
+    description:
+      'Discover professional-grade kitchen equipment with amazing discounts.',
+    keywords: 'kitchen tools, cookware, knives, appliances, cooking, baking',
+    openGraph: {
+      title: 'Premium Kitchen Tools',
+      description:
+        'Discover professional-grade kitchen equipment.',
+      images: ['/og-image.jpg'],
+    },
   };
+}
 
-  const handleProductClick = (productId: string) => {
-    router.push(`/products/${productId}`);
-  };
+// ---------- PAGE ----------
+export default async function HomePage() {
+  const products = await getHomepageProductsCached();
 
-  // Get most recommended product for hero section
-  const mostRecommendedProduct = products.find(product => product.isMostRecommended);
-
-  // Get other recommended products (excluding the most recommended) for popular section
+  const mostRecommendedProduct = products.find((p) => p.isMostRecommended);
   const recommendedProducts = products
-    .filter(product => product.isRecommended && !product.isMostRecommended)
+    .filter((p) => p.isRecommended && !p.isMostRecommended)
     .sort((a, b) => a.recommendationOrder - b.recommendationOrder)
-    .slice(0, 3); // Take only first 3
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100 flex items-center justify-center">
-        <LoadingSpinner />
-      </div>
-    );
-  }
+    .slice(0, 3);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100 overflow-hidden">
-      <FloatingElements />
-      <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
-
-      <main>
-        <HeroSection
-          mostRecommendedProduct={mostRecommendedProduct}
-          onProductClick={handleProductClick}
-        />
-        <PopularProducts
-          products={recommendedProducts}
-          onProductClick={handleProductClick}
-        />
-        <AboutUs />
-      </main>
-
-      <Footer />
-    </div>
+    <HomeClient
+      initialProducts={products}
+      mostRecommendedProduct={mostRecommendedProduct}
+      recommendedProducts={recommendedProducts}
+    />
   );
 }

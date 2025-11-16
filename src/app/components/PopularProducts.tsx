@@ -121,11 +121,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, index, onProductClic
           {product.name}
         </h3>
         
-        {product.shortDescription && (
+        {/* {product.shortDescription && (
           <p className="text-sm text-amber-600 mb-3 line-clamp-2">
             {product.shortDescription}
           </p>
-        )}
+        )} */}
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCart } from '../context/cartContext';
 
+
 interface HeaderProps {
     searchQuery: string;
     setSearchQuery: (query: string) => void;
