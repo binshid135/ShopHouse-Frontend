@@ -27,9 +27,15 @@ export default function ProductForm({ product, onSubmit, onCancel }: ProductForm
 
   // Predefined categories - you can modify these as needed
   const categories = [
-    'Restaurant',
     'Household',
-    'kitchen',
+    'kitchen Essentials',
+    'bottles & flasks',
+    'stoves & burners',
+    'Restaurant supplies',
+    'hot pots' , 
+    'knives & cutlery',
+    'Mixer blender & grinders',
+    'cooker',
     'Uncategorized'
   ];
 

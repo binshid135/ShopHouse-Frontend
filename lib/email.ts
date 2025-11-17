@@ -202,3 +202,102 @@ export async function testEmailSetup(): Promise<boolean> {
     return false;
   }
 }
+
+// Add to lib/email.ts
+export async function sendNewOrderNotification(orderData: any): Promise<boolean> {
+  const resend = getResendClient();
+  
+  if (!resend) {
+    console.log('📧 Order notification (Resend not configured):', {
+      orderId: orderData.id,
+      total: orderData.total,
+      customer: orderData.customerName
+    });
+    return false;
+  }
+
+  try {
+    console.log(`📧 Attempting to send new order notification for order: ${orderData.id}`);
+    
+    const { data, error } = await resend.emails.send({
+      from: 'ShopHouse <noreply@shophousealain.com>',
+      to: ['shophouse2025@gmail.com'], // Only admin email
+      subject: `🛍️ New Order Received - #${orderData.id.substring(0, 8)}`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 20px; }
+                .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+                .header { text-align: center; margin-bottom: 30px; background: #e67e22; color: white; padding: 20px; border-radius: 8px; }
+                .order-info { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }
+                .customer-info { background: #e8f5e8; padding: 20px; border-radius: 8px; margin: 20px 0; }
+                .item { border-bottom: 1px solid #eee; padding: 10px 0; }
+                .total { background: #2c3e50; color: white; padding: 15px; border-radius: 8px; text-align: center; margin-top: 20px; }
+                .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; color: #666; font-size: 14px; }
+                .status { display: inline-block; background: #3498db; color: white; padding: 5px 15px; border-radius: 20px; font-size: 12px; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1 style="margin: 0;">🛍️ ShopHouse</h1>
+                    <p style="margin: 10px 0 0 0; opacity: 0.9;">New Order Notification</p>
+                </div>
+                
+                <h2 style="color: #333;">New Order Received!</h2>
+                <p>A new order has been placed on ShopHouse.</p>
+                
+                <div class="order-info">
+                    <h3 style="margin-top: 0;">Order Details</h3>
+                    <p><strong>Order ID:</strong> ${orderData.id}</p>
+                    <p><strong>Order Date:</strong> ${new Date().toLocaleString()}</p>
+                    <p><strong>Status:</strong> <span class="status">${orderData.status}</span></p>
+                    <p><strong>Items:</strong> ${orderData.itemCount} items</p>
+                </div>
+                
+                <div class="customer-info">
+                    <h3 style="margin-top: 0;">Customer Information</h3>
+                    <p><strong>Name:</strong> ${orderData.customerName}</p>
+                    <p><strong>Phone:</strong> ${orderData.customerPhone}</p>
+                    <p><strong>Email:</strong> ${orderData.customerEmail || 'Not provided'}</p>
+                    <p><strong>Shipping Address:</strong><br>${orderData.shippingAddress.replace(/\n/g, '<br>')}</p>
+                </div>
+                
+                <div class="total">
+                  <h3 style="margin: 0; color: white;">Total Amount: AED ${orderData.total.toFixed(2)}</h3>
+                </div>
+                
+                <div style="text-align: center; margin: 25px 0;">
+                  <a href="${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/admin/orders" 
+                     style="background: #e67e22; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                    View Order in Admin Panel
+                  </a>
+                </div>
+                
+                <div class="footer">
+                  <p>This is an automated notification from ShopHouse Order System.</p>
+                  <p style="font-size: 12px; color: #999;">
+                    Order ID: ${orderData.id}<br>
+                    Received: ${new Date().toLocaleString()}
+                  </p>
+                </div>
+            </div>
+        </body>
+        </html>
+      `,
+    });
+
+    if (error) {
+      console.error('❌ Resend API error for order notification:', error);
+      return false;
+    }
+
+    console.log('✅ New order notification sent to admin successfully. Email ID:', data?.id);
+    return true;
+  } catch (error) {
+    console.error('❌ Failed to send new order notification:', error);
+    return false;
+  }
+}

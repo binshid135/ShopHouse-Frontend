@@ -75,7 +75,6 @@ const FeaturedProduct: React.FC<FeaturedProductProps> = ({ mostRecommendedProduc
         <div className="relative bg-gradient-to-br from-orange-100 via-amber-100 to-orange-200 rounded-full w-full aspect-square flex items-center justify-center shadow-xl p-12">
           <div className="text-center text-amber-600">
             <p className="text-lg font-semibold">No featured product</p>
-            {/* <p className="text-sm">Add a most recommended product in admin</p> */}
           </div>
         </div>
       </div>
@@ -96,14 +95,24 @@ const FeaturedProduct: React.FC<FeaturedProductProps> = ({ mostRecommendedProduc
         className="relative bg-gradient-to-br from-orange-100 via-amber-100 to-orange-200 rounded-full w-full aspect-square flex items-center justify-center shadow-xl p-8 cursor-pointer transform hover:scale-105 transition-transform duration-300"
         onClick={handleClick}
       >
-        {/* Product Tag */}
+        {/* Product Name Tag */}
         <div className="absolute -top-4 right-8 bg-white px-6 py-3 rounded-full shadow-lg">
           <span className="text-sm font-semibold text-amber-900">
             {mostRecommendedProduct.name}
           </span>
         </div>
-        
-        {/* Product Image Container */}
+
+        {/* Best Seller & Mega Deal Tags Inside Circle */}
+        <div className="absolute flex flex-col gap-2 top-6 left-6">
+          <span className="bg-yellow-400 text-white font-bold text-sm px-4 py-2 rounded-full shadow-lg transform rotate-[-15deg]">
+            Best Seller
+          </span>
+          <span className="bg-red-500 text-white font-bold text-sm px-4 py-2 rounded-full shadow-lg transform rotate-[10deg]">
+            Mega Deal
+          </span>
+        </div>
+
+        {/* Product Image */}
         <div className="relative w-4/5 h-4/5 flex items-center justify-center">
           {mostRecommendedProduct.images && mostRecommendedProduct.images.length > 0 ? (
             <Image 
@@ -111,7 +120,7 @@ const FeaturedProduct: React.FC<FeaturedProductProps> = ({ mostRecommendedProduc
               alt={mostRecommendedProduct.name} 
               fill
               sizes="(max-width: 768px) 80vw, 40vw"
-              className="object-contain rounded-full" // Removed scale-110 and added rounded-lg
+              className="object-contain rounded-full"
               priority
             />
           ) : (

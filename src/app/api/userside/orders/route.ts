@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query } from '../../../../../lib/neon';
 import { v4 as uuidv4 } from 'uuid';
 import { verifyUserSession } from '../../../../../lib/auth-user';
+import { sendNewOrderNotification } from '../../../../../lib/email';
+
 
 function getCartId(request: NextRequest) {
   return request.cookies.get('cartId')?.value;
@@ -141,6 +143,30 @@ export async function POST(request: NextRequest) {
     } else {
       await query('DELETE FROM cart_items WHERE cart_id = $1', [cartId]);
     }
+
+    const orderSummary = {
+      id: orderId,
+      total: total,
+      status: 'pending',
+      customerName,
+      customerEmail, // Include customer email in the data
+      customerPhone,
+      shippingAddress,
+      itemCount: cartItems.length
+    };
+
+    // Send email notification to admin only (fire and forget)
+    sendNewOrderNotification(orderSummary)
+      .then(success => {
+        if (success) {
+          console.log('📧 New order email notification sent to admin successfully');
+        } else {
+          console.log('⚠️ Failed to send new order email notification to admin');
+        }
+      })
+      .catch(emailError => {
+        console.error('❌ Error sending order notification email to admin:', emailError);
+      });
 
     const response = NextResponse.json({
       success: true,

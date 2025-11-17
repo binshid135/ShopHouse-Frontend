@@ -1,8 +1,7 @@
 // components/AboutUs.tsx
 import React, { useState, useEffect } from 'react';
-import { Users, Target, Award, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Users, Target, Award, Heart, ChevronLeft, ChevronRight, CheckCircle, Shield, Truck, Headphones } from 'lucide-react';
 import Image from "next/image";
-
 
 const AboutUs: React.FC = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -15,38 +14,20 @@ const AboutUs: React.FC = () => {
       placeholder: "bg-gradient-to-br from-orange-200 to-amber-300",
       image: "/shopphoto.jpeg"
     },
-    // {
-    //   id: 2,
-    //   title: "Showroom",
-    //   description: "Explore our extensive product display",
-    //   placeholder: "bg-gradient-to-br from-amber-200 to-orange-300",
-    //   image: "/shopphoto.jpeg"
-
-    // },
+    {
+      id: 2,
+      title: "Showroom",
+      description: "Explore our extensive product display",
+      placeholder: "bg-gradient-to-br from-amber-200 to-orange-300",
+      image: "/instore1.jpg"
+    },
     // {
     //   id: 3,
     //   title: "Product Display",
     //   description: "High-quality kitchen equipment on display",
     //   placeholder: "bg-gradient-to-br from-orange-300 to-amber-400",
     //   image: "/shopphoto.jpeg"
-
     // },
-    // {
-    //   id: 4,
-    //   title: "Our Team",
-    //   description: "Meet our experienced and friendly staff",
-    //   placeholder: "bg-gradient-to-br from-amber-100 to-orange-200",
-    //   image: "/shopphoto.jpeg"
-
-    // },
-    // {
-    //   id: 5,
-    //   title: "Customer Service",
-    //   description: "Professional service and expert advice",
-    //   placeholder: "bg-gradient-to-br from-orange-100 to-amber-200",
-    //   image: "/shopphoto.jpeg"
-
-    // }
   ];
 
   const nextSlide = () => {
@@ -76,7 +57,7 @@ const AboutUs: React.FC = () => {
         {/* Header */}
         <div className="text-center mb-12">
           <h2 className="text-4xl font-bold text-amber-900 mb-4">
-            About ShopHouse
+            About <br></br> Shop House General trading
           </h2>
           <p className="text-lg text-amber-700 max-w-2xl mx-auto">
             Empowering culinary professionals with premium kitchen equipment since 2024.
@@ -84,105 +65,192 @@ const AboutUs: React.FC = () => {
           </p>
         </div>
 
-        {/* Store Photos Carousel */}
-        <div className="mb-16">
-          <div className="text-center mb-8">
-            <h3 className="text-2xl font-bold text-amber-900 mb-2">
-              Visit Our Store
-            </h3>
-            <p className="text-amber-600 max-w-2xl mx-auto">
-              Get a glimpse of our well-stocked showroom and experienced team ready to serve you
-            </p>
+        {/* Main Content Section - Description Left, Carousel Right */}
+        <div className="grid lg:grid-cols-2 gap-12 mb-16">
+          {/* Products & Services Description - Left Side */}
+          <div>
+            <div className="text-center lg:text-left mb-8">
+              <h3 className="text-2xl font-bold text-amber-900 mb-2">
+                Our Products & Services
+              </h3>
+              <p className="text-amber-600">
+                Everything you need for a professional kitchen, delivered with excellence
+              </p>
+            </div>
+
+            <div className="space-y-6">
+              {/* Main Description */}
+              <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl p-6">
+                <p className="text-amber-800 leading-relaxed text-lg mb-6">
+                  At ShopHouse, we provide comprehensive kitchen solutions for professional 
+                  chefs, restaurants, and culinary enthusiasts. Our extensive product range 
+                  combines quality, innovation, and reliability to meet the demanding needs 
+                  of modern kitchens.
+                </p>
+                
+                <div className="grid sm:grid-cols-2 gap-4 mb-6">
+                  <div className="flex items-center">
+                    <CheckCircle className="w-5 h-5 text-green-600 mr-3 flex-shrink-0" />
+                    <span className="text-amber-700">Commercial Grade Equipment</span>
+                  </div>
+                  <div className="flex items-center">
+                    <CheckCircle className="w-5 h-5 text-green-600 mr-3 flex-shrink-0" />
+                    <span className="text-amber-700">Professional Cookware</span>
+                  </div>
+                  <div className="flex items-center">
+                    <CheckCircle className="w-5 h-5 text-green-600 mr-3 flex-shrink-0" />
+                    <span className="text-amber-700">Kitchen Tools & Utensils</span>
+                  </div>
+                  <div className="flex items-center">
+                    <CheckCircle className="w-5 h-5 text-green-600 mr-3 flex-shrink-0" />
+                    <span className="text-amber-700">Food Preparation Equipment</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Services Features */}
+              <div className="grid sm:grid-cols-2 gap-6">
+                <ServiceFeature
+                  icon={<Shield className="w-6 h-6" />}
+                  title="Quality Guarantee"
+                  description="All products come with comprehensive warranties and quality assurance"
+                />
+                <ServiceFeature
+                  icon={<Truck className="w-6 h-6" />}
+                  title="Fast Delivery"
+                  description="Quick and reliable shipping across the region"
+                />
+                <ServiceFeature
+                  icon={<Headphones className="w-6 h-6" />}
+                  title="Expert Support"
+                  description="Professional advice and after-sales service"
+                />
+                <ServiceFeature
+                  icon={<Award className="w-6 h-6" />}
+                  title="Trusted Brands"
+                  description="Curated selection of top international brands"
+                />
+              </div>
+
+              {/* Additional Info */}
+              <div className="bg-amber-100 rounded-xl p-6">
+                <h4 className="font-semibold text-amber-900 mb-3">
+                  Why Choose ShopHouse?
+                </h4>
+                <p className="text-amber-700 text-sm leading-relaxed">
+                  We understand that every kitchen has unique requirements. That's why we offer 
+                  personalized consultation services, helping you select the perfect equipment 
+                  for your specific needs. Our team of experienced professionals is dedicated 
+                  to ensuring your complete satisfaction.
+                </p>
+              </div>
+            </div>
           </div>
 
-          {/* Carousel Container */}
-          <div className="relative max-w-4xl mx-auto">
-            {/* Carousel */}
-            <div className="relative overflow-hidden rounded-2xl shadow-2xl bg-black">
-              <div
-                className="flex transition-transform duration-500 ease-in-out"
-                style={{ transform: `translateX(-${currentSlide * 100}%)` }}
-              >
-                {storePhotos.map((photo) => (
-                  <div key={photo.id} className="w-full flex-shrink-0">
-                    <div className="aspect-[16/9] relative">
+          {/* Carousel Section - Right Side */}
+          <div>
+            <div className="text-center mb-8">
+              <h3 className="text-2xl font-bold text-amber-900 mb-2">
+                Our Store
+              </h3>
+              <p className="text-amber-600 max-w-2xl mx-auto">
+                Get a glimpse of our well-stocked showroom and experienced team
+              </p>
+            </div>
+
+            {/* Carousel Container */}
+            <div className="relative max-w-md mx-auto">
+              {/* Carousel */}
+              <div className="relative overflow-hidden rounded-2xl shadow-2xl bg-black">
+                <div
+                  className="flex transition-transform duration-500 ease-in-out"
+                  style={{ transform: `translateX(-${currentSlide * 100}%)` }}
+                >
+                  {storePhotos.map((photo) => (
+                    <div key={photo.id} className="w-full flex-shrink-0">
+                      <div className="aspect-[9/16] relative">
+                        <Image
+                          src={photo.image}
+                          alt={photo.title}
+                          fill
+                          className="object-cover rounded-2xl"
+                          priority
+                        />
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-6">
+                          <h3 className="text-xl font-semibold text-white mb-1">
+                            {photo.title}
+                          </h3>
+                          <p className="text-gray-200 text-sm">
+                            {photo.description}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Navigation Arrows */}
+                <button
+                  onClick={prevSlide}
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-80 hover:bg-opacity-100 text-amber-900 w-10 h-10 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110"
+                  aria-label="Previous photo"
+                >
+                  <ChevronLeft className="w-6 h-6" />
+                </button>
+
+                <button
+                  onClick={nextSlide}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-80 hover:bg-opacity-100 text-amber-900 w-10 h-10 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110"
+                  aria-label="Next photo"
+                >
+                  <ChevronRight className="w-6 h-6" />
+                </button>
+
+                {/* Slide Indicators */}
+                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
+                  {storePhotos.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => goToSlide(index)}
+                      className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                        index === currentSlide
+                          ? 'bg-white scale-125'
+                          : 'bg-white bg-opacity-50 hover:bg-opacity-75'
+                      }`}
+                      aria-label={`Go to slide ${index + 1}`}
+                    />
+                  ))}
+                </div>
+
+                {/* Slide Counter */}
+                <div className="absolute top-4 right-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm">
+                  {currentSlide + 1} / {storePhotos.length}
+                </div>
+              </div>
+
+              {/* Thumbnail Preview */}
+              <div className="flex justify-center mt-4 space-x-2">
+                {storePhotos.map((photo, index) => (
+                  <button
+                    key={photo.id}
+                    onClick={() => goToSlide(index)}
+                    className={`w-12 h-16 rounded-lg overflow-hidden transition-all duration-300 ${
+                      index === currentSlide
+                        ? 'ring-2 ring-orange-500 ring-offset-2 scale-110'
+                        : 'opacity-70 hover:opacity-100 hover:scale-105'
+                    }`}
+                  >
+                    <div className="w-full h-full relative">
                       <Image
                         src={photo.image}
                         alt={photo.title}
                         fill
-                        className="object-contain rounded-2xl"
-                        priority
+                        className="object-cover"
                       />
-                      {/* Optional text overlay */}
-                      {/* <div className="absolute inset-0 bg-black bg-opacity-20 flex flex-col items-center justify-center text-white text-center">
-                        <h3 className="text-2xl font-semibold mb-1 drop-shadow-lg">{photo.title}</h3>
-                        <p className="text-sm drop-shadow-md">{photo.description}</p>
-                      </div> */}
                     </div>
-                  </div>
-                ))}
-
-              </div>
-
-              {/* Navigation Arrows */}
-              <button
-                onClick={prevSlide}
-                className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-80 hover:bg-opacity-100 text-amber-900 w-10 h-10 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110"
-                aria-label="Previous photo"
-              >
-                <ChevronLeft className="w-6 h-6" />
-              </button>
-
-              <button
-                onClick={nextSlide}
-                className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-80 hover:bg-opacity-100 text-amber-900 w-10 h-10 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110"
-                aria-label="Next photo"
-              >
-                <ChevronRight className="w-6 h-6" />
-              </button>
-
-              {/* Slide Indicators */}
-              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-                {storePhotos.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => goToSlide(index)}
-                    className={`w-3 h-3 rounded-full transition-all duration-300 ${index === currentSlide
-                      ? 'bg-white scale-125'
-                      : 'bg-white bg-opacity-50 hover:bg-opacity-75'
-                      }`}
-                    aria-label={`Go to slide ${index + 1}`}
-                  />
+                  </button>
                 ))}
               </div>
-
-              {/* Slide Counter */}
-              <div className="absolute top-4 right-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm">
-                {currentSlide + 1} / {storePhotos.length}
-              </div>
-            </div>
-
-            {/* Thumbnail Preview */}
-            <div className="flex justify-center mt-4 space-x-2">
-              {storePhotos.map((photo, index) => (
-                <button
-                  key={photo.id}
-                  onClick={() => goToSlide(index)}
-                  className={`w-16 h-12 rounded-lg overflow-hidden transition-all duration-300 ${index === currentSlide
-                    ? 'ring-2 ring-orange-500 ring-offset-2 scale-110'
-                    : 'opacity-70 hover:opacity-100 hover:scale-105'
-                    }`}
-                >
-                  {/* <div className={`w-full h-full ${photo.placeholder}`} /> */}
-                  <Image
-                        src={photo.image}
-                        alt={photo.title}
-                        fill
-                        className="object-contain rounded-2xl"
-                        priority
-                      />
-                </button>
-              ))}
             </div>
           </div>
         </div>
@@ -194,7 +262,6 @@ const AboutUs: React.FC = () => {
             number="10,000+"
             label="Happy Customers"
           />
-
           <StatCard
             icon={<Target className="w-8 h-8" />}
             number="500+"
@@ -240,6 +307,25 @@ const AboutUs: React.FC = () => {
     </section>
   );
 };
+
+// Service Feature Component
+interface ServiceFeatureProps {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}
+
+const ServiceFeature: React.FC<ServiceFeatureProps> = ({ icon, title, description }) => (
+  <div className="flex items-start space-x-3">
+    <div className="p-2 bg-orange-100 rounded-lg text-orange-600 flex-shrink-0">
+      {icon}
+    </div>
+    <div>
+      <h4 className="font-semibold text-amber-900 mb-1">{title}</h4>
+      <p className="text-amber-600 text-sm">{description}</p>
+    </div>
+  </div>
+);
 
 interface StatCardProps {
   icon: React.ReactNode;
