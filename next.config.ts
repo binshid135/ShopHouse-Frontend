@@ -21,22 +21,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  async redirects() {
-    return [
-      // Redirect non-www to www
-      {
-        source: "/:path*",
-        has: [
-          {
-            type: "host",
-            value: "shophousealain.com",
-          },
-        ],
-        destination: "https://www.shophousealain.com/:path*",
-        permanent: true,
-      },
-    ];
-  },
 };
 
 export default nextConfig;

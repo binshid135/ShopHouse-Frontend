@@ -10,7 +10,7 @@ const ADMIN_CREDENTIALS = {
 export async function verifyAdminCredentials(username: string, password: string) {
   return username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password;
 }
-
+console.log('Admin Credentials:', ADMIN_CREDENTIALS);
 export async function createAdminSession() {
   const token = jwt.sign(
     { username: ADMIN_CREDENTIALS.username, role: 'admin' },
