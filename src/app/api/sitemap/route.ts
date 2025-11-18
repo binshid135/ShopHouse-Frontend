@@ -9,15 +9,15 @@ export async function GET() {
 
     // Base static URLs
     const urls = [
-      { loc: 'https://shophousealain.com/', changefreq: 'weekly', priority: 1.0 },
-      { loc: 'https://shophousealain.com/products', changefreq: 'weekly', priority: 0.9 },
-      { loc: 'https://shophousealain.com/about', changefreq: 'monthly', priority: 0.8 },
+      { loc: 'https://www.shophousealain.com/', changefreq: 'weekly', priority: 1.0 },
+      { loc: 'https://www.shophousealain.com/products', changefreq: 'weekly', priority: 0.9 },
+      { loc: 'https://www.shophousealain.com/about', changefreq: 'monthly', priority: 0.8 },
       // Add other static pages if needed
     ];
 
     // Add each product dynamically
     const productUrls = products.rows.map((p: any) => ({
-      loc: `https://shophousealain.com/products/${p.id}`,
+      loc: `https://www.shophousealain.com/products/${p.id}`,
       changefreq: 'weekly',
       priority: 0.7,
     }));
