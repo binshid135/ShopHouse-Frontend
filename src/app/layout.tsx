@@ -17,6 +17,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Best Household & Kitchen Items in Al Ain | Shop House General trading",
   description: "Discover high-quality household and kitchen items at our Al Ain shop. We provide everything from cookware to home essentials for homes and restaurants in the Al ain.",
+  alternates: {
+    canonical: "https://www.shophousealain.com",
+  },
   keywords: [
     "household items Al Ain",
     "kitchen items Al Ain",
@@ -24,7 +27,8 @@ export const metadata: Metadata = {
     "kitchen utensils Al Ain",
     "home items Al Ain",
     "Shop House Al Ain",
-    "restaurant supplies"
+    "restaurant supplies",
+    "kitchen supplies"
   ],
   metadataBase: new URL("https://www.yoursite.com"),
   icons: {

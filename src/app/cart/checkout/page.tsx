@@ -36,6 +36,7 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [shipping, setShipping] = useState(0);
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -138,6 +139,15 @@ export default function CheckoutPage() {
     }
   }, [userProfile]);
 
+  // Calculate shipping when cart loads
+  useEffect(() => {
+    if (cart) {
+      // Use the same logic as cart page: free shipping over AED 100
+      const calculatedShipping = cart.total > 100 ? 0 : 10;
+      setShipping(calculatedShipping);
+    }
+  }, [cart]);
+
   const fetchUserProfile = async () => {
     try {
       const response = await fetch('/api/auth/profile');
@@ -237,6 +247,11 @@ export default function CheckoutPage() {
       setSubmitting(false);
     }
   };
+
+  // Calculate totals
+  const subtotal = cart?.total || 0;
+  const tax = subtotal * 0.05;
+  const total = subtotal + shipping + tax;
 
   if (loading) {
     return (
@@ -367,7 +382,7 @@ export default function CheckoutPage() {
                   </div>
                   <div className="flex justify-between">
                     <p className="text-xs text-amber-600 mt-1">
-                      Enter your UAE mobile number without country code
+                      Enter your UAE mobile number
                     </p>
                     {userProfile && userProfile.phone && (
                       <p className="text-xs text-green-600 mt-1">
@@ -469,7 +484,7 @@ export default function CheckoutPage() {
                 disabled={submitting}
                 className="w-full bg-gradient-to-r from-orange-500 to-amber-600 text-white py-4 rounded-xl font-medium hover:shadow-lg transform hover:-translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {submitting ? 'Processing...' : `Place Order - AED ${(cart.total * 1.05).toFixed(2)}`}
+                {submitting ? 'Processing...' : `Place Order - AED ${total.toFixed(2)}`}
               </button>
 
               {/* Payment Method Reminder */}
@@ -517,23 +532,32 @@ export default function CheckoutPage() {
               <div className="space-y-3">
                 <div className="flex justify-between text-amber-800">
                   <span>Subtotal</span>
-                  <span>AED {cart.total.toFixed(2)}</span>
+                  <span>AED {subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-amber-800">
                   <span>Shipping</span>
-                  <span className="text-green-600">FREE</span>
+                  <span>{shipping === 0 ? 'FREE' : `AED ${shipping.toFixed(2)}`}</span>
                 </div>
                 <div className="flex justify-between text-amber-800">
-                  <span>Tax</span>
-                  <span>AED {(cart.total * 0.05).toFixed(2)}</span>
+                  <span>Tax (5%)</span>
+                  <span>AED {tax.toFixed(2)}</span>
                 </div>
                 <div className="border-t border-amber-200 pt-3">
                   <div className="flex justify-between text-lg font-bold text-amber-900">
                     <span>Total</span>
-                    <span>AED {(cart.total * 1.05).toFixed(2)}</span>
+                    <span>AED {total.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
+
+              {/* Free shipping notice */}
+              {shipping > 0 && (
+                <div className="mt-3 p-2 bg-amber-50 rounded-lg border border-amber-200">
+                  <p className="text-xs text-amber-700 text-center">
+                    Add AED {(100 - subtotal).toFixed(2)} more for FREE delivery!
+                  </p>
+                </div>
+              )}
 
               {/* Payment Summary */}
               <div className="mt-4 p-4 bg-amber-50 rounded-xl border border-amber-200">
@@ -557,14 +581,8 @@ export default function CheckoutPage() {
                   <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
                     <MapPin className="w-4 h-4 text-orange-600" />
                   </div>
-                  Free delivery within Al Ain on orders above aed 100
+                  Free delivery within Al Ain on orders above AED 100
                 </div>
-                {/* <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
-                    <span className="text-orange-600 font-bold">⏱</span>
-                  </div>
-                  Same-day delivery for orders before 6 PM
-                </div> */}
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
                     <span className="text-orange-600 font-bold">💰</span>

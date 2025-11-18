@@ -33,7 +33,6 @@ export default function ProductForm({ product, onSubmit, onCancel }: ProductForm
     'stoves & burners',
     'Restaurant supplies',
     'hot pots' , 
-    'knives & cutlery',
     'Mixer blender & grinders',
     'cooker',
     'Uncategorized'
