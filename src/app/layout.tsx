@@ -35,10 +35,10 @@ export const metadata: Metadata = {
     icon: "/favicon.ico",
   },
   openGraph: {
-    title: "Shop House Al Ain – Household, Kitchen & Restaurant Items",
+    title: "Shop House general trading Al Ain – Household, Kitchen & Restaurant Items",
     description:
       "Best shop in Al Ain for kitchen items, household essentials, restaurant supplies & cleaning products.",
-    url: "https://shophousealain.com/",
+    url: "https://www.shophousealain.com/",
     siteName: "Shop House General trading Al ain",
   },
   robots: { index: true, follow: true },
