@@ -1,8 +1,7 @@
 "use client";
-
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, MapPin, Phone, User, Home, CreditCard } from "lucide-react";
+import { ArrowLeft, MapPin, Phone, User, Home, CreditCard, Truck, Store } from "lucide-react";
 import FloatingElements from "@/app/components/FloatingElements";
 import Header from "@/app/components/Header";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
@@ -36,7 +35,7 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [shipping, setShipping] = useState(0);
+  const [deliveryOption, setDeliveryOption] = useState<'delivery' | 'pickup'>('delivery');
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -126,6 +125,12 @@ export default function CheckoutPage() {
   useEffect(() => {
     fetchUserProfile();
     fetchCart();
+    
+    // Load delivery option from localStorage
+    const savedOption = localStorage.getItem('deliveryOption') as 'delivery' | 'pickup';
+    if (savedOption) {
+      setDeliveryOption(savedOption);
+    }
   }, []);
 
   // Update form data when user profile is loaded
@@ -139,14 +144,14 @@ export default function CheckoutPage() {
     }
   }, [userProfile]);
 
-  // Calculate shipping when cart loads
+  // Calculate shipping when cart loads or delivery option changes
   useEffect(() => {
     if (cart) {
-      // Use the same logic as cart page: free shipping over AED 100
-      const calculatedShipping = cart.total > 100 ? 0 : 10;
-      setShipping(calculatedShipping);
+      // Use the same logic as cart page: free shipping over AED 100 for delivery, free for pickup
+      const calculatedShipping = deliveryOption === 'pickup' ? 0 : (cart.total > 100 ? 0 : 7);
+      // Shipping state is now calculated dynamically
     }
-  }, [cart]);
+  }, [cart, deliveryOption]);
 
   const fetchUserProfile = async () => {
     try {
@@ -187,6 +192,11 @@ export default function CheckoutPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleDeliveryOptionChange = (option: 'delivery' | 'pickup') => {
+    setDeliveryOption(option);
+    localStorage.setItem('deliveryOption', option);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -194,13 +204,7 @@ export default function CheckoutPage() {
     setSubmitting(true);
 
     // Basic validation
-    if (
-      !formData.fullName ||
-      !formData.mobile ||
-      !formData.area ||
-      !formData.street ||
-      !formData.building
-    ) {
+    if (!formData.fullName || !formData.mobile) {
       setError("Please fill all required fields.");
       setSubmitting(false);
       return;
@@ -214,19 +218,36 @@ export default function CheckoutPage() {
       return;
     }
 
+    // For delivery, validate address fields
+    if (deliveryOption === 'delivery') {
+      if (!formData.area || !formData.street || !formData.building) {
+        setError("Please fill all required address fields for delivery.");
+        setSubmitting(false);
+        return;
+      }
+    }
+
     try {
       console.log('Submitting order with cart:', cart);
       
+      const orderData = {
+        customerName: formData.fullName,
+        customerPhone: formData.mobile,
+        deliveryOption: deliveryOption,
+        ...(deliveryOption === 'delivery' && {
+          shippingAddress: `${formData.street}, ${formData.building}${formData.flat ? `, Flat ${formData.flat}` : ''}, ${formData.area}, Al Ain`
+        }),
+        ...(deliveryOption === 'pickup' && {
+          shippingAddress: 'Store Pickup - shop house general trading, Central District, Al Ain'
+        })
+      };
+
       const response = await fetch('/api/userside/orders', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          customerName: formData.fullName,
-          customerPhone: formData.mobile,
-          shippingAddress: `${formData.street}, ${formData.building}${formData.flat ? `, Flat ${formData.flat}` : ''}, ${formData.area}, Al Ain`
-        }),
+        body: JSON.stringify(orderData),
       });
 
       const result = await response.json();
@@ -234,6 +255,8 @@ export default function CheckoutPage() {
 
       if (response.ok) {
         setSuccess(true);
+        // Clear delivery option from localStorage after successful order
+        localStorage.removeItem('deliveryOption');
         setTimeout(() => {
           router.push(`/order-confirmation?orderId=${result.orderId}`);
         }, 2000);
@@ -250,8 +273,9 @@ export default function CheckoutPage() {
 
   // Calculate totals
   const subtotal = cart?.total || 0;
-  const tax = subtotal * 0.05;
-  const total = subtotal + shipping + tax;
+  const shipping = deliveryOption === 'pickup' ? 0 : (subtotal > 100 ? 0 : 7);
+  // const tax = subtotal * 0.05;
+  const total = subtotal + shipping;
 
   if (loading) {
     return (
@@ -307,7 +331,7 @@ export default function CheckoutPage() {
             <p className="text-amber-700 mb-6">Complete your order with delivery information</p>
 
             {/* User Info Notice */}
-            {userProfile && (
+            {/* {userProfile && (
               <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
@@ -321,7 +345,7 @@ export default function CheckoutPage() {
                   </div>
                 </div>
               </div>
-            )}
+            )} */}
 
             {/* Cash on Delivery Notice */}
             <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
@@ -393,79 +417,197 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              {/* Delivery Address */}
+              {/* Delivery Method */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-amber-900 flex items-center gap-2">
-                  <MapPin className="w-5 h-5" />
-                  Delivery Address (Al Ain Only)
+                  <Truck className="w-5 h-5" />
+                  Delivery Method
                 </h3>
-
-                <div>
-                  <label className="block text-sm font-medium text-amber-800 mb-2">
-                    Area in Al Ain <span className="text-red-500">*</span>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <label className={`flex flex-col p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                    deliveryOption === 'delivery' 
+                      ? 'border-orange-500 bg-orange-50 shadow-md' 
+                      : 'border-amber-200 hover:bg-amber-50'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="deliveryOption"
+                      value="delivery"
+                      checked={deliveryOption === 'delivery'}
+                      onChange={() => handleDeliveryOptionChange('delivery')}
+                      className="hidden"
+                    />
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                        deliveryOption === 'delivery' 
+                          ? 'border-orange-500 bg-orange-500' 
+                          : 'border-amber-300'
+                      }`}>
+                        {deliveryOption === 'delivery' && (
+                          <div className="w-2 h-2 bg-white rounded-full"></div>
+                        )}
+                      </div>
+                      <Truck className={`w-5 h-5 ${
+                        deliveryOption === 'delivery' ? 'text-orange-600' : 'text-amber-600'
+                      }`} />
+                    </div>
+                    <div className="flex justify-between items-start mb-2">
+                      <span className="font-medium text-amber-900">Home Delivery</span>
+                      {/* <span className={`text-sm font-medium ${
+                        shipping === 0 ? 'text-green-600' : 'text-amber-700'
+                      }`}>
+                        {shipping === 0 ? 'FREE' : `AED ${shipping.toFixed(2)}`}
+                      </span> */}
+                    </div>
+                    <p className="text-xs text-amber-600">
+                      Get your order delivered to your address in Al Ain
+                    </p>
+                    {subtotal < 100 && shipping > 0 && (
+                      <p className="text-xs text-orange-600 mt-1">
+                        Free delivery on orders above AED 100
+                      </p>
+                    )}
                   </label>
-                  <select
-                    name="area"
-                    value={formData.area}
-                    onChange={handleChange}
-                    required
-                    className="w-full border-2 border-amber-200 rounded-xl px-4 py-3 focus:border-orange-400 outline-none transition-all bg-amber-50"
-                  >
-                    <option value="">Select Area</option>
-                    {areasInAlAin.map((area) => (
-                      <option key={area} value={area}>
-                        {area}
-                      </option>
-                    ))}
-                  </select>
+
+                  <label className={`flex flex-col p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                    deliveryOption === 'pickup' 
+                      ? 'border-orange-500 bg-orange-50 shadow-md' 
+                      : 'border-amber-200 hover:bg-amber-50'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="deliveryOption"
+                      value="pickup"
+                      checked={deliveryOption === 'pickup'}
+                      onChange={() => handleDeliveryOptionChange('pickup')}
+                      className="hidden"
+                    />
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                        deliveryOption === 'pickup' 
+                          ? 'border-orange-500 bg-orange-500' 
+                          : 'border-amber-300'
+                      }`}>
+                        {deliveryOption === 'pickup' && (
+                          <div className="w-2 h-2 bg-white rounded-full"></div>
+                        )}
+                      </div>
+                      <Store className={`w-5 h-5 ${
+                        deliveryOption === 'pickup' ? 'text-orange-600' : 'text-amber-600'
+                      }`} />
+                    </div>
+                    <div className="flex justify-between items-start mb-2">
+                      <span className="font-medium text-amber-900">Store Pickup</span>
+                      <span className="text-green-600 text-sm font-medium">FREE</span>
+                    </div>
+                    <p className="text-xs text-amber-600">
+                      Collect your order from our store
+                    </p>
+                    <p className="text-xs text-amber-500 mt-1">
+                      Store Address: Shop House general trading, Al Ain
+                    </p>
+                  </label>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-amber-800 mb-2">
-                    Street Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    name="street"
-                    value={formData.street}
-                    onChange={handleChange}
-                    required
-                    className="w-full border-2 border-amber-200 rounded-xl px-4 py-3 focus:border-orange-400 outline-none transition-all bg-amber-50"
-                    placeholder="Enter street name"
-                  />
-                </div>
+                {/* Store Pickup Information */}
+                {deliveryOption === 'pickup' && (
+                  <div className="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                    <div className="flex items-start gap-3">
+                      <Store className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <h4 className="font-semibold text-blue-900 text-sm">Store Pickup Information</h4>
+                        <p className="text-xs text-blue-700 mt-1">
+                          <strong>Address:</strong> Kitchen Tools Store, Central District, Al Ain, UAE
+                        </p>
+                        <p className="text-xs text-blue-700">
+                          <strong>Phone:</strong> +971 50 719 1804
+                        </p>
+                        <p className="text-xs text-blue-700">
+                          <strong>Hours:</strong> 8:00 AM - 12:00 AM (Daily)
+                        </p>
+                        
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
 
-                <div className="grid grid-cols-2 gap-4">
+              {/* Delivery Address - Only show for delivery option */}
+              {deliveryOption === 'delivery' && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-amber-900 flex items-center gap-2">
+                    <MapPin className="w-5 h-5" />
+                    Delivery Address (Al Ain Only)
+                  </h3>
+
                   <div>
                     <label className="block text-sm font-medium text-amber-800 mb-2">
-                      Building / Villa <span className="text-red-500">*</span>
+                      Area in Al Ain <span className="text-red-500">*</span>
                     </label>
-                    <div className="relative">
-                      <Home className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-amber-600" />
+                    <select
+                      name="area"
+                      value={formData.area}
+                      onChange={handleChange}
+                      required={deliveryOption === 'delivery'}
+                      className="w-full border-2 border-amber-200 rounded-xl px-4 py-3 focus:border-orange-400 outline-none transition-all bg-amber-50"
+                    >
+                      <option value="">Select Area</option>
+                      {areasInAlAin.map((area) => (
+                        <option key={area} value={area}>
+                          {area}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-amber-800 mb-2">
+                      Street Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      name="street"
+                      value={formData.street}
+                      onChange={handleChange}
+                      required={deliveryOption === 'delivery'}
+                      className="w-full border-2 border-amber-200 rounded-xl px-4 py-3 focus:border-orange-400 outline-none transition-all bg-amber-50"
+                      placeholder="Enter street name"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-amber-800 mb-2">
+                        Building / Villa <span className="text-red-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <Home className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-amber-600" />
+                        <input
+                          name="building"
+                          value={formData.building}
+                          onChange={handleChange}
+                          required={deliveryOption === 'delivery'}
+                          className="w-full border-2 border-amber-200 rounded-xl pl-10 pr-4 py-3 focus:border-orange-400 outline-none transition-all bg-amber-50"
+                          placeholder="Building name or number"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-amber-800 mb-2">
+                        Flat / Unit (optional)
+                      </label>
                       <input
-                        name="building"
-                        value={formData.building}
+                        name="flat"
+                        value={formData.flat}
                         onChange={handleChange}
-                        required
-                        className="w-full border-2 border-amber-200 rounded-xl pl-10 pr-4 py-3 focus:border-orange-400 outline-none transition-all bg-amber-50"
-                        placeholder="Building name or number"
+                        className="w-full border-2 border-amber-200 rounded-xl px-4 py-3 focus:border-orange-400 outline-none transition-all bg-amber-50"
+                        placeholder="Flat or unit number"
                       />
                     </div>
                   </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-amber-800 mb-2">
-                      Flat / Unit (optional)
-                    </label>
-                    <input
-                      name="flat"
-                      value={formData.flat}
-                      onChange={handleChange}
-                      className="w-full border-2 border-amber-200 rounded-xl px-4 py-3 focus:border-orange-400 outline-none transition-all bg-amber-50"
-                      placeholder="Flat or unit number"
-                    />
-                  </div>
                 </div>
-              </div>
+              )}
 
               {error && (
                 <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl">
@@ -482,7 +624,7 @@ export default function CheckoutPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full bg-gradient-to-r from-orange-500 to-amber-600 text-white py-4 rounded-xl font-medium hover:shadow-lg transform hover:-translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-gradient-to-r from-orange-500 to-amber-600 text-white py-4 rounded-xl font-medium hover:shadow-lg transform hover:-translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-lg"
               >
                 {submitting ? 'Processing...' : `Place Order - AED ${total.toFixed(2)}`}
               </button>
@@ -493,7 +635,10 @@ export default function CheckoutPage() {
                   💰 Payment method: <span className="font-semibold">Cash on Delivery</span>
                 </p>
                 <p className="text-xs text-amber-500 mt-1">
-                  No online payment required. Pay when you receive your order.
+                  {deliveryOption === 'pickup' 
+                    ? 'Pay when you collect your order from the store.'
+                    : 'No online payment required. Pay when you receive your order.'
+                  }
                 </p>
               </div>
             </form>
@@ -534,14 +679,21 @@ export default function CheckoutPage() {
                   <span>Subtotal</span>
                   <span>AED {subtotal.toFixed(2)}</span>
                 </div>
+                
                 <div className="flex justify-between text-amber-800">
-                  <span>Shipping</span>
-                  <span>{shipping === 0 ? 'FREE' : `AED ${shipping.toFixed(2)}`}</span>
+                  <span>
+                    {deliveryOption === 'pickup' ? 'Store Pickup' : 'Delivery'}
+                  </span>
+                  <span className={shipping === 0 ? 'text-green-600 font-medium' : ''}>
+                    {shipping === 0 ? 'FREE' : `AED ${shipping.toFixed(2)}`}
+                  </span>
                 </div>
-                <div className="flex justify-between text-amber-800">
+                
+                {/* <div className="flex justify-between text-amber-800">
                   <span>Tax (5%)</span>
                   <span>AED {tax.toFixed(2)}</span>
-                </div>
+                </div> */}
+                
                 <div className="border-t border-amber-200 pt-3">
                   <div className="flex justify-between text-lg font-bold text-amber-900">
                     <span>Total</span>
@@ -550,8 +702,8 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              {/* Free shipping notice */}
-              {shipping > 0 && (
+              {/* Delivery Notice */}
+              {deliveryOption === 'delivery' && shipping > 0 && (
                 <div className="mt-3 p-2 bg-amber-50 rounded-lg border border-amber-200">
                   <p className="text-xs text-amber-700 text-center">
                     Add AED {(100 - subtotal).toFixed(2)} more for FREE delivery!
@@ -559,16 +711,38 @@ export default function CheckoutPage() {
                 </div>
               )}
 
+              {/* Pickup Notice */}
+              {deliveryOption === 'pickup' && (
+                <div className="mt-3 p-2 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-xs text-blue-700 text-center">
+                    🎉 Free store pickup selected
+                  </p>
+                </div>
+              )}
+
               {/* Payment Summary */}
               <div className="mt-4 p-4 bg-amber-50 rounded-xl border border-amber-200">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-amber-800">Payment Method:</span>
                   <span className="text-sm font-semibold text-amber-900 bg-amber-100 px-3 py-1 rounded-full">
                     Cash on Delivery
                   </span>
                 </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-amber-800">Delivery Method:</span>
+                  <span className={`text-sm font-semibold px-3 py-1 rounded-full ${
+                    deliveryOption === 'pickup' 
+                      ? 'bg-blue-100 text-blue-800' 
+                      : 'bg-green-100 text-green-800'
+                  }`}>
+                    {deliveryOption === 'pickup' ? 'Store Pickup' : 'Home Delivery'}
+                  </span>
+                </div>
                 <p className="text-xs text-amber-600 mt-2 text-center">
-                  Pay this amount when your order arrives
+                  {deliveryOption === 'pickup' 
+                    ? 'Pay this amount when collecting your order'
+                    : 'Pay this amount when your order arrives'
+                  }
                 </p>
               </div>
             </div>
@@ -579,18 +753,59 @@ export default function CheckoutPage() {
               <div className="space-y-3 text-sm text-amber-700">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
-                    <MapPin className="w-4 h-4 text-orange-600" />
+                    <Truck className="w-4 h-4 text-orange-600" />
                   </div>
-                  Free delivery within Al Ain on orders above AED 100
+                  <div>
+                    <span className="font-semibold">Home Delivery</span>
+                    <p className="text-xs text-amber-600">
+                      AED 7 delivery charge for orders under AED 100 • Free delivery above AED 100
+                    </p>
+                  </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
-                    <span className="text-orange-600 font-bold">💰</span>
+                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                    <Store className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <div>
+                    <span className="font-semibold">Store Pickup</span>
+                    <p className="text-xs text-amber-600">
+                      Always free • Collect from our store in Al Ain
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                    <span className="text-green-600 font-bold text-xs">💰</span>
                   </div>
                   <div>
                     <span className="font-semibold">Cash on Delivery</span>
                     <p className="text-xs text-amber-600">No online payment required</p>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Security Badge */}
+            <div className="bg-white rounded-3xl p-6 shadow-lg">
+              <h4 className="font-bold text-amber-900 mb-3">Secure Shopping</h4>
+              <div className="space-y-2 text-xs text-amber-700">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-blue-600 font-bold text-xs">🔒</span>
+                  </div>
+                  Your order is protected
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-blue-600 font-bold text-xs">🛡️</span>
+                  </div>
+                  Privacy protected
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-green-600 font-bold text-xs">✓</span>
+                  </div>
+                  Quality guaranteed
                 </div>
               </div>
             </div>

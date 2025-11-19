@@ -1,9 +1,9 @@
+// app/api/userside/orders/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '../../../../../lib/neon';
 import { v4 as uuidv4 } from 'uuid';
 import { verifyUserSession } from '../../../../../lib/auth-user';
 import { sendNewOrderNotification } from '../../../../../lib/email';
-
 
 function getCartId(request: NextRequest) {
   return request.cookies.get('cartId')?.value;
@@ -11,7 +11,14 @@ function getCartId(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { customerName, customerEmail, customerPhone, shippingAddress } = await request.json();
+    const { customerName, customerEmail, customerPhone, shippingAddress, deliveryOption } = await request.json();
+    
+    console.log('Received order data:', {
+      customerName,
+      customerPhone,
+      shippingAddress,
+      deliveryOption
+    });
 
     // Get cart ID using the same logic as cart API
     const token = request.cookies.get('userToken')?.value;
@@ -125,11 +132,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create order details with shipping information
+    // Create order details with shipping information INCLUDING DELIVERY OPTION
     await query(
-      `INSERT INTO order_details (order_id, customer_name, customer_phone, shipping_address, status)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [orderId, customerName, customerPhone, shippingAddress, 'pending']
+      `INSERT INTO order_details (order_id, customer_name, customer_phone, shipping_address, status, delivery_option)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [orderId, customerName, customerPhone, shippingAddress, 'pending', deliveryOption || 'delivery']
     );
 
     // Clear cart - handle both user ID and cart ID
@@ -149,9 +156,10 @@ export async function POST(request: NextRequest) {
       total: total,
       status: 'pending',
       customerName,
-      customerEmail, // Include customer email in the data
+      customerEmail,
       customerPhone,
       shippingAddress,
+      deliveryOption: deliveryOption || 'delivery',
       itemCount: cartItems.length
     };
 
@@ -173,7 +181,8 @@ export async function POST(request: NextRequest) {
       orderId,
       total: parseFloat(total.toFixed(2)),
       subtotal: parseFloat(subtotal.toFixed(2)),
-      tax: parseFloat(tax.toFixed(2))
+      tax: parseFloat(tax.toFixed(2)),
+      deliveryOption: deliveryOption || 'delivery'
     });
 
     // Clear cart cookie for guest users
@@ -202,7 +211,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
     }
 
-    // Get orders for the authenticated user only
+    // Get orders for the authenticated user only INCLUDING DELIVERY OPTION
     const ordersResult = await query(`
       SELECT 
         o.id,
@@ -211,7 +220,8 @@ export async function GET(request: NextRequest) {
         o.created_at as "createdAt",
         od.customer_name as "customerName",
         od.customer_phone as "customerPhone",
-        od.shipping_address as "shippingAddress"
+        od.shipping_address as "shippingAddress",
+        od.delivery_option as "deliveryOption"
       FROM orders o
       JOIN order_details od ON o.id = od.order_id
       WHERE o.user_id = $1
@@ -236,6 +246,7 @@ export async function GET(request: NextRequest) {
         return {
           ...order,
           total: parseFloat(order.total),
+          deliveryOption: order.deliveryOption || 'delivery', // Default to delivery if not set
           items: itemsResult.rows.map((item: any) => ({
             ...item,
             price: parseFloat(item.price),

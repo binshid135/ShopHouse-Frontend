@@ -12,20 +12,7 @@ export async function GET(request: NextRequest) {
   try {
     console.log('🔄 Fetching orders from Neon database...');
     
-    // First, let's check if the required tables exist
-    try {
-      const tablesCheck = await query(`
-        SELECT table_name 
-        FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name IN ('orders', 'order_details', 'order_items')
-      `);
-      console.log('📊 Existing tables:', tablesCheck.rows.map((row: any) => row.table_name));
-    } catch (tableError) {
-      console.error('❌ Table check failed:', tableError);
-    }
-
-    // Try a simpler query first to test basic orders data
+    // Enhanced query to include delivery option
     let result;
     try {
       console.log('🔍 Attempting to fetch orders with detailed query...');
@@ -38,7 +25,8 @@ export async function GET(request: NextRequest) {
           od.customer_name as "customerName",
           od.customer_phone as "customerPhone",
           od.shipping_address as "shippingAddress",
-          od.status as "deliveryStatus"
+          od.status as "deliveryStatus",
+          od.delivery_option as "deliveryOption"  -- Add this line
         FROM orders o
         LEFT JOIN order_details od ON o.id = od.order_id
         ORDER BY o.created_at DESC
@@ -89,7 +77,8 @@ export async function GET(request: NextRequest) {
           total: parseFloat(order.total),
           itemCount: itemCountsMap.get(order.id) || 0,
           customerName: order.customerName || 'N/A',
-          deliveryStatus: order.deliveryStatus || order.status
+          deliveryStatus: order.deliveryStatus || order.status,
+          deliveryOption: order.deliveryOption || 'delivery' // Default to delivery
         }));
         
       } catch (countError) {
@@ -100,7 +89,8 @@ export async function GET(request: NextRequest) {
           total: parseFloat(order.total),
           itemCount: 0,
           customerName: order.customerName || 'N/A',
-          deliveryStatus: order.deliveryStatus || order.status
+          deliveryStatus: order.deliveryStatus || order.status,
+          deliveryOption: order.deliveryOption || 'delivery' // Default to delivery
         }));
       }
     } else {
@@ -117,37 +107,5 @@ export async function GET(request: NextRequest) {
     
     // Return empty array as fallback
     return NextResponse.json([], { status: 200 });
-  }
-} 
-
-export async function PUT(request: NextRequest) {
-  const session = await verifyAdminSession();
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-  
-  try {
-    const { orderId, status } = await request.json();
-    
-    console.log(`🔄 Updating order ${orderId} to status: ${status}`);
-    
-    if (!orderId || !status) {
-      return NextResponse.json({ 
-        error: 'orderId and status are required' 
-      }, { status: 400 });
-    }
-
-    // Just update the main orders table - this should definitely work
-    await query(
-      'UPDATE orders SET status = $1 WHERE id = $2',
-      [status, orderId]
-    );
-    
-    console.log(`✅ Order ${orderId} updated to ${status} successfully`);
-    
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('❌ Failed to update order:', error);
-    return NextResponse.json({ error: 'Failed to update order' }, { status: 500 });
   }
 }

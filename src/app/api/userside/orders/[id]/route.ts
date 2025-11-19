@@ -18,7 +18,8 @@ export async function GET(
         od.customer_name as "customerName",
         od.customer_phone as "customerPhone",
         od.shipping_address as "shippingAddress",
-        od.status as "deliveryStatus"
+        od.status as "deliveryStatus",
+        od.delivery_option as "deliveryOption"  // ADD THIS LINE
       FROM orders o
       JOIN order_details od ON o.id = od.order_id
       WHERE o.id = $1
@@ -44,6 +45,7 @@ export async function GET(
     const orderWithItems = {
       ...order,
       total: parseFloat(order.total),
+      deliveryOption: order.deliveryOption || 'delivery', // ADD THIS LINE with default
       items: orderItemsResult.rows.map((item: any) => ({
         ...item,
         price: parseFloat(item.price),

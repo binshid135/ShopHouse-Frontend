@@ -42,14 +42,14 @@ export default function Cart() {
     try {
       setLoading(true);
       setCartError(null);
-      
+
       const authResponse = await fetch('/api/auth/me');
       const authData = await authResponse.json();
-      
+
       if (authData.user) {
         setUser(authData.user);
       }
-      
+
       const cartResponse = await fetch('/api/userside/cart');
       if (cartResponse.ok) {
         const cartData = await cartResponse.json();
@@ -165,10 +165,11 @@ export default function Cart() {
   const proceedToCheckout = () => {
     if (!user) {
       localStorage.setItem('redirectAfterLogin', '/checkout');
+      localStorage.setItem('deliveryOption', deliveryOption);
       router.push('/login');
       return;
     }
-    
+
     const outOfStockItems = cart?.items.filter(item => item.stock <= 0) || [];
     if (outOfStockItems.length > 0) {
       setCartError('Some items in your cart are out of stock. Please remove them before checkout.');
@@ -182,8 +183,9 @@ export default function Cart() {
       setTimeout(() => setCartError(null), 5000);
       return;
     }
-    
+
     if (cart && cart.items.length > 0) {
+      localStorage.setItem('deliveryOption', deliveryOption);
       router.push('/cart/checkout');
     }
   };
@@ -214,7 +216,7 @@ export default function Cart() {
         )
       };
     }
-    
+
     if (item.quantity > item.stock) {
       return {
         status: 'insufficient-stock',
@@ -227,7 +229,7 @@ export default function Cart() {
         )
       };
     }
-    
+
     if (item.stock < 5) {
       return {
         status: 'low-stock',
@@ -240,7 +242,7 @@ export default function Cart() {
         )
       };
     }
-    
+
     return {
       status: 'in-stock',
       message: 'In Stock',
@@ -252,13 +254,13 @@ export default function Cart() {
       )
     };
   };
-
+  const [deliveryOption, setDeliveryOption] = useState<'delivery' | 'pickup'>('delivery');
   const subtotal = cart?.total || 0;
-  const shipping = subtotal > 100 ? 0 : 10;
-  const tax = subtotal * 0.05;
-  const total = Math.max(0, subtotal + shipping + tax - discount);
+  const shipping = deliveryOption === 'pickup' ? 0 : (subtotal > 100 ? 0 : 7);
+  // const tax = subtotal * 0.05;
+  const total = Math.max(0, subtotal + shipping  - discount);
 
-  const hasCartIssues = cart?.items.some(item => 
+  const hasCartIssues = cart?.items.some(item =>
     item.stock <= 0 || item.quantity > item.stock
   );
 
@@ -266,7 +268,7 @@ export default function Cart() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100 overflow-x-hidden">
         <FloatingElements />
-        <Header searchQuery={""} setSearchQuery={() => {}} />
+        <Header searchQuery={""} setSearchQuery={() => { }} />
         <div className="flex items-center justify-center min-h-[60vh] px-4">
           <LoadingSpinner />
         </div>
@@ -277,8 +279,8 @@ export default function Cart() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100 overflow-x-hidden">
       <FloatingElements />
-      <Header searchQuery={""} setSearchQuery={() => {}} />
-      
+      <Header searchQuery={""} setSearchQuery={() => { }} />
+
       {/* Main Container with Safe Area Handling */}
       <div className="w-full max-w-[100vw] px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 lg:py-12 box-border">
         {/* Error Message */}
@@ -287,7 +289,7 @@ export default function Cart() {
             <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-3 rounded-2xl flex items-center gap-2 w-full">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               <p className="font-medium text-sm flex-1 break-words">{cartError}</p>
-              <button 
+              <button
                 onClick={() => setCartError(null)}
                 className="ml-2 text-red-500 hover:text-red-700 transition-colors flex-shrink-0"
               >
@@ -310,7 +312,7 @@ export default function Cart() {
               </span>
             )}
           </div>
-          
+
           {cart && cart.items.length > 0 && (
             <div className="flex items-center gap-2">
               {!user && (
@@ -338,7 +340,7 @@ export default function Cart() {
                 <p className="text-xs">Create an account to save your cart and view order history.</p>
               </div>
               <div className="flex gap-2 mt-2 sm:mt-0">
-                <button 
+                <button
                   onClick={() => {
                     localStorage.setItem('redirectAfterLogin', '/cart');
                     router.push('/login');
@@ -348,7 +350,7 @@ export default function Cart() {
                   <LogIn className="w-3 h-3" />
                   Sign In
                 </button>
-                <button 
+                <button
                   onClick={() => {
                     localStorage.setItem('redirectAfterLogin', '/cart');
                     router.push('/signup');
@@ -372,7 +374,7 @@ export default function Cart() {
                 <ShoppingCart className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                 <h3 className="text-xl font-bold text-amber-900 mb-2">Your cart is empty</h3>
                 <p className="text-amber-700 mb-4 text-sm">Add some delicious kitchen tools to get started!</p>
-                <button 
+                <button
                   onClick={() => router.push('/products')}
                   className="bg-gradient-to-r from-orange-500 to-amber-600 text-white px-6 py-3 rounded-full font-medium hover:shadow-lg transition-all text-sm w-full sm:w-auto"
                 >
@@ -385,17 +387,16 @@ export default function Cart() {
                 const stockStatus = getStockStatus(item);
                 const isOutOfStock = item.stock <= 0;
                 const hasInsufficientStock = item.quantity > item.stock;
-                
+
                 return (
-                  <div key={item.id} className={`bg-white rounded-2xl p-4 shadow-lg transition-all w-full ${
-                    isOutOfStock ? 'opacity-60' : 'hover:shadow-xl'
-                  }`}>
+                  <div key={item.id} className={`bg-white rounded-2xl p-4 shadow-lg transition-all w-full ${isOutOfStock ? 'opacity-60' : 'hover:shadow-xl'
+                    }`}>
                     <div className="flex gap-3">
                       {/* Product Image */}
                       <div className="w-16 h-16 bg-gradient-to-br from-orange-100 to-amber-100 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden">
                         {item.images && item.images.length > 0 ? (
-                          <img 
-                            src={item.images[0]} 
+                          <img
+                            src={item.images[0]}
                             alt={item.name}
                             className="w-full h-full object-contain"
                           />
@@ -403,20 +404,20 @@ export default function Cart() {
                           <div className="text-xl">{productEmoji}</div>
                         )}
                       </div>
-                      
+
                       {/* Product Details */}
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-start mb-2 gap-2">
                           <div className="flex-1 min-w-0">
                             <h3 className="text-base font-bold text-amber-900 mb-1 line-clamp-2 break-words">{item.name}</h3>
                             <span className="text-orange-600 font-medium text-sm">AED {item.price.toFixed(2)} each</span>
-                            
+
                             {/* Stock Status Badge */}
                             <div className="mt-2">
                               {stockStatus.badge}
                             </div>
                           </div>
-                          <button 
+                          <button
                             onClick={() => removeItem(item.id)}
                             className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0 ml-1"
                           >
@@ -427,41 +428,36 @@ export default function Cart() {
                         {/* Quantity and Price */}
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-3">
                           <div className="flex items-center gap-2">
-                            <div className={`flex items-center gap-2 rounded-full px-3 py-2 ${
-                              isOutOfStock ? 'bg-gray-100' : 'bg-amber-50'
-                            }`}>
-                              <button 
+                            <div className={`flex items-center gap-2 rounded-full px-3 py-2 ${isOutOfStock ? 'bg-gray-100' : 'bg-amber-50'
+                              }`}>
+                              <button
                                 onClick={() => updateQuantity(item.id, item.quantity - 1, item.stock, item.name)}
                                 disabled={isOutOfStock}
-                                className={`w-5 h-5 rounded-full flex items-center justify-center transition-colors ${
-                                  isOutOfStock 
-                                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
-                                    : 'bg-white hover:bg-gray-100'
-                                }`}
+                                className={`w-5 h-5 rounded-full flex items-center justify-center transition-colors ${isOutOfStock
+                                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                  : 'bg-white hover:bg-gray-100'
+                                  }`}
                               >
                                 <Minus className="w-3 h-3" />
                               </button>
-                              <span className={`font-bold w-6 text-center text-sm ${
-                                isOutOfStock ? 'text-gray-400' : 'text-amber-900'
-                              }`}>
+                              <span className={`font-bold w-6 text-center text-sm ${isOutOfStock ? 'text-gray-400' : 'text-amber-900'
+                                }`}>
                                 {item.quantity}
                               </span>
-                              <button 
+                              <button
                                 onClick={() => updateQuantity(item.id, item.quantity + 1, item.stock, item.name)}
                                 disabled={isOutOfStock || item.quantity >= item.stock}
-                                className={`w-5 h-5 rounded-full flex items-center justify-center transition-colors ${
-                                  isOutOfStock || item.quantity >= item.stock
-                                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
-                                    : 'bg-white hover:bg-gray-100'
-                                }`}
+                                className={`w-5 h-5 rounded-full flex items-center justify-center transition-colors ${isOutOfStock || item.quantity >= item.stock
+                                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                  : 'bg-white hover:bg-gray-100'
+                                  }`}
                               >
                                 <Plus className="w-3 h-3" />
                               </button>
                             </div>
                           </div>
-                          <span className={`text-lg font-bold ${
-                            isOutOfStock ? 'text-gray-400' : 'text-amber-900'
-                          }`}>
+                          <span className={`text-lg font-bold ${isOutOfStock ? 'text-gray-400' : 'text-amber-900'
+                            }`}>
                             AED {(item.price * item.quantity).toFixed(2)}
                           </span>
                         </div>
@@ -474,7 +470,7 @@ export default function Cart() {
                             </p>
                           </div>
                         )}
-                        
+
                         {hasInsufficientStock && !isOutOfStock && (
                           <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded-xl text-xs">
                             <p className="text-yellow-700 font-medium">
@@ -494,7 +490,7 @@ export default function Cart() {
           <div className="space-y-4 w-full">
             <div className="bg-white rounded-2xl p-4 shadow-lg">
               <h3 className="text-lg font-bold text-amber-900 mb-4">Order Summary</h3>
-              
+
               {/* User Status */}
               {user ? (
                 <div className="bg-green-50 border border-green-200 text-green-700 px-3 py-2 rounded-xl mb-3 text-xs">
@@ -511,7 +507,7 @@ export default function Cart() {
                   </div>
                 </div>
               )}
-              
+
               {/* Cart Issues Warning */}
               {hasCartIssues && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-xl mb-3">
@@ -521,7 +517,7 @@ export default function Cart() {
                   </div>
                 </div>
               )}
-              
+
               {/* Coupon Section */}
               <div className="mb-4">
                 <div className="flex flex-col gap-2 mb-2">
@@ -537,7 +533,7 @@ export default function Cart() {
                     }}
                     className="flex-1 px-3 py-2 border-2 border-amber-200 rounded-full focus:border-orange-400 outline-none transition-all text-sm"
                   />
-                  <button 
+                  <button
                     onClick={applyCoupon}
                     className="bg-gradient-to-r from-orange-500 to-amber-600 text-white px-3 py-2 rounded-full hover:shadow-lg transition-all flex items-center gap-1 justify-center text-sm"
                   >
@@ -546,11 +542,10 @@ export default function Cart() {
                   </button>
                 </div>
                 {couponMessage && (
-                  <p className={`text-xs ${
-                    couponMessage.includes('Invalid') || couponMessage.includes('Error') 
-                      ? 'text-red-500' 
-                      : 'text-green-500'
-                  }`}>
+                  <p className={`text-xs ${couponMessage.includes('Invalid') || couponMessage.includes('Error')
+                    ? 'text-red-500'
+                    : 'text-green-500'
+                    }`}>
                     {couponMessage}
                   </p>
                 )}
@@ -566,10 +561,10 @@ export default function Cart() {
                   <span>Delivery charge</span>
                   <span>{shipping === 0 ? 'FREE' : `AED ${shipping.toFixed(2)}`}</span>
                 </div>
-                <div className="flex justify-between text-amber-800 text-sm">
+                {/* <div className="flex justify-between text-amber-800 text-sm">
                   <span>Tax (5%)</span>
                   <span>AED {tax.toFixed(2)}</span>
-                </div>
+                </div> */}
                 {discount > 0 && (
                   <div className="flex justify-between text-green-600 text-sm">
                     <span>Discount</span>
@@ -584,7 +579,70 @@ export default function Cart() {
                 </div>
               </div>
 
-              <button 
+
+              {/* Delivery Option */}
+              <div className="bg-white rounded-2xl p-4 shadow-lg mb-4">
+                <h3 className="text-lg font-bold text-amber-900 mb-3">Delivery Option</h3>
+
+                <div className="space-y-3">
+                  <label className="flex items-center gap-3 p-3 border-2 border-amber-200 rounded-xl cursor-pointer hover:bg-amber-50 transition-colors">
+                    <input
+                      type="radio"
+                      name="deliveryOption"
+                      value="delivery"
+                      checked={deliveryOption === 'delivery'}
+                      onChange={() => setDeliveryOption('delivery')}
+                      className="text-orange-500 focus:ring-orange-500"
+                    />
+                    <div className="flex-1">
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium text-amber-900">Home Delivery</span>
+                        {/* <span className={`text-sm ${shipping === 0 ? 'text-green-600' : 'text-amber-700'}`}>
+                          {shipping === 0 ? 'FREE' : `AED ${shipping.toFixed(2)}`}
+                        </span> */}
+                      </div>
+                      <p className="text-xs text-amber-600 mt-1">
+                        {subtotal < 100 ? `Add AED ${(100 - subtotal).toFixed(2)} more for FREE delivery` : 'Free delivery applied'}
+                      </p>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center gap-3 p-3 border-2 border-amber-200 rounded-xl cursor-pointer hover:bg-amber-50 transition-colors">
+                    <input
+                      type="radio"
+                      name="deliveryOption"
+                      value="pickup"
+                      checked={deliveryOption === 'pickup'}
+                      onChange={() => setDeliveryOption('pickup')}
+                      className="text-orange-500 focus:ring-orange-500"
+                    />
+                    <div className="flex-1">
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium text-amber-900">Pickup from Store</span>
+                        <span className="text-green-600 text-sm">FREE</span>
+                      </div>
+                      <p className="text-xs text-amber-600 mt-1">
+                        Collect your order from our store in Al Ain
+                      </p>
+                    </div>
+                  </label>
+                </div>
+
+                {/* Store Address */}
+                {deliveryOption === 'pickup' && (
+                  <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <p className="text-sm font-medium text-amber-900">Store Address:</p>
+                    <p className="text-xs text-amber-700 mt-1">
+                      Shop House General trading, ALAIN TOWN CENTER, NEAR LUCKY PLAZA
+                    </p>
+                    <p className="text-xs text-amber-600 mt-1">
+                      📞 Contact: +971 50 719 1804
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <button
                 onClick={proceedToCheckout}
                 disabled={!cart || cart.items.length === 0 || hasCartIssues}
                 className="w-full bg-gradient-to-r from-orange-500 to-amber-600 text-white py-3 rounded-full font-medium hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm mb-2"
@@ -659,7 +717,7 @@ export default function Cart() {
                       <span className="text-orange-600 font-bold text-xs">💡</span>
                     </div>
                     <span className="text-orange-600 text-xs">
-                      <button 
+                      <button
                         onClick={() => router.push('/signup')}
                         className="underline hover:no-underline"
                       >

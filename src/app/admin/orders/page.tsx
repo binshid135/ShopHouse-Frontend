@@ -1,6 +1,7 @@
+// app/components/admin/AdminOrdersPage.tsx (Updated)
 "use client";
 import { useEffect, useState } from 'react';
-import { Eye, Search, Filter, RefreshCw, Package, Truck, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Eye, Search, Filter, RefreshCw, Package, Truck, CheckCircle, XCircle, Clock, Store, Home } from 'lucide-react';
 import LoadingSpinner from '@/app/components/LoadingSpinner';
 
 interface Order {
@@ -12,6 +13,7 @@ interface Order {
   customerPhone: string;
   shippingAddress: string;
   deliveryStatus: string;
+  deliveryOption: 'delivery' | 'pickup'; // Add delivery option
   itemCount: number;
 }
 
@@ -30,6 +32,7 @@ export default function AdminOrdersPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [deliveryFilter, setDeliveryFilter] = useState('all'); // Add delivery filter
   const [selectedOrder, setSelectedOrder] = useState<OrderDetail | null>(null);
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
@@ -42,6 +45,12 @@ export default function AdminOrdersPage() {
     { value: 'out_for_delivery', label: 'Out for Delivery', color: 'yellow' },
     { value: 'delivered', label: 'Delivered', color: 'green' },
     { value: 'cancelled', label: 'Cancelled', color: 'red' },
+  ];
+
+  const deliveryOptions = [
+    { value: 'all', label: 'All Types', icon: Package },
+    { value: 'delivery', label: 'Home Delivery', icon: Home },
+    { value: 'pickup', label: 'Store Pickup', icon: Store },
   ];
 
   useEffect(() => {
@@ -133,6 +142,20 @@ export default function AdminOrdersPage() {
     }
   };
 
+  const getDeliveryIcon = (option: 'delivery' | 'pickup') => {
+    return option === 'pickup' ? <Store className="w-4 h-4" /> : <Truck className="w-4 h-4" />;
+  };
+
+  const getDeliveryColor = (option: 'delivery' | 'pickup') => {
+    return option === 'pickup' 
+      ? 'bg-blue-100 text-blue-800 border-blue-200' 
+      : 'bg-green-100 text-green-800 border-green-200';
+  };
+
+  const getDeliveryLabel = (option: 'delivery' | 'pickup') => {
+    return option === 'pickup' ? 'Store Pickup' : 'Home Delivery';
+  };
+
   const filteredOrders = orders.filter(order => {
     const matchesSearch = 
       order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -141,8 +164,9 @@ export default function AdminOrdersPage() {
       order.shippingAddress.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
+    const matchesDelivery = deliveryFilter === 'all' || order.deliveryOption === deliveryFilter;
     
-    return matchesSearch && matchesStatus;
+    return matchesSearch && matchesStatus && matchesDelivery;
   });
 
   const formatDate = (dateString: string) => {
@@ -161,6 +185,15 @@ export default function AdminOrdersPage() {
       <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(status)} flex items-center gap-1 w-fit`}>
         {getStatusIcon(status)}
         {statusConfig?.label || status}
+      </span>
+    );
+  };
+
+  const getDeliveryBadge = (option: 'delivery' | 'pickup') => {
+    return (
+      <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getDeliveryColor(option)} flex items-center gap-1 w-fit`}>
+        {getDeliveryIcon(option)}
+        {getDeliveryLabel(option)}
       </span>
     );
   };
@@ -192,7 +225,7 @@ export default function AdminOrdersPage() {
 
       {/* Filters and Search */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
@@ -212,6 +245,21 @@ export default function AdminOrdersPage() {
               className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none"
             >
               {statusOptions.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <Package className="w-4 h-4 text-gray-400" />
+            <select
+              value={deliveryFilter}
+              onChange={(e) => setDeliveryFilter(e.target.value)}
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none"
+            >
+              {deliveryOptions.map(option => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
@@ -242,6 +290,9 @@ export default function AdminOrdersPage() {
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Amount
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Delivery Type
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
@@ -282,8 +333,11 @@ export default function AdminOrdersPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">
-                      ${order.total.toFixed(2)}
+                      AED {order.total.toFixed(2)}
                     </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    {getDeliveryBadge(order.deliveryOption)}
                   </td>
                   <td className="px-6 py-4">
                     {getStatusBadge(order.status)}
@@ -342,6 +396,7 @@ export default function AdminOrdersPage() {
                     <p><strong>Name:</strong> {selectedOrder.customerName}</p>
                     <p><strong>Phone:</strong> {selectedOrder.customerPhone}</p>
                     <p><strong>Address:</strong> {selectedOrder.shippingAddress}</p>
+                    <p><strong>Delivery Type:</strong> {getDeliveryBadge(selectedOrder.deliveryOption)}</p>
                   </div>
                 </div>
 
@@ -400,9 +455,9 @@ export default function AdminOrdersPage() {
                       </div>
                       <div className="text-right">
                         <p className="font-medium text-gray-900">
-                          ${(item.price * item.quantity).toFixed(2)}
+                          AED {(item.price * item.quantity).toFixed(2)}
                         </p>
-                        <p className="text-gray-600">${item.price.toFixed(2)} each</p>
+                        <p className="text-gray-600">AED {item.price.toFixed(2)} each</p>
                       </div>
                     </div>
                   ))}
@@ -413,7 +468,7 @@ export default function AdminOrdersPage() {
               <div className="border-t border-gray-200 pt-4">
                 <div className="flex justify-between items-center text-lg font-semibold">
                   <span>Total Amount:</span>
-                  <span>${selectedOrder.total.toFixed(2)}</span>
+                  <span>AED {selectedOrder.total.toFixed(2)}</span>
                 </div>
               </div>
             </div>

@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Package, Truck, CheckCircle, Clock, Star, ArrowRight, RefreshCw, LogIn, UserPlus } from 'lucide-react';
+import { Package, Truck, CheckCircle, Clock, Star, ArrowRight, RefreshCw, LogIn, UserPlus, MapPin } from 'lucide-react';
 import FloatingElements from '../components/FloatingElements';
 import Header from '../components/Header';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -25,6 +25,7 @@ interface Order {
   shippingAddress: string;
   items: OrderItem[];
   deliveryStatus?: string;
+  deliveryOption?: 'delivery' | 'pickup'; // Add delivery option
 }
 
 export default function Orders() {
@@ -44,6 +45,15 @@ export default function Orders() {
     { key: 'delivered' as const, label: 'Delivered' },
     { key: 'cancelled' as const, label: 'Cancelled' },
   ];
+
+  // Store location information
+  const storeLocation = {
+    name: "Shop House General Trading",
+    address: "Central District, Al Ain, UAE",
+    coordinates: "https://maps.app.goo.gl/jGW3mBkYN4oUXA9z8",
+    phone: "+971 50 719 1804",
+    hours: "8:00 AM - 12:00 AM (Daily)"
+  };
 
   useEffect(() => {
     checkAuthAndFetchOrders();
@@ -81,6 +91,11 @@ export default function Orders() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleViewLocation = () => {
+    // Open Google Maps with store location
+    window.open(storeLocation.coordinates, '_blank');
   };
 
   const filteredOrders = activeTab === 'all' 
@@ -140,6 +155,20 @@ export default function Orders() {
       default:
         return status;
     }
+  };
+
+  const getDeliveryBadge = (order: Order) => {
+    const isPickup = order.deliveryOption === 'pickup';
+    return (
+      <span className={`px-3 py-1 rounded-full text-sm font-medium border flex items-center gap-2 ${
+        isPickup 
+          ? 'bg-blue-100 text-blue-600 border-blue-200' 
+          : 'bg-green-100 text-green-600 border-green-200'
+      }`}>
+        {isPickup ? <MapPin className="w-4 h-4" /> : <Truck className="w-4 h-4" />}
+        {isPickup ? 'Store Pickup' : 'Home Delivery'}
+      </span>
+    );
   };
 
   const formatDate = (dateString: string) => {
@@ -260,12 +289,14 @@ export default function Orders() {
             {/* Orders List */}
             <div className="space-y-6">
               {filteredOrders.map((order) => {
+                const isPickupOrder = order.deliveryOption === 'pickup';
+                
                 return (
                   <div key={order.id} className="bg-white rounded-3xl p-6 shadow-lg hover:shadow-xl transition-all">
                     {/* Order Header */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-6 border-b border-amber-200">
-                      <div>
-                        <div className="flex items-center gap-3 mb-2">
+                      <div className="flex-1">
+                        <div className="flex flex-wrap items-center gap-3 mb-2">
                           <h3 className="text-xl font-bold text-amber-900">
                             Order #{order.id.slice(-8).toUpperCase()}
                           </h3>
@@ -273,10 +304,21 @@ export default function Orders() {
                             {getStatusIcon(order.status)}
                             {getStatusDisplayText(order.status)}
                           </span>
+                          {getDeliveryBadge(order)}
                         </div>
                         <p className="text-amber-700">Placed on {formatDate(order.createdAt)}</p>
                         <p className="text-sm text-amber-600 mt-1">
-                          Deliver to: {order.shippingAddress}
+                          {isPickupOrder ? (
+                            <span className="flex items-center gap-1">
+                              <MapPin className="w-4 h-4" />
+                              <strong>Pickup from:</strong> {storeLocation.name}
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1">
+                              <Truck className="w-4 h-4" />
+                              <strong>Deliver to:</strong> {order.shippingAddress}
+                            </span>
+                          )}
                         </p>
                       </div>
                       <div className="text-right">
@@ -327,25 +369,40 @@ export default function Orders() {
                     {/* Order Actions */}
                     <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
                       <div className="space-y-2">
-                        {/* <p className="text-sm text-amber-700">
-                          Contact: {order.customerPhone}
-                        </p> */}
-                        {order.status === 'out_for_delivery' && (
+                        {isPickupOrder && order.status === 'preparing' && (
+                          <p className="text-sm text-purple-600 font-medium flex items-center gap-2">
+                            <Package className="w-4 h-4" />
+                            Your order is being prepared for pickup
+                          </p>
+                        )}
+                        {isPickupOrder && order.status === 'confirmed' && (
+                          <p className="text-sm text-blue-600 font-medium flex items-center gap-2">
+                            <CheckCircle className="w-4 h-4" />
+                            Order confirmed - Ready for pickup soon
+                          </p>
+                        )}
+                        {isPickupOrder && order.status === 'out_for_delivery' && (
+                          <p className="text-sm text-green-600 font-medium flex items-center gap-2">
+                            <Truck className="w-4 h-4" />
+                            Order ready for pickup at store
+                          </p>
+                        )}
+                        {!isPickupOrder && order.status === 'out_for_delivery' && (
                           <p className="text-sm text-blue-600 font-medium">
                             🚚 Your order is out for delivery
                           </p>
                         )}
-                        {order.status === 'preparing' && (
+                        {!isPickupOrder && order.status === 'preparing' && (
                           <p className="text-sm text-purple-600 font-medium">
                             👨‍🍳 Your order is being prepared
                           </p>
                         )}
-                        {order.status === 'confirmed' && (
+                        {!isPickupOrder && order.status === 'confirmed' && (
                           <p className="text-sm text-amber-600 font-medium">
                             ✅ Order confirmed
                           </p>
                         )}
-                        {order.status === 'pending' && (
+                        {!isPickupOrder && order.status === 'pending' && (
                           <p className="text-sm text-orange-600 font-medium">
                             ⏳ Order received, processing soon
                           </p>
@@ -353,19 +410,21 @@ export default function Orders() {
                       </div>
                       
                       <div className="flex gap-3">
+                        {isPickupOrder && (
+                          <button
+                            onClick={handleViewLocation}
+                            className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-full hover:bg-blue-600 transition-colors"
+                          >
+                            <MapPin className="w-4 h-4" />
+                            View Location
+                          </button>
+                        )}
                         {order.status === 'delivered' && (
                           <button className="flex items-center gap-2 text-orange-600 hover:text-orange-700 transition-colors">
                             <Star className="w-4 h-4" />
                             Rate Products
                           </button>
                         )}
-                        {/* <button 
-                          onClick={() => router.push(`/orders/${order.id}`)}
-                          className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-amber-600 text-white px-6 py-2 rounded-full hover:shadow-lg transition-all"
-                        >
-                          View Details
-                          <ArrowRight className="w-4 h-4" />
-                        </button> */}
                       </div>
                     </div>
                   </div>
@@ -399,8 +458,9 @@ export default function Orders() {
                 <ul className="space-y-1">
                   <li>• <strong>Pending:</strong> Order received, awaiting confirmation</li>
                   <li>• <strong>Confirmed:</strong> Order confirmed, preparing for processing</li>
-                  <li>• <strong>Preparing:</strong> Items are being prepared for delivery</li>
+                  <li>• <strong>Preparing:</strong> Items are being prepared</li>
                   <li>• <strong>Out for Delivery:</strong> Order is on its way to you</li>
+                  <li>• <strong>Ready for Pickup:</strong> Order is ready at store</li>
                   <li>• <strong>Delivered:</strong> Order has been delivered</li>
                   <li>• <strong>Cancelled:</strong> Order has been cancelled</li>
                 </ul>
@@ -408,11 +468,14 @@ export default function Orders() {
               <div>
                 <p className="font-semibold mb-2">Contact Support:</p>
                 <p>For any questions about your order, contact us at:</p>
-                <p className="font-mono mt-1">📞 +971 50 719 1804</p>
+                <p className="font-mono mt-1">📞 {storeLocation.phone}</p>
                 <p className="font-mono">📧 shophouse@gmail.com</p>
-                <p className="text-xs mt-2 text-amber-600">
-                  Reference your order ID when contacting support
-                </p>
+                <div className="mt-3">
+                  <p className="font-semibold">Store Location:</p>
+                  <p className="font-mono text-sm">{storeLocation.name}</p>
+                  <p className="font-mono text-sm">{storeLocation.address}</p>
+                  <p className="font-mono text-sm">🕒 {storeLocation.hours}</p>
+                </div>
               </div>
             </div>
           </div>

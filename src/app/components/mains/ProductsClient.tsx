@@ -1,8 +1,8 @@
 // app/products/ProductsClient.tsx
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Filter, Grid, List, Star, ShoppingCart, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Filter, Grid, List, Star, ShoppingCart, X, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
 import FloatingElements from '../FloatingElements';
 import Header from '../Header';
 import Footer from '../Footer';
@@ -37,10 +37,14 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [currentImageIndexes, setCurrentImageIndexes] = useState<{ [key: string]: number }>({});
+  const [visibleCategoriesStart, setVisibleCategoriesStart] = useState(0);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(16);
+
+  const categoriesContainerRef = useRef<HTMLDivElement>(null);
+  const [visibleCategoriesCount, setVisibleCategoriesCount] = useState(8); // Default number of visible categories
 
   // Initialize image indexes
   useEffect(() => {
@@ -55,6 +59,22 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, selectedCategory]);
+
+  // Calculate visible categories count based on container width
+  useEffect(() => {
+    const updateVisibleCategoriesCount = () => {
+      if (categoriesContainerRef.current) {
+        const containerWidth = categoriesContainerRef.current.offsetWidth;
+        // Approximate calculation: each category button is about 120px wide + gap
+        const count = Math.floor(containerWidth / 130);
+        setVisibleCategoriesCount(Math.max(4, count)); // Minimum 4 categories visible
+      }
+    };
+
+    updateVisibleCategoriesCount();
+    window.addEventListener('resize', updateVisibleCategoriesCount);
+    return () => window.removeEventListener('resize', updateVisibleCategoriesCount);
+  }, []);
 
   const handleAddToCart = async (productId: string, event: React.MouseEvent) => {
     event.stopPropagation();
@@ -110,6 +130,19 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
       ...prev,
       [productId]: (prev[productId] - 1 + product.images.length) % product.images.length
     }));
+  };
+
+  // Category navigation
+  const nextCategories = () => {
+    if (visibleCategoriesStart + visibleCategoriesCount < categories.length) {
+      setVisibleCategoriesStart(prev => prev + 1);
+    }
+  };
+
+  const prevCategories = () => {
+    if (visibleCategoriesStart > 0) {
+      setVisibleCategoriesStart(prev => prev - 1);
+    }
   };
 
   // Filter products based on search query and category
@@ -314,13 +347,19 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
     );
   };
 
+  // Get visible categories
+  const visibleCategories = categories.slice(
+    visibleCategoriesStart, 
+    visibleCategoriesStart + visibleCategoriesCount
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100 overflow-hidden">
       <FloatingElements />
       <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
 
       {/* Hero Section */}
-      <section className="relative px-6 py-16">
+      <section className="relative px-6 py-8">
         <div className="max-w-7xl mx-auto text-center">
           <h1 className="text-5xl md:text-6xl font-bold text-amber-900 mb-6">
             Our <span className="text-orange-600">Premium</span> Collection
@@ -332,7 +371,7 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
       </section>
 
       {/* Products Section */}
-      <section className="px-6 py-12">
+      <section className="px-6 py-3">
         <div className="max-w-7xl mx-auto">
           {/* Controls */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
@@ -344,7 +383,7 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
                   placeholder="Search products..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full px-6 py-3 rounded-full border border-amber-200 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white text-amber-900 placeholder-amber-400 shadow-sm"
+                  className="w-full px-6 py-3 rounded-full border border-amber-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white text-amber-900 placeholder-amber-900 shadow-sm"
                 />
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                   <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
@@ -396,9 +435,6 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
                             selectedCategory === category ? 'bg-orange-50 text-orange-600' : 'text-amber-700'
                           }`}
                         >
-                          <span className="text-lg">
-                            {category === 'All' ? '📦' : getCategoryIcon(category)}
-                          </span>
                           <span className="font-medium">
                             {category === 'All' ? 'All Categories' : category}
                           </span>
@@ -489,12 +525,23 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
             )}
           </div>
 
-          {/* Category Quick Filters */}
+          {/* Category Quick Filters with Arrow Navigation */}
           {categories.length > 1 && (
             <div className="mb-8">
-              <div className="flex items-center gap-2 overflow-x-auto pb-4 scrollbar-hide">
-                <div className="flex gap-2">
-                  {categories.map((category) => (
+              <div ref={categoriesContainerRef} className="flex items-center gap-2">
+                {/* Previous Button */}
+                {visibleCategoriesStart > 0 && (
+                  <button
+                    onClick={prevCategories}
+                    className="flex items-center justify-center w-10 h-10 bg-white border border-amber-200 rounded-full hover:border-orange-300 hover:shadow-sm transition-all text-amber-700"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                )}
+
+                {/* Visible Categories */}
+                <div className="flex gap-2 flex-1 justify-center">
+                  {visibleCategories.map((category) => (
                     <button
                       key={category}
                       onClick={() => setSelectedCategory(category)}
@@ -504,16 +551,40 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
                           : 'bg-white text-amber-700 border border-amber-200 hover:border-orange-300 hover:shadow-sm'
                       }`}
                     >
-                      <span className="text-sm">
-                        {category === 'All' ? '📦' : getCategoryIcon(category)}
-                      </span>
                       <span className="font-medium text-sm">
                         {category === 'All' ? 'All' : category}
                       </span>
                     </button>
                   ))}
                 </div>
+
+                {/* Next Button */}
+                {visibleCategoriesStart + visibleCategoriesCount < categories.length && (
+                  <button
+                    onClick={nextCategories}
+                    className="flex items-center justify-center w-10 h-10 bg-white border border-amber-200 rounded-full hover:border-orange-300 hover:shadow-sm transition-all text-amber-700"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                )}
               </div>
+
+              {/* Category Navigation Dots */}
+              {categories.length > visibleCategoriesCount && (
+                <div className="flex justify-center gap-1 mt-3">
+                  {Array.from({ length: Math.ceil(categories.length / visibleCategoriesCount) }).map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setVisibleCategoriesStart(index * visibleCategoriesCount)}
+                      className={`w-2 h-2 rounded-full transition-all ${
+                        index === Math.floor(visibleCategoriesStart / visibleCategoriesCount)
+                          ? 'bg-orange-500'
+                          : 'bg-amber-200'
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
