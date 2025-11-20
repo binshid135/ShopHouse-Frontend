@@ -81,9 +81,14 @@ const FeaturedProduct: React.FC<FeaturedProductProps> = ({ mostRecommendedProduc
     );
   }
 
-  const discountPercentage = mostRecommendedProduct.originalPrice > 0 
-    ? Math.round(((mostRecommendedProduct.originalPrice - mostRecommendedProduct.discountedPrice) / mostRecommendedProduct.originalPrice) * 100)
-    : 0;
+  const discountPercentage =
+    mostRecommendedProduct.originalPrice > 0
+      ? Math.round(
+          ((mostRecommendedProduct.originalPrice - mostRecommendedProduct.discountedPrice) /
+            mostRecommendedProduct.originalPrice) *
+            100
+        )
+      : 0;
 
   const handleClick = () => {
     onProductClick(mostRecommendedProduct.id);
@@ -91,33 +96,56 @@ const FeaturedProduct: React.FC<FeaturedProductProps> = ({ mostRecommendedProduc
 
   return (
     <div className="relative group">
-      <div 
-        className="relative bg-gradient-to-br from-orange-100 via-amber-100 to-orange-200 rounded-full w-full aspect-square flex items-center justify-center shadow-xl p-8 cursor-pointer transform hover:scale-105 transition-transform duration-300"
+      <div
+        className="relative bg-gradient-to-br from-orange-100 via-amber-100 to-orange-200 rounded-full 
+        w-full aspect-square flex items-center justify-center shadow-xl p-8 cursor-pointer 
+        transform hover:scale-105 transition-transform duration-300"
         onClick={handleClick}
       >
         {/* Product Name Tag */}
-        <div className="absolute -top-4 right-8 bg-white px-6 py-3 rounded-full shadow-lg">
-          <span className="text-sm font-semibold text-amber-900">
+        <div className="
+          absolute -top-3 right-4 md:right-8 
+          bg-white px-4 md:px-6 py-2 md:py-3 rounded-full shadow-lg z-20
+        ">
+          <span className="text-xs md:text-sm font-semibold text-amber-900">
             {mostRecommendedProduct.name}
           </span>
         </div>
 
-        {/* Best Seller & Mega Deal Tags Inside Circle */}
-        <div className="absolute flex flex-col gap-2 top-6 left-6">
-          <span className="bg-yellow-400 text-white font-bold text-sm px-4 py-2 rounded-full shadow-lg transform rotate-[-15deg]">
-            Best Seller
+        {/* Best Seller & Mega Deal Tags */}
+        <div className="
+          absolute flex flex-col gap-1 md:gap-2 
+          top-4 left-3 md:top-6 md:left-6 z-20
+        ">
+          <span
+            className="
+              bg-yellow-400 text-white font-bold 
+              text-[10px] md:text-sm px-2 py-1 md:px-4 md:py-2 rounded-full shadow-lg
+              transform rotate-[-8deg] md:rotate-[-15deg]
+              border border-yellow-300 drop-shadow-md
+            "
+          >
+            ⭐ Best Seller
           </span>
-          <span className="bg-red-500 text-white font-bold text-sm px-4 py-2 rounded-full shadow-lg transform rotate-[10deg]">
-            Mega Deal
+
+          <span
+            className="
+              bg-red-500 text-white font-bold 
+              text-[10px] md:text-sm px-2 py-1 md:px-4 md:py-2 rounded-full shadow-lg
+              transform rotate-[6deg] md:rotate-[10deg]
+              border border-red-400 drop-shadow-md
+            "
+          >
+            🔥 Mega Deal
           </span>
         </div>
 
         {/* Product Image */}
-        <div className="relative w-4/5 h-4/5 flex items-center justify-center">
-          {mostRecommendedProduct.images && mostRecommendedProduct.images.length > 0 ? (
-            <Image 
-              src={mostRecommendedProduct.images[0]} 
-              alt={mostRecommendedProduct.name} 
+        <div className="relative w-4/5 h-4/5 flex items-center justify-center z-10">
+          {mostRecommendedProduct.images?.length ? (
+            <Image
+              src={mostRecommendedProduct.images[0]}
+              alt={mostRecommendedProduct.name}
               fill
               sizes="(max-width: 768px) 80vw, 40vw"
               className="object-contain rounded-full"
@@ -131,7 +159,10 @@ const FeaturedProduct: React.FC<FeaturedProductProps> = ({ mostRecommendedProduc
         </div>
 
         {/* Price */}
-        <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 bg-white px-6 py-3 rounded-full shadow-lg flex items-center gap-2">
+        <div className="
+          absolute -bottom-4 left-1/2 transform -translate-x-1/2 
+          bg-white px-6 py-3 rounded-full shadow-lg flex items-center gap-2 z-20
+        ">
           {mostRecommendedProduct.originalPrice > mostRecommendedProduct.discountedPrice && (
             <span className="text-sm text-gray-500 line-through">
               AED {mostRecommendedProduct.originalPrice.toFixed(2)}
@@ -140,6 +171,7 @@ const FeaturedProduct: React.FC<FeaturedProductProps> = ({ mostRecommendedProduc
           <span className="text-2xl font-bold text-amber-900">
             AED {mostRecommendedProduct.discountedPrice.toFixed(2)}
           </span>
+
           {discountPercentage > 0 && (
             <span className="text-xs bg-red-500 text-white px-2 py-1 rounded-full">
               {discountPercentage}% OFF
@@ -148,18 +180,26 @@ const FeaturedProduct: React.FC<FeaturedProductProps> = ({ mostRecommendedProduc
         </div>
 
         {/* Rating */}
-        <div className="absolute top-8 right-4 bg-white px-4 py-2 rounded-xl shadow-lg flex items-center gap-2">
-          <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
-          <span className="font-bold text-amber-900">4.9</span>
+        <div className="
+          absolute top-4 right-3 md:top-8 md:right-4 
+          bg-white px-3 md:px-4 py-1.5 md:py-2 rounded-xl shadow-lg 
+          flex items-center gap-1.5 md:gap-2 z-20
+        ">
+          <Star className="w-4 h-4 md:w-5 md:h-5 text-yellow-500 fill-yellow-500" />
+          <span className="font-bold text-amber-900 text-sm md:text-base">4.9</span>
         </div>
 
         {/* Click Hint */}
-        <div className="absolute bottom-8 right-8 bg-black/70 text-white px-3 py-2 rounded-lg text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <div className="
+          absolute bottom-8 right-6 bg-black/70 text-white px-3 py-2 
+          rounded-lg text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300
+        ">
           Click to view details
         </div>
       </div>
     </div>
   );
 };
+
 
 export default HeroSection;

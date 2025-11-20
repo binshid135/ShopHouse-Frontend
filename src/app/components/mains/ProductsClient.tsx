@@ -38,7 +38,8 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [currentImageIndexes, setCurrentImageIndexes] = useState<{ [key: string]: number }>({});
   const [visibleCategoriesStart, setVisibleCategoriesStart] = useState(0);
-  
+  const [isNavigating, setIsNavigating] = useState(false);
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(16);
@@ -87,10 +88,10 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
         alert('This product is out of stock');
         return;
       }
-      
+
       // Use the cart context to add item
       const result = await addToCart(productId, 1);
-      
+
       if (result.success) {
         setAddedProductIds((prev) => [...prev, productId]);
         setTimeout(() => {
@@ -106,6 +107,7 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
   };
 
   const navigateToProduct = (productId: string) => {
+    setIsNavigating(true);
     router.push(`/products/${productId}`);
   };
 
@@ -237,6 +239,11 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
     }
   };
 
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+
   // Pagination component
   const Pagination = () => {
     if (totalPages <= 1) return null;
@@ -271,6 +278,18 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
       return rangeWithDots;
     };
 
+    // Add loading overlay
+    {
+      isNavigating && (
+        <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-white rounded-3xl p-8 shadow-2xl flex flex-col items-center gap-4">
+            <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-amber-900 font-medium">Loading product...</p>
+          </div>
+        </div>
+      )
+    }
+
     return (
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-12 pt-8 border-t border-amber-200">
         {/* Items per page selector */}
@@ -301,13 +320,15 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
         <div className="flex items-center gap-2">
           {/* Previous button */}
           <button
-            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            onClick={() => {
+              setCurrentPage(prev => Math.max(prev - 1, 1));
+              scrollToTop();
+            }}
             disabled={currentPage === 1}
-            className={`p-2 rounded-lg border border-amber-200 transition-all ${
-              currentPage === 1
-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : 'bg-white text-amber-700 hover:bg-orange-50 hover:border-orange-300'
-            }`}
+            className={`p-2 rounded-lg border border-amber-200 transition-all ${currentPage === 1
+              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              : 'bg-white text-amber-700 hover:bg-orange-50 hover:border-orange-300'
+              }`}
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
@@ -316,14 +337,18 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
           {getPageNumbers().map((page, index) => (
             <button
               key={index}
-              onClick={() => typeof page === 'number' && setCurrentPage(page)}
-              className={`min-w-[40px] px-3 py-2 rounded-lg border transition-all ${
-                page === currentPage
-                  ? 'bg-orange-500 text-white border-orange-500 shadow-sm'
-                  : page === '...'
+              onClick={() => {
+                if (typeof page === 'number') {
+                  setCurrentPage(page);
+                  scrollToTop();
+                }
+              }}
+              className={`min-w-[40px] px-3 py-2 rounded-lg border transition-all ${page === currentPage
+                ? 'bg-orange-500 text-white border-orange-500 shadow-sm'
+                : page === '...'
                   ? 'bg-white border-amber-200 text-amber-700 cursor-default'
                   : 'bg-white border-amber-200 text-amber-700 hover:bg-orange-50 hover:border-orange-300'
-              }`}
+                }`}
               disabled={page === '...'}
             >
               {page}
@@ -332,13 +357,15 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
 
           {/* Next button */}
           <button
-            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+            onClick={() => {
+              setCurrentPage(prev => Math.min(prev + 1, totalPages));
+              scrollToTop();
+            }}
             disabled={currentPage === totalPages}
-            className={`p-2 rounded-lg border border-amber-200 transition-all ${
-              currentPage === totalPages
-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : 'bg-white text-amber-700 hover:bg-orange-50 hover:border-orange-300'
-            }`}
+            className={`p-2 rounded-lg border border-amber-200 transition-all ${currentPage === totalPages
+              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              : 'bg-white text-amber-700 hover:bg-orange-50 hover:border-orange-300'
+              }`}
           >
             <ChevronRight className="w-4 h-4" />
           </button>
@@ -349,7 +376,7 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
 
   // Get visible categories
   const visibleCategories = categories.slice(
-    visibleCategoriesStart, 
+    visibleCategoriesStart,
     visibleCategoriesStart + visibleCategoriesCount
   );
 
@@ -431,9 +458,8 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
                             setSelectedCategory(category);
                             setShowCategoryDropdown(false);
                           }}
-                          className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-all hover:bg-orange-50 ${
-                            selectedCategory === category ? 'bg-orange-50 text-orange-600' : 'text-amber-700'
-                          }`}
+                          className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-all hover:bg-orange-50 ${selectedCategory === category ? 'bg-orange-50 text-orange-600' : 'text-amber-700'
+                            }`}
                         >
                           <span className="font-medium">
                             {category === 'All' ? 'All Categories' : category}
@@ -452,21 +478,19 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
               <div className="flex bg-white rounded-full p-1 border border-amber-200">
                 <button
                   onClick={() => setViewMode('grid')}
-                  className={`p-2 rounded-full transition-all ${
-                    viewMode === 'grid'
-                      ? 'bg-orange-500 text-white shadow-sm'
-                      : 'text-amber-900 hover:bg-amber-50'
-                  }`}
+                  className={`p-2 rounded-full transition-all ${viewMode === 'grid'
+                    ? 'bg-orange-500 text-white shadow-sm'
+                    : 'text-amber-900 hover:bg-amber-50'
+                    }`}
                 >
                   <Grid className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setViewMode('list')}
-                  className={`p-2 rounded-full transition-all ${
-                    viewMode === 'list'
-                      ? 'bg-orange-500 text-white shadow-sm'
-                      : 'text-amber-900 hover:bg-amber-50'
-                  }`}
+                  className={`p-2 rounded-full transition-all ${viewMode === 'list'
+                    ? 'bg-orange-500 text-white shadow-sm'
+                    : 'text-amber-900 hover:bg-amber-50'
+                    }`}
                 >
                   <List className="w-4 h-4" />
                 </button>
@@ -528,8 +552,9 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
           {/* Category Quick Filters with Arrow Navigation */}
           {categories.length > 1 && (
             <div className="mb-8">
-              <div ref={categoriesContainerRef} className="flex items-center gap-2">
-                {/* Previous Button */}
+              <div className="flex items-center gap-2">
+
+                {/* Prev Button */}
                 {visibleCategoriesStart > 0 && (
                   <button
                     onClick={prevCategories}
@@ -539,17 +564,19 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
                   </button>
                 )}
 
-                {/* Visible Categories */}
-                <div className="flex gap-2 flex-1 justify-center">
+                {/* Scrollable category list */}
+                <div
+                  ref={categoriesContainerRef}
+                  className="flex gap-2 overflow-x-auto no-scrollbar flex-1"
+                >
                   {visibleCategories.map((category) => (
                     <button
                       key={category}
                       onClick={() => setSelectedCategory(category)}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-all ${
-                        selectedCategory === category
-                          ? 'bg-orange-500 text-white shadow-md'
-                          : 'bg-white text-amber-700 border border-amber-200 hover:border-orange-300 hover:shadow-sm'
-                      }`}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-all ${selectedCategory === category
+                        ? 'bg-orange-500 text-white shadow-md'
+                        : 'bg-white text-amber-700 border border-amber-200 hover:border-orange-300 hover:shadow-sm'
+                        }`}
                     >
                       <span className="font-medium text-sm">
                         {category === 'All' ? 'All' : category}
@@ -569,6 +596,7 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
                 )}
               </div>
 
+
               {/* Category Navigation Dots */}
               {categories.length > visibleCategoriesCount && (
                 <div className="flex justify-center gap-1 mt-3">
@@ -576,11 +604,10 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
                     <button
                       key={index}
                       onClick={() => setVisibleCategoriesStart(index * visibleCategoriesCount)}
-                      className={`w-2 h-2 rounded-full transition-all ${
-                        index === Math.floor(visibleCategoriesStart / visibleCategoriesCount)
-                          ? 'bg-orange-500'
-                          : 'bg-amber-200'
-                      }`}
+                      className={`w-2 h-2 rounded-full transition-all ${index === Math.floor(visibleCategoriesStart / visibleCategoriesCount)
+                        ? 'bg-orange-500'
+                        : 'bg-amber-200'
+                        }`}
                     />
                   ))}
                 </div>
@@ -614,11 +641,10 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
             </div>
           ) : (
             <>
-              <div className={`grid gap-6 ${
-                viewMode === 'grid'
-                  ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
-                  : 'grid-cols-1'
-              }`}>
+              <div className={`grid gap-6 ${viewMode === 'grid'
+                ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+                : 'grid-cols-1'
+                }`}>
                 {currentProducts.map((product) => {
                   const discountPercentage = getDiscountPercentage(product.originalPrice, product.discountedPrice);
                   const productEmoji = getProductEmoji(product);
@@ -632,17 +658,15 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
                     <div
                       key={product.id}
                       onClick={() => !isOutOfStock && navigateToProduct(product.id)}
-                      className={`bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transform transition-all duration-300 cursor-pointer ${
-                        isOutOfStock
-                          ? 'opacity-60 cursor-not-allowed'
-                          : 'hover:-translate-y-2'
-                      } ${viewMode === 'list' ? 'flex' : ''}`}
+                      className={`bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transform transition-all duration-300 cursor-pointer ${isOutOfStock
+                        ? 'opacity-60 cursor-not-allowed'
+                        : 'hover:-translate-y-2'
+                        } ${viewMode === 'list' ? 'flex' : ''}`}
                     >
-                      <div className={`${
-                        viewMode === 'list'
-                          ? 'w-48 h-64 flex-shrink-0'
-                          : 'h-64'
-                      } bg-white flex items-center justify-center relative group p-2`}>
+                      <div className={`${viewMode === 'list'
+                        ? 'w-48 h-64 flex-shrink-0'
+                        : 'h-64'
+                        } bg-white flex items-center justify-center relative group p-2`}>
                         {/* Product Image or Slideshow */}
                         {product.images && product.images.length > 0 ? (
                           <>
@@ -683,11 +707,10 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
                                         [product.id]: index
                                       }));
                                     }}
-                                    className={`w-2 h-2 rounded-full transition-all ${
-                                      index === currentImageIndex
-                                        ? 'bg-orange-500'
-                                        : 'bg-white/80 hover:bg-white'
-                                    }`}
+                                    className={`w-2 h-2 rounded-full transition-all ${index === currentImageIndex
+                                      ? 'bg-orange-500'
+                                      : 'bg-white/80 hover:bg-white'
+                                      }`}
                                   />
                                 ))}
                               </div>
@@ -715,17 +738,16 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
                       <div className={`p-6 ${viewMode === 'list' ? 'flex-1 flex flex-col justify-between' : ''}`}>
                         <div>
                           <div className="flex items-center gap-2 mb-2">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              productTag === 'Out of Stock'
-                                ? 'bg-red-100 text-red-600'
-                                : productTag === 'Low Stock'
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${productTag === 'Out of Stock'
+                              ? 'bg-red-100 text-red-600'
+                              : productTag === 'Low Stock'
                                 ? 'bg-yellow-100 text-yellow-600'
                                 : productTag === 'Sale'
-                                ? 'bg-red-100 text-red-600'
-                                : productTag === 'Discount'
-                                ? 'bg-green-100 text-green-600'
-                                : 'bg-blue-100 text-blue-600'
-                            }`}>
+                                  ? 'bg-red-100 text-red-600'
+                                  : productTag === 'Discount'
+                                    ? 'bg-green-100 text-green-600'
+                                    : 'bg-blue-100 text-blue-600'
+                              }`}>
                               {productTag}
                             </span>
                             {discountPercentage > 0 && productTag !== 'Out of Stock' && (
@@ -745,7 +767,7 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
                             </div>
                           )}
 
-                          <h3 className="text-xl font-bold text-amber-900 mb-2">{product.name}</h3>
+                          <h3 className="text-xl font-bold text-amber-900 mb-2 line-clamp-2">{product.name}</h3>
                           {product.shortDescription && (
                             <p className="text-amber-700 text-sm mb-3 line-clamp-2">
                               {product.shortDescription}
@@ -779,13 +801,12 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
                               }
                             }}
                             disabled={isOutOfStock}
-                            className={`p-3 rounded-full transition-all transform ${
-                              isOutOfStock
-                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                : addedProductIds.includes(product.id)
+                            className={`p-3 rounded-full transition-all transform ${isOutOfStock
+                              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                              : addedProductIds.includes(product.id)
                                 ? 'bg-green-500 text-white shadow-lg hover:scale-110'
                                 : 'bg-gradient-to-r from-orange-500 to-amber-600 text-white hover:shadow-lg hover:scale-110'
-                            }`}
+                              }`}
                           >
                             {isOutOfStock ? 'Out of Stock' :
                               addedProductIds.includes(product.id) ? '✓ Added' : <ShoppingCart className="w-5 h-5" />}

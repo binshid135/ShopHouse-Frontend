@@ -246,7 +246,7 @@ export async function GET(request: NextRequest) {
         return {
           ...order,
           total: parseFloat(order.total),
-          deliveryOption: order.deliveryOption || 'delivery', // Default to delivery if not set
+          deliveryOption: order.deliveryOption || 'delivery', 
           items: itemsResult.rows.map((item: any) => ({
             ...item,
             price: parseFloat(item.price),
