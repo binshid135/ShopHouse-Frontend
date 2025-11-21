@@ -95,27 +95,28 @@ const FeaturedProduct: React.FC<FeaturedProductProps> = ({ mostRecommendedProduc
   };
 
   return (
-    <div className="relative group">
+    <div className="relative group" style={{ zIndex: 1 }}> {/* Added lower z-index here */}
       <div
         className="relative bg-gradient-to-br from-orange-100 via-amber-100 to-orange-200 rounded-full 
         w-full aspect-square flex items-center justify-center shadow-xl p-8 cursor-pointer 
         transform hover:scale-105 transition-transform duration-300"
         onClick={handleClick}
+        style={{ zIndex: 1 }}
       >
-        {/* Product Name Tag */}
+        {/* Product Name Tag - Reduced z-index */}
         <div className="
           absolute -top-3 right-4 md:right-8 
-          bg-white px-4 md:px-6 py-2 md:py-3 rounded-full shadow-lg z-20
+          bg-white px-4 md:px-6 py-2 md:py-3 rounded-full shadow-lg z-10
         ">
           <span className="text-xs md:text-sm font-semibold text-amber-900">
             {mostRecommendedProduct.name}
           </span>
         </div>
 
-        {/* Best Seller & Mega Deal Tags */}
+        {/* Best Seller & Mega Deal Tags - Reduced z-index */}
         <div className="
           absolute flex flex-col gap-1 md:gap-2 
-          top-4 left-3 md:top-6 md:left-6 z-20
+          top-4 left-3 md:top-6 md:left-6 z-10
         ">
           <span
             className="
@@ -141,7 +142,7 @@ const FeaturedProduct: React.FC<FeaturedProductProps> = ({ mostRecommendedProduc
         </div>
 
         {/* Product Image */}
-        <div className="relative w-4/5 h-4/5 flex items-center justify-center z-10">
+        <div className="relative w-4/5 h-4/5 flex items-center justify-center">
           {mostRecommendedProduct.images?.length ? (
             <Image
               src={mostRecommendedProduct.images[0]}
@@ -158,10 +159,10 @@ const FeaturedProduct: React.FC<FeaturedProductProps> = ({ mostRecommendedProduc
           )}
         </div>
 
-        {/* Price */}
+        {/* Price - Reduced z-index */}
         <div className="
           absolute -bottom-4 left-1/2 transform -translate-x-1/2 
-          bg-white px-6 py-3 rounded-full shadow-lg flex items-center gap-2 z-20
+          bg-white px-6 py-3 rounded-full shadow-lg flex items-center gap-2 z-10
         ">
           {mostRecommendedProduct.originalPrice > mostRecommendedProduct.discountedPrice && (
             <span className="text-sm text-gray-500 line-through">
@@ -179,20 +180,20 @@ const FeaturedProduct: React.FC<FeaturedProductProps> = ({ mostRecommendedProduc
           )}
         </div>
 
-        {/* Rating */}
+        {/* Rating - Reduced z-index */}
         <div className="
           absolute top-4 right-3 md:top-8 md:right-4 
           bg-white px-3 md:px-4 py-1.5 md:py-2 rounded-xl shadow-lg 
-          flex items-center gap-1.5 md:gap-2 z-20
+          flex items-center gap-1.5 md:gap-2 z-10
         ">
           <Star className="w-4 h-4 md:w-5 md:h-5 text-yellow-500 fill-yellow-500" />
           <span className="font-bold text-amber-900 text-sm md:text-base">4.9</span>
         </div>
 
-        {/* Click Hint */}
+        {/* Click Hint - Reduced z-index */}
         <div className="
           absolute bottom-8 right-6 bg-black/70 text-white px-3 py-2 
-          rounded-lg text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300
+          rounded-lg text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10
         ">
           Click to view details
         </div>
