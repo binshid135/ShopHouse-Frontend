@@ -72,11 +72,15 @@ export default function DashboardPage() {
         throw new Error('Failed to fetch orders');
       }
 
-      // Safely calculate total revenue
+      // Safely calculate total revenue - ONLY FROM COMPLETED ORDERS
       const totalRevenue = Array.isArray(orders) 
         ? orders.reduce((sum: number, order: Order) => {
-            const orderTotal = typeof order.total === 'number' ? order.total : parseFloat(order.total) || 0;
-            return sum + orderTotal;
+            // Only include orders with "completed" status
+            if (order.status?.toLowerCase() === 'completed') {
+              const orderTotal = typeof order.total === 'number' ? order.total : parseFloat(order.total) || 0;
+              return sum + orderTotal;
+            }
+            return sum;
           }, 0)
         : 0;
 
@@ -105,7 +109,6 @@ export default function DashboardPage() {
     }
   };
 
-  // ... rest of your component code remains the same
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
       case 'delivered':
@@ -210,6 +213,7 @@ export default function DashboardPage() {
               <p className="text-3xl font-bold text-gray-800">
                 AED {(stats?.totalRevenue || 0).toFixed(2)}
               </p>
+              <p className="text-xs text-gray-500 mt-1">Completed orders only</p>
             </div>
           </div>
         </div>
@@ -279,19 +283,6 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
-
-      {/* Refresh Button */}
-      {/* <div className="mt-6 flex justify-end">
-        <button
-          onClick={fetchDashboardData}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-        >
-          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-          Refresh Data
-        </button>
-      </div> */}
     </div>
   );
 }
