@@ -1,0 +1,18 @@
+User-agent: *
+Allow: /
+
+# Block unnecessary Next.js build directories
+Disallow: /_next/
+Disallow: /__nextjs_original-stack-frame/
+Disallow: /private/
+Disallow: /admin/
+
+# Block API routes from being indexed
+Disallow: /api/
+
+# Allow static files
+Allow: /images/
+Allow: /assets/
+
+# Correct sitemap
+Sitemap: https://shophousealain.com/api/sitemap
