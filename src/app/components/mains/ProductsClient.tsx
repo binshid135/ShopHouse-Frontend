@@ -1,6 +1,7 @@
 // app/products/ProductsClient.tsx
 "use client";
 import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Filter, Grid, List, Star, ShoppingCart, X, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
 import FloatingElements from '../FloatingElements';
@@ -38,7 +39,6 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [currentImageIndexes, setCurrentImageIndexes] = useState<{ [key: string]: number }>({});
   const [visibleCategoriesStart, setVisibleCategoriesStart] = useState(0);
-  const [isNavigating, setIsNavigating] = useState(false);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -79,6 +79,7 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
 
   const handleAddToCart = async (productId: string, event: React.MouseEvent) => {
     event.stopPropagation();
+    event.preventDefault(); // Prevent navigation when clicking add to cart
 
     try {
       const product = products.find(p => p.id === productId);
@@ -106,14 +107,10 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
     }
   };
 
-  const navigateToProduct = (productId: string) => {
-    setIsNavigating(true);
-    router.push(`/products/${productId}`);
-  };
-
   // Image carousel navigation
   const nextImage = (productId: string, event: React.MouseEvent) => {
     event.stopPropagation();
+    event.preventDefault();
     const product = products.find(p => p.id === productId);
     if (!product || product.images.length <= 1) return;
 
@@ -125,6 +122,7 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
 
   const prevImage = (productId: string, event: React.MouseEvent) => {
     event.stopPropagation();
+    event.preventDefault();
     const product = products.find(p => p.id === productId);
     if (!product || product.images.length <= 1) return;
 
@@ -243,7 +241,6 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-
   // Pagination component
   const Pagination = () => {
     if (totalPages <= 1) return null;
@@ -277,18 +274,6 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
 
       return rangeWithDots;
     };
-
-    // Add loading overlay
-    {
-      isNavigating && (
-        <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-50 flex items-center justify-center">
-          <div className="bg-white rounded-3xl p-8 shadow-2xl flex flex-col items-center gap-4">
-            <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-amber-900 font-medium">Loading product...</p>
-          </div>
-        </div>
-      )
-    }
 
     return (
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-12 pt-8 border-t border-amber-200">
@@ -596,7 +581,6 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
                 )}
               </div>
 
-
               {/* Category Navigation Dots */}
               {categories.length > visibleCategoriesCount && (
                 <div className="flex justify-center gap-1 mt-3">
@@ -657,161 +641,169 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
                   return (
                     <div
                       key={product.id}
-                      onClick={() => !isOutOfStock && navigateToProduct(product.id)}
-                      className={`bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transform transition-all duration-300 cursor-pointer ${isOutOfStock
-                        ? 'opacity-60 cursor-not-allowed'
-                        : 'hover:-translate-y-2'
+                      className={`bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transform transition-all duration-300 ${isOutOfStock
+                        ? 'opacity-60'
+                        : 'hover:-translate-y-2 cursor-pointer'
                         } ${viewMode === 'list' ? 'flex' : ''}`}
                     >
-                      <div className={`${viewMode === 'list'
-                        ? 'w-48 h-64 flex-shrink-0'
-                        : 'h-64'
-                        } bg-white flex items-center justify-center relative group p-2`}>
-                        {/* Product Image or Slideshow */}
-                        {product.images && product.images.length > 0 ? (
-                          <>
-                            <img
-                              src={product.images[currentImageIndex]}
-                              alt={product.name}
-                              className="w-full h-full object-scale-down transition-opacity duration-300 rounded-xl"
-                            />
+                      <Link 
+                        href={isOutOfStock ? '#' : `/products/${product.id}`}
+                        className={`block ${viewMode === 'list' ? 'flex-1' : ''} ${isOutOfStock ? 'pointer-events-none' : ''}`}
+                      >
+                        <div className={`${viewMode === 'list'
+                          ? 'w-48 h-64 flex-shrink-0'
+                          : 'h-64'
+                          } bg-white flex items-center justify-center relative group p-2`}>
+                          {/* Product Image or Slideshow */}
+                          {product.images && product.images.length > 0 ? (
+                            <>
+                              <img
+                                src={product.images[currentImageIndex]}
+                                alt={product.name}
+                                className="w-full h-full object-scale-down transition-opacity duration-300 rounded-xl"
+                              />
 
-                            {/* Navigation Arrows for Multiple Images */}
-                            {hasMultipleImages && (
-                              <>
-                                <button
-                                  onClick={(e) => prevImage(product.id, e)}
-                                  className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white text-amber-900 rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md"
-                                >
-                                  <ChevronLeft className="w-4 h-4" />
-                                </button>
-                                <button
-                                  onClick={(e) => nextImage(product.id, e)}
-                                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white text-amber-900 rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md"
-                                >
-                                  <ChevronRight className="w-4 h-4" />
-                                </button>
-                              </>
-                            )}
-
-                            {/* Image Dots Indicator */}
-                            {hasMultipleImages && (
-                              <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 flex gap-1.5">
-                                {product.images.map((_, index) => (
+                              {/* Navigation Arrows for Multiple Images */}
+                              {hasMultipleImages && (
+                                <>
                                   <button
-                                    key={index}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setCurrentImageIndexes(prev => ({
-                                        ...prev,
-                                        [product.id]: index
-                                      }));
-                                    }}
-                                    className={`w-2 h-2 rounded-full transition-all ${index === currentImageIndex
-                                      ? 'bg-orange-500'
-                                      : 'bg-white/80 hover:bg-white'
-                                      }`}
-                                  />
-                                ))}
-                              </div>
-                            )}
+                                    onClick={(e) => prevImage(product.id, e)}
+                                    className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white text-amber-900 rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md"
+                                  >
+                                    <ChevronLeft className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => nextImage(product.id, e)}
+                                    className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white text-amber-900 rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md"
+                                  >
+                                    <ChevronRight className="w-4 h-4" />
+                                  </button>
+                                </>
+                              )}
 
-                            {/* Image Counter */}
-                            {hasMultipleImages && (
-                              <div className="absolute top-3 left-3 bg-black/50 text-white text-xs px-2 py-1 rounded-full">
-                                {currentImageIndex + 1} / {product.images.length}
-                              </div>
-                            )}
-                          </>
-                        ) : (
-                          <div className="text-6xl">{productEmoji}</div>
-                        )}
+                              {/* Image Dots Indicator */}
+                              {hasMultipleImages && (
+                                <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 flex gap-1.5">
+                                  {product.images.map((_, index) => (
+                                    <button
+                                      key={index}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        e.preventDefault();
+                                        setCurrentImageIndexes(prev => ({
+                                          ...prev,
+                                          [product.id]: index
+                                        }));
+                                      }}
+                                      className={`w-2 h-2 rounded-full transition-all ${index === currentImageIndex
+                                        ? 'bg-orange-500'
+                                        : 'bg-white/80 hover:bg-white'
+                                        }`}
+                                    />
+                                  ))}
+                                </div>
+                              )}
 
-                        {/* Top Right Discount Badge */}
-                        {discountPercentage > 0 && (
-                          <div className="absolute top-3 right-3 bg-red-500 text-white px-2 py-1 rounded-full text-sm font-bold">
-                            -{discountPercentage}%
-                          </div>
-                        )}
-                      </div>
-
-                      <div className={`p-6 ${viewMode === 'list' ? 'flex-1 flex flex-col justify-between' : ''}`}>
-                        <div>
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${productTag === 'Out of Stock'
-                              ? 'bg-red-100 text-red-600'
-                              : productTag === 'Low Stock'
-                                ? 'bg-yellow-100 text-yellow-600'
-                                : productTag === 'Sale'
-                                  ? 'bg-red-100 text-red-600'
-                                  : productTag === 'Discount'
-                                    ? 'bg-green-100 text-green-600'
-                                    : 'bg-blue-100 text-blue-600'
-                              }`}>
-                              {productTag}
-                            </span>
-                            {discountPercentage > 0 && productTag !== 'Out of Stock' && (
-                              <span className="px-2 py-1 bg-red-100 text-red-600 rounded-full text-xs font-medium">
-                                Save AED {(product.originalPrice - product.discountedPrice).toFixed(2)}
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Category Badge */}
-                          {product.category && product.category !== 'Uncategorized' && (
-                            <div className="mb-2">
-                              <span className="inline-flex items-center gap-1 px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
-                                <span>{getCategoryIcon(product.category)}</span>
-                                {product.category}
-                              </span>
-                            </div>
+                              {/* Image Counter */}
+                              {hasMultipleImages && (
+                                <div className="absolute top-3 left-3 bg-black/50 text-white text-xs px-2 py-1 rounded-full">
+                                  {currentImageIndex + 1} / {product.images.length}
+                                </div>
+                              )}
+                            </>
+                          ) : (
+                            <div className="text-6xl">{productEmoji}</div>
                           )}
 
-                          <h3 className="text-xl font-bold text-amber-900 mb-2 line-clamp-2">{product.name}</h3>
-                          {product.shortDescription && (
-                            <p className="text-amber-700 text-sm mb-3 line-clamp-2">
-                              {product.shortDescription}
-                            </p>
-                          )}
-
-                          {/* Stock Status */}
-                          {stockBadge && (
-                            <div className="mb-3">
-                              {stockBadge}
+                          {/* Top Right Discount Badge */}
+                          {discountPercentage > 0 && (
+                            <div className="absolute top-3 right-3 bg-red-500 text-white px-2 py-1 rounded-full text-sm font-bold">
+                              -{discountPercentage}%
                             </div>
                           )}
                         </div>
 
-                        <div className="flex items-center justify-between">
-                          <div className="flex flex-col">
-                            <span className="text-2xl font-bold text-amber-900">
-                              AED {product.discountedPrice.toFixed(2)}
-                            </span>
-                            {product.originalPrice > product.discountedPrice && (
-                              <span className="text-sm text-gray-500 line-through">
-                                AED {product.originalPrice.toFixed(2)}
+                        <div className={`p-6 ${viewMode === 'list' ? 'flex-1 flex flex-col justify-between' : ''}`}>
+                          <div>
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${productTag === 'Out of Stock'
+                                ? 'bg-red-100 text-red-600'
+                                : productTag === 'Low Stock'
+                                  ? 'bg-yellow-100 text-yellow-600'
+                                  : productTag === 'Sale'
+                                    ? 'bg-red-100 text-red-600'
+                                    : productTag === 'Discount'
+                                      ? 'bg-green-100 text-green-600'
+                                      : 'bg-blue-100 text-blue-600'
+                                }`}>
+                                {productTag}
                               </span>
+                              {discountPercentage > 0 && productTag !== 'Out of Stock' && (
+                                <span className="px-2 py-1 bg-red-100 text-red-600 rounded-full text-xs font-medium">
+                                  Save AED {(product.originalPrice - product.discountedPrice).toFixed(2)}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Category Badge */}
+                            {product.category && product.category !== 'Uncategorized' && (
+                              <div className="mb-2">
+                                <span className="inline-flex items-center gap-1 px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
+                                  <span>{getCategoryIcon(product.category)}</span>
+                                  {product.category}
+                                </span>
+                              </div>
+                            )}
+
+                            <h3 className="text-xl font-bold text-amber-900 mb-2 line-clamp-2">{product.name}</h3>
+                            {product.shortDescription && (
+                              <p className="text-amber-700 text-sm mb-3 line-clamp-2">
+                                {product.shortDescription}
+                              </p>
+                            )}
+
+                            {/* Stock Status */}
+                            {stockBadge && (
+                              <div className="mb-3">
+                                {stockBadge}
+                              </div>
                             )}
                           </div>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (!isOutOfStock) {
-                                handleAddToCart(product.id, e);
-                              }
-                            }}
-                            disabled={isOutOfStock}
-                            className={`p-3 rounded-full transition-all transform ${isOutOfStock
-                              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                              : addedProductIds.includes(product.id)
-                                ? 'bg-green-500 text-white shadow-lg hover:scale-110'
-                                : 'bg-gradient-to-r from-orange-500 to-amber-600 text-white hover:shadow-lg hover:scale-110'
-                              }`}
-                          >
-                            {isOutOfStock ? 'Out of Stock' :
-                              addedProductIds.includes(product.id) ? '✓ Added' : <ShoppingCart className="w-5 h-5" />}
-                          </button>
+
+                          <div className="flex items-center justify-between">
+                            <div className="flex flex-col">
+                              <span className="text-2xl font-bold text-amber-900">
+                                AED {product.discountedPrice.toFixed(2)}
+                              </span>
+                              {product.originalPrice > product.discountedPrice && (
+                                <span className="text-sm text-gray-500 line-through">
+                                  AED {product.originalPrice.toFixed(2)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </div>
+                      </Link>
+                      
+                      {/* Add to Cart Button - Outside Link to prevent navigation */}
+                      <div className="p-6 pt-0">
+                        <button
+                          onClick={(e) => {
+                            if (!isOutOfStock) {
+                              handleAddToCart(product.id, e);
+                            }
+                          }}
+                          disabled={isOutOfStock}
+                          className={`w-full p-3 rounded-full transition-all transform ${isOutOfStock
+                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            : addedProductIds.includes(product.id)
+                              ? 'bg-green-500 text-white shadow-lg hover:scale-105'
+                              : 'bg-gradient-to-r from-orange-500 to-amber-600 text-white hover:shadow-lg hover:scale-105'
+                            }`}
+                        >
+                          {isOutOfStock ? 'Out of Stock' :
+                            addedProductIds.includes(product.id) ? '✓ Added to Cart' : 'Add to Cart'}
+                        </button>
                       </div>
                     </div>
                   );
