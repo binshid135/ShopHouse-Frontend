@@ -1,21 +1,4 @@
 User-agent: *
 Allow: /
 
-# Explicitly allow sitemap access
-Allow: /api/sitemap
-
-# Block unnecessary Next.js build directories
-Disallow: /_next/
-Disallow: /__nextjs_original-stack-frame/
-Disallow: /private/
-Disallow: /admin/
-
-# Block API routes except sitemap
-Disallow: /api/
-
-# Allow static files
-Allow: /images/
-Allow: /assets/
-
-# Sitemap location
 Sitemap: https://shophousealain.com/api/sitemap
