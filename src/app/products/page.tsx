@@ -17,32 +17,91 @@ interface Product {
   updatedAt: string;
 }
 
-export const revalidate = 60; // 24 hours
+export const revalidate = 86400; // 24 hours
 
-// ---------- CACHED PRODUCTS ----------
+// ---------- RELIABLE CACHED PRODUCTS ----------
 const getProductsCached = unstable_cache(
   async () => {
-    const result = await query(`
-      SELECT * FROM products 
-      ORDER BY created_at DESC
-    `);
+    console.log('🔄 [CACHE] Fresh products fetch from database started');
+    
+    try {
+      // First, get the total count for verification
+      const countResult = await query('SELECT COUNT(*) as total FROM products');
+      const expectedCount = parseInt(countResult.rows[0]?.total || '0');
+      console.log(`📊 [CACHE] Database has ${expectedCount} total products`);
 
-    return result.rows.map((product: any) => ({
-      id: product.id,
-      name: product.name,
-      shortDescription: product.short_description,
-      originalPrice: parseFloat(product.original_price),
-      discountedPrice: parseFloat(product.discounted_price),
-      images: Array.isArray(product.images) ? product.images : [],
-      category: product.category || 'Uncategorized',
-      stock: parseInt(product.stock),
-      createdAt: product.created_at,
-      updatedAt: product.updated_at,
-    }));
+      // Fetch all products with detailed logging
+      const result = await query(`
+        SELECT * FROM products 
+        ORDER BY created_at DESC
+      `);
+
+      const actualCount = result.rows.length;
+      console.log(`📦 [CACHE] Query returned ${actualCount} products`);
+
+      // Verify data integrity
+      if (expectedCount !== actualCount) {
+        console.error(`🚨 [CACHE] DATA MISMATCH: Expected ${expectedCount}, got ${actualCount}`);
+        
+        // Try one more time with a simpler query
+        console.log('🔄 [CACHE] Retrying with simple query...');
+        const retryResult = await query('SELECT id, name FROM products ORDER BY created_at DESC');
+        console.log(`🔄 [CACHE] Retry got ${retryResult.rows.length} products`);
+        
+        // Use retry data if it matches expected count
+        if (retryResult.rows.length === expectedCount) {
+          console.log('✅ [CACHE] Retry successful, using retry data');
+          const fullProducts = await query('SELECT * FROM products ORDER BY created_at DESC');
+          return fullProducts.rows.map((product: any) => mapProduct(product));
+        }
+      }
+
+      if (actualCount === 0) {
+        console.warn('⚠️ [CACHE] No products found in database');
+        return [];
+      }
+
+      console.log(`✅ [CACHE] Successfully cached ${actualCount} products`);
+      
+      return result.rows.map((product: any) => mapProduct(product));
+      
+    } catch (error) {
+      console.error('❌ [CACHE] Failed to fetch products:', error);
+      
+      // Fallback: try direct query without any transformations
+      try {
+        console.log('🔄 [CACHE] Attempting fallback query...');
+        const fallbackResult = await query('SELECT * FROM products ORDER BY created_at DESC');
+        console.log(`🔄 [CACHE] Fallback got ${fallbackResult.rows.length} products`);
+        return fallbackResult.rows.map((product: any) => mapProduct(product));
+      } catch (fallbackError) {
+        console.error('❌ [CACHE] Fallback also failed:', fallbackError);
+        return [];
+      }
+    }
   },
-  ["products-list-cache"],
-  { revalidate: 60 }
+  ["products-reliable-v3"], // New cache key to bust old corrupted cache
+  { 
+    revalidate: 86400,
+    tags: ['products'] 
+  }
 );
+
+// Helper function for consistent product mapping
+function mapProduct(product: any): Product {
+  return {
+    id: product.id,
+    name: product.name,
+    shortDescription: product.short_description,
+    originalPrice: parseFloat(product.original_price),
+    discountedPrice: parseFloat(product.discounted_price),
+    images: Array.isArray(product.images) ? product.images : [],
+    category: product.category || 'Uncategorized',
+    stock: parseInt(product.stock),
+    createdAt: product.created_at,
+    updatedAt: product.updated_at,
+  };
+}
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
@@ -62,6 +121,9 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function ProductsPage() {
   const products = await getProductsCached();
+  
+  // Log server-side product count
+  console.log(`🏁 [PAGE] Rendering with ${products.length} products`);
 
   const categories = [
     'All',
@@ -79,6 +141,8 @@ export default async function ProductsPage() {
     <ProductsClient
       initialProducts={products}
       initialCategories={categories}
+      cacheVersion="v3"
+      serverProductCount={products.length}
     />
   );
 }

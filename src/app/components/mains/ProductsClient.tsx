@@ -25,11 +25,18 @@ interface Product {
 interface ProductsClientProps {
   initialProducts: Product[];
   initialCategories: string[];
+  cacheVersion: string;
+  serverProductCount: number;
 }
 
-export default function ProductsClient({ initialProducts, initialCategories }: ProductsClientProps) {
+export default function ProductsClient({ 
+  initialProducts, 
+  initialCategories, 
+  cacheVersion,
+  serverProductCount 
+}: ProductsClientProps) {
   const router = useRouter();
-  const { addToCart } = useCart(); // Use the cart context
+  const { addToCart } = useCart();
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [products] = useState<Product[]>(initialProducts);
@@ -39,13 +46,54 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [currentImageIndexes, setCurrentImageIndexes] = useState<{ [key: string]: number }>({});
   const [visibleCategoriesStart, setVisibleCategoriesStart] = useState(0);
+  const [hasDataIssue, setHasDataIssue] = useState(false);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(16);
 
   const categoriesContainerRef = useRef<HTMLDivElement>(null);
-  const [visibleCategoriesCount, setVisibleCategoriesCount] = useState(8); // Default number of visible categories
+  const [visibleCategoriesCount, setVisibleCategoriesCount] = useState(8);
+
+  // Data consistency monitoring
+  useEffect(() => {
+    console.log(`📱 [CLIENT] Received ${initialProducts.length} products from server`);
+    console.log(`📱 [CLIENT] Cache version: ${cacheVersion}`);
+    console.log(`📱 [CLIENT] Server reported count: ${serverProductCount}`);
+
+    // Check for data consistency issues
+    const clientCount = initialProducts.length;
+    const hasMismatch = clientCount < serverProductCount;
+    const hasLowCount = clientCount < 100; // Adjust based on your expected minimum
+
+    if (hasMismatch) {
+      console.warn(`⚠️ [CLIENT] CLIENT-SERVER MISMATCH: Client got ${clientCount}, server had ${serverProductCount}`);
+      setHasDataIssue(true);
+    }
+
+    if (hasLowCount) {
+      console.warn(`⚠️ [CLIENT] LOW PRODUCT COUNT: Only ${clientCount} products`);
+      setHasDataIssue(true);
+      
+      // Report to analytics
+      fetch('/api/analytics/low-product-count', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientCount: clientCount,
+          serverCount: serverProductCount,
+          cacheVersion,
+          timestamp: new Date().toISOString(),
+          userAgent: navigator.userAgent
+        })
+      }).catch(console.error);
+    }
+
+    if (!hasMismatch && !hasLowCount) {
+      console.log('✅ [CLIENT] Data consistency check passed');
+      setHasDataIssue(false);
+    }
+  }, [initialProducts.length, serverProductCount, cacheVersion]);
 
   // Initialize image indexes
   useEffect(() => {
@@ -66,9 +114,8 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
     const updateVisibleCategoriesCount = () => {
       if (categoriesContainerRef.current) {
         const containerWidth = categoriesContainerRef.current.offsetWidth;
-        // Approximate calculation: each category button is about 120px wide + gap
         const count = Math.floor(containerWidth / 130);
-        setVisibleCategoriesCount(Math.max(4, count)); // Minimum 4 categories visible
+        setVisibleCategoriesCount(Math.max(4, count));
       }
     };
 
@@ -79,18 +126,16 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
 
   const handleAddToCart = async (productId: string, event: React.MouseEvent) => {
     event.stopPropagation();
-    event.preventDefault(); // Prevent navigation when clicking add to cart
+    event.preventDefault();
 
     try {
       const product = products.find(p => p.id === productId);
 
-      // Check stock availability
       if (product && product.stock <= 0) {
         alert('This product is out of stock');
         return;
       }
 
-      // Use the cart context to add item
       const result = await addToCart(productId, 1);
 
       if (result.success) {
@@ -241,12 +286,42 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Data Issue Alert Component
+  const DataIssueAlert = () => {
+    if (!hasDataIssue) return null;
+
+    return (
+      <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-2xl p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
+              <span className="text-yellow-600">⚠️</span>
+            </div>
+            <div>
+              <h4 className="font-semibold text-yellow-800">Incomplete Data Loaded</h4>
+              <p className="text-yellow-700 text-sm">
+                Showing {initialProducts.length} of {serverProductCount} products. 
+                Some items may not be visible due to caching issues.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-yellow-500 text-white px-4 py-2 rounded-full hover:bg-yellow-600 transition-colors text-sm font-medium"
+          >
+            Reload Page
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   // Pagination component
   const Pagination = () => {
     if (totalPages <= 1) return null;
 
     const getPageNumbers = () => {
-      const delta = 2; // Number of pages to show on each side of current page
+      const delta = 2;
       const range = [];
       const rangeWithDots = [];
 
@@ -385,6 +460,9 @@ export default function ProductsClient({ initialProducts, initialCategories }: P
       {/* Products Section */}
       <section className="px-6 py-3">
         <div className="max-w-7xl mx-auto">
+          {/* Data Issue Alert */}
+          <DataIssueAlert />
+
           {/* Controls */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
             {/* Search Field */}
