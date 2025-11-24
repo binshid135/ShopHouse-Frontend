@@ -29,9 +29,10 @@ export const metadata: Metadata = {
     "home items Al Ain",
     "Shop House Al Ain",
     "restaurant supplies",
-    "kitchen supplies"
+    "kitchen supplies",
+    "shop house general trading"
   ],
-  metadataBase: new URL("https://www.yoursite.com"),
+  metadataBase: new URL("https://www.shophousealain.com"),
   icons: {
     icon: "/favicon.ico",
   },
