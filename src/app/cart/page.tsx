@@ -124,43 +124,43 @@ export default function Cart() {
     }
   };
 
-  const applyCoupon = async () => {
-    if (!couponCode.trim()) {
-      setCouponMessage('Please enter a coupon code');
-      return;
-    }
+  // const applyCoupon = async () => {
+  //   if (!couponCode.trim()) {
+  //     setCouponMessage('Please enter a coupon code');
+  //     return;
+  //   }
 
-    try {
-      const response = await fetch('/api/user/coupons/validate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          code: couponCode,
-          cartTotal: cart?.total || 0,
-        }),
-      });
+  //   try {
+  //     const response = await fetch('/api/user/coupons/validate', {
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       },
+  //       body: JSON.stringify({
+  //         code: couponCode,
+  //         cartTotal: cart?.total || 0,
+  //       }),
+  //     });
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.valid) {
-          setDiscount(data.coupon.discountAmount);
-          setCouponMessage(`🎉 AED ${data.coupon.discountAmount.toFixed(2)} discount applied!`);
-        } else {
-          setDiscount(0);
-          setCouponMessage(data.error || 'Invalid coupon code');
-        }
-      } else {
-        const error = await response.json();
-        setDiscount(0);
-        setCouponMessage(error.error || 'Failed to apply coupon');
-      }
-    } catch (error) {
-      console.error('Failed to apply coupon:', error);
-      setCouponMessage('Error applying coupon');
-    }
-  };
+  //     if (response.ok) {
+  //       const data = await response.json();
+  //       if (data.valid) {
+  //         setDiscount(data.coupon.discountAmount);
+  //         setCouponMessage(`🎉 AED ${data.coupon.discountAmount.toFixed(2)} discount applied!`);
+  //       } else {
+  //         setDiscount(0);
+  //         setCouponMessage(data.error || 'Invalid coupon code');
+  //       }
+  //     } else {
+  //       const error = await response.json();
+  //       setDiscount(0);
+  //       setCouponMessage(error.error || 'Failed to apply coupon');
+  //     }
+  //   } catch (error) {
+  //     console.error('Failed to apply coupon:', error);
+  //     setCouponMessage('Error applying coupon');
+  //   }
+  // };
 
   const proceedToCheckout = () => {
     if (!user) {
@@ -528,13 +528,13 @@ export default function Cart() {
                     onChange={(e) => setCouponCode(e.target.value)}
                     onKeyPress={(e) => {
                       if (e.key === 'Enter') {
-                        applyCoupon();
+                        // applyCoupon();
                       }
                     }}
                     className="flex-1 px-3 py-2 border-2 border-amber-200 rounded-full focus:border-orange-400 outline-none transition-all text-sm"
                   />
                   <button
-                    onClick={applyCoupon}
+                    // onClick={applyCoupon}
                     className="bg-gradient-to-r from-orange-500 to-amber-600 text-white px-3 py-2 rounded-full hover:shadow-lg transition-all flex items-center gap-1 justify-center text-sm"
                   >
                     <Ticket className="w-4 h-4" />

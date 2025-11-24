@@ -25,7 +25,7 @@ const getProductsCached = unstable_cache(async () => {
     updatedAt: product.updated_at
   }));
 }, ["products-cache"], {
-  revalidate: 86400 // 24 hours
+  revalidate: 60 // 24 hours
 });
 
 export async function GET() {

@@ -17,7 +17,7 @@ interface Product {
   updatedAt: string;
 }
 
-export const revalidate = 86400; // 24 hours
+export const revalidate = 60; // 24 hours
 
 // ---------- CACHED PRODUCTS ----------
 const getProductsCached = unstable_cache(
@@ -41,7 +41,7 @@ const getProductsCached = unstable_cache(
     }));
   },
   ["products-list-cache"],
-  { revalidate: 86400 }
+  { revalidate: 60 }
 );
 
 export async function generateMetadata(): Promise<Metadata> {
