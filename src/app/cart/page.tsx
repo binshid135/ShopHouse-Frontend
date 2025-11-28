@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ShoppingCart, Trash2, Plus, Minus, Ticket, ArrowRight, RefreshCw, LogIn, UserPlus, AlertCircle } from 'lucide-react';
+import { ShoppingCart, Trash2, Plus, Minus, Ticket, ArrowRight, RefreshCw, LogIn, UserPlus, AlertCircle, X, CheckCircle } from 'lucide-react';
 import Header from '../components/Header';
 import FloatingElements from '../components/FloatingElements';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -23,6 +23,12 @@ interface Cart {
   total: number;
 }
 
+interface CouponError {
+  type: 'error' | 'warning' | 'success';
+  message: string;
+  details?: string;
+}
+
 export default function Cart() {
   const router = useRouter();
   const [cart, setCart] = useState<Cart | null>(null);
@@ -30,8 +36,9 @@ export default function Cart() {
   const [user, setUser] = useState<any>(null);
   const [couponCode, setCouponCode] = useState('');
   const [discount, setDiscount] = useState(0);
-  const [couponMessage, setCouponMessage] = useState('');
+  const [couponMessage, setCouponMessage] = useState<CouponError | null>(null);
   const [cartError, setCartError] = useState<string | null>(null);
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
   const { refreshCart } = useCart()
 
   useEffect(() => {
@@ -124,72 +131,154 @@ export default function Cart() {
     }
   };
 
-  // const applyCoupon = async () => {
-  //   if (!couponCode.trim()) {
-  //     setCouponMessage('Please enter a coupon code');
-  //     return;
-  //   }
-
-  //   try {
-  //     const response = await fetch('/api/user/coupons/validate', {
-  //       method: 'POST',
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //       },
-  //       body: JSON.stringify({
-  //         code: couponCode,
-  //         cartTotal: cart?.total || 0,
-  //       }),
-  //     });
-
-  //     if (response.ok) {
-  //       const data = await response.json();
-  //       if (data.valid) {
-  //         setDiscount(data.coupon.discountAmount);
-  //         setCouponMessage(`🎉 AED ${data.coupon.discountAmount.toFixed(2)} discount applied!`);
-  //       } else {
-  //         setDiscount(0);
-  //         setCouponMessage(data.error || 'Invalid coupon code');
-  //       }
-  //     } else {
-  //       const error = await response.json();
-  //       setDiscount(0);
-  //       setCouponMessage(error.error || 'Failed to apply coupon');
-  //     }
-  //   } catch (error) {
-  //     console.error('Failed to apply coupon:', error);
-  //     setCouponMessage('Error applying coupon');
-  //   }
-  // };
-
-  const proceedToCheckout = () => {
-    if (!user) {
-      localStorage.setItem('redirectAfterLogin', '/checkout');
-      localStorage.setItem('deliveryOption', deliveryOption);
-      router.push('/login');
+  const applyCoupon = async () => {
+    if (!couponCode.trim()) {
+      setCouponMessage({
+        type: 'error',
+        message: 'Coupon code is required',
+        details: 'Please enter a coupon code to apply discount'
+      });
       return;
     }
 
-    const outOfStockItems = cart?.items.filter(item => item.stock <= 0) || [];
-    if (outOfStockItems.length > 0) {
-      setCartError('Some items in your cart are out of stock. Please remove them before checkout.');
-      setTimeout(() => setCartError(null), 5000);
+    if (subtotal === 0) {
+      setCouponMessage({
+        type: 'error',
+        message: 'Cart is empty',
+        details: 'Add items to your cart before applying coupon'
+      });
       return;
     }
 
-    const insufficientStockItems = cart?.items.filter(item => item.quantity > item.stock) || [];
-    if (insufficientStockItems.length > 0) {
-      setCartError('Some items in your cart have insufficient stock. Please update quantities before checkout.');
-      setTimeout(() => setCartError(null), 5000);
-      return;
-    }
+    try {
+      setCouponMessage({
+        type: 'warning',
+        message: 'Validating coupon...'
+      });
 
-    if (cart && cart.items.length > 0) {
-      localStorage.setItem('deliveryOption', deliveryOption);
-      router.push('/cart/checkout');
+      const response = await fetch('/api/coupons/validate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          code: couponCode,
+          cartTotal: subtotal,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.valid) {
+        setDiscount(data.coupon.discountAmount);
+        setAppliedCoupon(data.coupon);
+        setCouponMessage({
+          type: 'success',
+          message: `🎉 Coupon applied successfully!`,
+          details: `You saved AED ${data.coupon.discountAmount.toFixed(2)} (${data.coupon.discountType === 'percentage' 
+            ? `${data.coupon.discountValue}% off` 
+            : `AED ${data.coupon.discountValue} off`
+          })`
+        });
+      } else {
+        setDiscount(0);
+        setAppliedCoupon(null);
+        
+        // Handle specific error cases
+        let errorMessage = data.error || 'Invalid coupon code';
+        let errorDetails = 'Please check the code and try again';
+        
+        if (errorMessage.includes('minimum order amount')) {
+          errorDetails = `Your cart total is AED ${subtotal.toFixed(2)}, but this coupon requires minimum order of AED ${data.minimumAmount || '0'}`;
+        } else if (errorMessage.includes('new customers only')) {
+          errorDetails = 'This coupon is only available for first-time customers';
+        } else if (errorMessage.includes('already used')) {
+          errorDetails = 'You have already used this coupon previously';
+        } else if (errorMessage.includes('usage limit reached')) {
+          errorDetails = 'This coupon has reached its maximum usage limit';
+        } else if (errorMessage.includes('expired')) {
+          errorDetails = 'This coupon has expired and is no longer valid';
+        } else if (errorMessage.includes('inactive')) {
+          errorDetails = 'This coupon is currently not active';
+        }
+
+        setCouponMessage({
+          type: 'error',
+          message: errorMessage,
+          details: errorDetails
+        });
+      }
+    } catch (error) {
+      console.error('Failed to apply coupon:', error);
+      setDiscount(0);
+      setAppliedCoupon(null);
+      setCouponMessage({
+        type: 'error',
+        message: 'Network error',
+        details: 'Failed to validate coupon. Please check your connection and try again.'
+      });
     }
   };
 
+  const removeCoupon = () => {
+    setDiscount(0);
+    setCouponCode('');
+    setAppliedCoupon(null);
+    setCouponMessage(null);
+  };
+
+ // In the cart page, update the proceedToCheckout function
+const proceedToCheckout = () => {
+  if (!user) {
+    localStorage.setItem('redirectAfterLogin', '/checkout');
+    localStorage.setItem('deliveryOption', deliveryOption);
+    
+    // Store coupon data in localStorage
+    if (appliedCoupon) {
+      localStorage.setItem('couponCode', couponCode);
+      localStorage.setItem('couponDiscount', discount.toString());
+      localStorage.setItem('couponData', JSON.stringify(appliedCoupon));
+    } else {
+      localStorage.removeItem('couponCode');
+      localStorage.removeItem('couponDiscount');
+      localStorage.removeItem('couponData');
+    }
+    
+    router.push('/login');
+    return;
+  }
+
+  const outOfStockItems = cart?.items.filter(item => item.stock <= 0) || [];
+  if (outOfStockItems.length > 0) {
+    setCartError('Some items in your cart are out of stock. Please remove them before checkout.');
+    setTimeout(() => setCartError(null), 5000);
+    return;
+  }
+
+  const insufficientStockItems = cart?.items.filter(item => item.quantity > item.stock) || [];
+  if (insufficientStockItems.length > 0) {
+    setCartError('Some items in your cart have insufficient stock. Please update quantities before checkout.');
+    setTimeout(() => setCartError(null), 5000);
+    return;
+  }
+
+  if (cart && cart.items.length > 0) {
+    localStorage.setItem('deliveryOption', deliveryOption);
+    
+    // Store coupon data in localStorage
+    if (appliedCoupon) {
+      localStorage.setItem('couponCode', couponCode);
+      localStorage.setItem('couponDiscount', discount.toString());
+      localStorage.setItem('couponData', JSON.stringify(appliedCoupon));
+    } else {
+      localStorage.removeItem('couponCode');
+      localStorage.removeItem('couponDiscount');
+      localStorage.removeItem('couponData');
+    }
+    
+    router.push('/cart/checkout');
+  }
+};
   const getProductEmoji = (productName: string) => {
     const name = productName.toLowerCase();
     if (name.includes('knife') || name.includes('cutlery')) return '🔪';
@@ -254,11 +343,11 @@ export default function Cart() {
       )
     };
   };
+
   const [deliveryOption, setDeliveryOption] = useState<'delivery' | 'pickup'>('delivery');
   const subtotal = cart?.total || 0;
   const shipping = deliveryOption === 'pickup' ? 0 : (subtotal > 100 ? 0 : 7);
-  // const tax = subtotal * 0.05;
-  const total = Math.max(0, subtotal + shipping  - discount);
+  const total = Math.max(0, subtotal + shipping - discount);
 
   const hasCartIssues = cart?.items.some(item =>
     item.stock <= 0 || item.quantity > item.stock
@@ -293,9 +382,7 @@ export default function Cart() {
                 onClick={() => setCartError(null)}
                 className="ml-2 text-red-500 hover:text-red-700 transition-colors flex-shrink-0"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <X className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -520,34 +607,76 @@ export default function Cart() {
 
               {/* Coupon Section */}
               <div className="mb-4">
-                <div className="flex flex-col gap-2 mb-2">
-                  <input
-                    type="text"
-                    placeholder="Enter coupon code"
-                    value={couponCode}
-                    onChange={(e) => setCouponCode(e.target.value)}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
-                        // applyCoupon();
-                      }
-                    }}
-                    className="flex-1 px-3 py-2 border-2 border-amber-200 rounded-full focus:border-orange-400 outline-none transition-all text-sm"
-                  />
-                  <button
-                    // onClick={applyCoupon}
-                    className="bg-gradient-to-r from-orange-500 to-amber-600 text-white px-3 py-2 rounded-full hover:shadow-lg transition-all flex items-center gap-1 justify-center text-sm"
-                  >
-                    <Ticket className="w-4 h-4" />
-                    Apply Coupon
-                  </button>
-                </div>
+                {appliedCoupon ? (
+                  <div className="bg-green-50 border border-green-200 rounded-xl p-3 mb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <div>
+                          <p className="text-green-800 font-medium text-sm">Coupon Applied</p>
+                          <p className="text-green-600 text-xs">{appliedCoupon.code} - {appliedCoupon.description}</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={removeCoupon}
+                        className="text-green-600 hover:text-green-800 transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2 mb-2">
+                    <input
+                      type="text"
+                      placeholder="Enter coupon code"
+                      value={couponCode}
+                      onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          applyCoupon();
+                        }
+                      }}
+                      className="flex-1 px-3 py-2 border-2 border-amber-200 rounded-full focus:border-orange-400 outline-none transition-all text-sm"
+                    />
+                    <button
+                      onClick={applyCoupon}
+                      disabled={!couponCode.trim()}
+                      className="bg-gradient-to-r from-orange-500 to-amber-600 text-white px-3 py-2 rounded-full hover:shadow-lg transition-all flex items-center gap-1 justify-center text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Ticket className="w-4 h-4" />
+                      Apply Coupon
+                    </button>
+                  </div>
+                )}
+
+                {/* Coupon Message */}
                 {couponMessage && (
-                  <p className={`text-xs ${couponMessage.includes('Invalid') || couponMessage.includes('Error')
-                    ? 'text-red-500'
-                    : 'text-green-500'
-                    }`}>
-                    {couponMessage}
-                  </p>
+                  <div className={`rounded-xl p-3 ${
+                    couponMessage.type === 'success' 
+                      ? 'bg-green-50 border border-green-200 text-green-800'
+                      : couponMessage.type === 'error'
+                      ? 'bg-red-50 border border-red-200 text-red-800'
+                      : 'bg-yellow-50 border border-yellow-200 text-yellow-800'
+                  }`}>
+                    <div className="flex items-start gap-2">
+                      {couponMessage.type === 'success' && <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />}
+                      {couponMessage.type === 'error' && <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />}
+                      {couponMessage.type === 'warning' && <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />}
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">{couponMessage.message}</p>
+                        {couponMessage.details && (
+                          <p className="text-xs mt-1 opacity-90">{couponMessage.details}</p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => setCouponMessage(null)}
+                        className="text-current hover:opacity-70 transition-opacity flex-shrink-0"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
                 )}
               </div>
 
@@ -561,10 +690,6 @@ export default function Cart() {
                   <span>Delivery charge</span>
                   <span>{shipping === 0 ? 'FREE' : `AED ${shipping.toFixed(2)}`}</span>
                 </div>
-                {/* <div className="flex justify-between text-amber-800 text-sm">
-                  <span>Tax (5%)</span>
-                  <span>AED {tax.toFixed(2)}</span>
-                </div> */}
                 {discount > 0 && (
                   <div className="flex justify-between text-green-600 text-sm">
                     <span>Discount</span>
@@ -578,7 +703,6 @@ export default function Cart() {
                   </div>
                 </div>
               </div>
-
 
               {/* Delivery Option */}
               <div className="bg-white rounded-2xl p-4 shadow-lg mb-4">
@@ -597,9 +721,6 @@ export default function Cart() {
                     <div className="flex-1">
                       <div className="flex justify-between items-center">
                         <span className="font-medium text-amber-900">Home Delivery</span>
-                        {/* <span className={`text-sm ${shipping === 0 ? 'text-green-600' : 'text-amber-700'}`}>
-                          {shipping === 0 ? 'FREE' : `AED ${shipping.toFixed(2)}`}
-                        </span> */}
                       </div>
                       <p className="text-xs text-amber-600 mt-1">
                         {subtotal < 100 ? `Add AED ${(100 - subtotal).toFixed(2)} more for FREE delivery` : 'Free delivery applied'}

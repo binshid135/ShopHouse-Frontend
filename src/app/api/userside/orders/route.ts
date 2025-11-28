@@ -11,13 +11,21 @@ function getCartId(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { customerName, customerEmail, customerPhone, shippingAddress, deliveryOption } = await request.json();
+    const { 
+      customerName, 
+      customerEmail, 
+      customerPhone, 
+      shippingAddress, 
+      deliveryOption,
+      couponCode 
+    } = await request.json();
     
     console.log('Received order data:', {
       customerName,
       customerPhone,
       shippingAddress,
-      deliveryOption
+      deliveryOption,
+      couponCode
     });
 
     // Get cart ID using the same logic as cart API
@@ -93,12 +101,53 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Cart is empty' }, { status: 400 });
     }
 
-    // Calculate total
+    // Calculate subtotal
     const subtotal = cartItems.reduce((sum: number, item: any) => 
       sum + (parseFloat(item.price) * parseInt(item.quantity)), 0
     );
-    const tax = subtotal * 0.05; // 5% VAT for UAE
-    const total = subtotal + tax;
+
+    // Coupon validation and discount calculation
+    let discountAmount = 0;
+    let couponId: string | null = null;
+    let couponDetails: any = null;
+
+    if (couponCode) {
+      try {
+        // Validate coupon
+        const couponValidationResponse = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/userside/coupons/validate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            code: couponCode,
+            cartTotal: subtotal,
+          }),
+        });
+
+        const couponData = await couponValidationResponse.json();
+        
+        if (couponData.valid) {
+          discountAmount = couponData.coupon.discountAmount;
+          couponId = couponData.coupon.id;
+          couponDetails = couponData.coupon;
+          console.log('✅ Coupon applied successfully:', {
+            code: couponData.coupon.code,
+            discountAmount,
+            discountType: couponData.coupon.discountType
+          });
+        } else {
+          console.log('❌ Coupon validation failed:', couponData.error);
+          // Don't fail the order if coupon is invalid, just proceed without discount
+        }
+      } catch (couponError) {
+        console.error('❌ Coupon validation error:', couponError);
+        // Proceed without coupon if there's an error
+      }
+    }
+
+    const tax = (subtotal - discountAmount) * 0.05; // 5% VAT for UAE on discounted amount
+    const total = Math.max(0, subtotal - discountAmount + tax);
 
     // Create or get user
     const existingUserResult = await query('SELECT * FROM users WHERE id = $1', [userId]);
@@ -118,9 +167,9 @@ export async function POST(request: NextRequest) {
     // Create order
     const orderId = uuidv4();
     await query(
-      `INSERT INTO orders (id, user_id, total, status)
-       VALUES ($1, $2, $3, $4)`,
-      [orderId, userId, total, 'pending']
+      `INSERT INTO orders (id, user_id, total, status, subtotal, tax_amount, discount_amount)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [orderId, userId, total, 'pending', subtotal, tax, discountAmount]
     );
 
     // Create order items
@@ -139,6 +188,28 @@ export async function POST(request: NextRequest) {
       [orderId, customerName, customerPhone, shippingAddress, 'pending', deliveryOption || 'delivery']
     );
 
+    // Record coupon usage if coupon was applied
+    if (couponId && discountAmount > 0) {
+      try {
+        await query(
+          `INSERT INTO coupon_usage (coupon_id, user_id, order_id, discount_amount)
+           VALUES ($1, $2, $3, $4)`,
+          [couponId, userId, orderId, discountAmount]
+        );
+
+        // Update coupon usage count
+        await query(
+          'UPDATE coupons SET used_count = used_count + 1 WHERE id = $1',
+          [couponId]
+        );
+
+        console.log('✅ Coupon usage recorded successfully');
+      } catch (couponUsageError) {
+        console.error('❌ Failed to record coupon usage:', couponUsageError);
+        // Don't fail the order if coupon usage recording fails
+      }
+    }
+
     // Clear cart - handle both user ID and cart ID
     if (token) {
       const user = await verifyUserSession(token);
@@ -154,13 +225,18 @@ export async function POST(request: NextRequest) {
     const orderSummary = {
       id: orderId,
       total: total,
+      subtotal: subtotal,
+      discountAmount: discountAmount,
+      tax: tax,
       status: 'pending',
       customerName,
       customerEmail,
       customerPhone,
       shippingAddress,
       deliveryOption: deliveryOption || 'delivery',
-      itemCount: cartItems.length
+      itemCount: cartItems.length,
+      couponCode: couponCode || null,
+      couponDiscount: discountAmount
     };
 
     // Send email notification to admin only (fire and forget)
@@ -182,7 +258,10 @@ export async function POST(request: NextRequest) {
       total: parseFloat(total.toFixed(2)),
       subtotal: parseFloat(subtotal.toFixed(2)),
       tax: parseFloat(tax.toFixed(2)),
-      deliveryOption: deliveryOption || 'delivery'
+      discount: parseFloat(discountAmount.toFixed(2)),
+      deliveryOption: deliveryOption || 'delivery',
+      couponApplied: discountAmount > 0,
+      couponCode: couponCode || null
     });
 
     // Clear cart cookie for guest users
@@ -211,19 +290,26 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
     }
 
-    // Get orders for the authenticated user only INCLUDING DELIVERY OPTION
+    // Get orders for the authenticated user only INCLUDING DELIVERY OPTION AND COUPON INFO
     const ordersResult = await query(`
       SELECT 
         o.id,
         o.total,
         o.status,
+        o.subtotal,
+        o.tax_amount as "taxAmount",
+        o.discount_amount as "discountAmount",
         o.created_at as "createdAt",
         od.customer_name as "customerName",
         od.customer_phone as "customerPhone",
         od.shipping_address as "shippingAddress",
-        od.delivery_option as "deliveryOption"
+        od.delivery_option as "deliveryOption",
+        c.code as "couponCode",
+        cu.discount_amount as "couponDiscount"
       FROM orders o
       JOIN order_details od ON o.id = od.order_id
+      LEFT JOIN coupon_usage cu ON o.id = cu.order_id
+      LEFT JOIN coupons c ON cu.coupon_id = c.id
       WHERE o.user_id = $1
       ORDER BY o.created_at DESC
     `, [user.id]);
@@ -246,6 +332,9 @@ export async function GET(request: NextRequest) {
         return {
           ...order,
           total: parseFloat(order.total),
+          subtotal: parseFloat(order.subtotal || order.total),
+          taxAmount: parseFloat(order.taxAmount || 0),
+          discountAmount: parseFloat(order.discountAmount || 0),
           deliveryOption: order.deliveryOption || 'delivery', 
           items: itemsResult.rows.map((item: any) => ({
             ...item,

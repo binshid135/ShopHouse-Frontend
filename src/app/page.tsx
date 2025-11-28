@@ -43,7 +43,7 @@ const getHomepageProductsCached = unstable_cache(
       updatedAt: product.updated_at,
     }));
   },
-  ["homepage-products-cache"],
+  ["products-api-v3"],
   { revalidate: 86400 }
 );
 
