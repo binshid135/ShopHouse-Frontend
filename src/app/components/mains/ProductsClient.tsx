@@ -45,7 +45,6 @@ export default function ProductsClient({
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [currentImageIndexes, setCurrentImageIndexes] = useState<{ [key: string]: number }>({});
-  const [visibleCategoriesStart, setVisibleCategoriesStart] = useState(0);
   const [hasDataIssue, setHasDataIssue] = useState(false);
 
   // Pagination state
@@ -53,7 +52,6 @@ export default function ProductsClient({
   const [itemsPerPage, setItemsPerPage] = useState(16);
 
   const categoriesContainerRef = useRef<HTMLDivElement>(null);
-  const [visibleCategoriesCount, setVisibleCategoriesCount] = useState(8);
 
   // Data consistency monitoring
   useEffect(() => {
@@ -109,21 +107,6 @@ export default function ProductsClient({
     setCurrentPage(1);
   }, [searchQuery, selectedCategory]);
 
-  // Calculate visible categories count based on container width
-  useEffect(() => {
-    const updateVisibleCategoriesCount = () => {
-      if (categoriesContainerRef.current) {
-        const containerWidth = categoriesContainerRef.current.offsetWidth;
-        const count = Math.floor(containerWidth / 130);
-        setVisibleCategoriesCount(Math.max(4, count));
-      }
-    };
-
-    updateVisibleCategoriesCount();
-    window.addEventListener('resize', updateVisibleCategoriesCount);
-    return () => window.removeEventListener('resize', updateVisibleCategoriesCount);
-  }, []);
-
   const handleAddToCart = async (productId: string, event: React.MouseEvent) => {
     event.stopPropagation();
     event.preventDefault();
@@ -175,19 +158,6 @@ export default function ProductsClient({
       ...prev,
       [productId]: (prev[productId] - 1 + product.images.length) % product.images.length
     }));
-  };
-
-  // Category navigation
-  const nextCategories = () => {
-    if (visibleCategoriesStart + visibleCategoriesCount < categories.length) {
-      setVisibleCategoriesStart(prev => prev + 1);
-    }
-  };
-
-  const prevCategories = () => {
-    if (visibleCategoriesStart > 0) {
-      setVisibleCategoriesStart(prev => prev - 1);
-    }
   };
 
   // Filter products based on search query and category
@@ -434,12 +404,6 @@ export default function ProductsClient({
     );
   };
 
-  // Get visible categories
-  const visibleCategories = categories.slice(
-    visibleCategoriesStart,
-    visibleCategoriesStart + visibleCategoriesCount
-  );
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100 overflow-hidden">
       <FloatingElements />
@@ -612,68 +576,28 @@ export default function ProductsClient({
             )}
           </div>
 
-          {/* Category Quick Filters with Arrow Navigation */}
+          {/* Scrollable Category Quick Filters */}
           {categories.length > 1 && (
             <div className="mb-8">
-              <div className="flex items-center gap-2">
-
-                {/* Prev Button */}
-                {visibleCategoriesStart > 0 && (
+              <div 
+                ref={categoriesContainerRef}
+                className="flex gap-2 overflow-x-auto pb-3 scrollbar-thin scrollbar-thumb-amber-300 scrollbar-track-amber-100"
+              >
+                {categories.map((category) => (
                   <button
-                    onClick={prevCategories}
-                    className="flex items-center justify-center w-10 h-10 bg-white border border-amber-200 rounded-full hover:border-orange-300 hover:shadow-sm transition-all text-amber-700"
+                    key={category}
+                    onClick={() => setSelectedCategory(category)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-all flex-shrink-0 ${selectedCategory === category
+                      ? 'bg-orange-500 text-white shadow-md'
+                      : 'bg-white text-amber-700 border border-amber-200 hover:border-orange-300 hover:shadow-sm'
+                      }`}
                   >
-                    <ChevronLeft className="w-4 h-4" />
+                    <span className="font-medium text-sm">
+                      {category === 'All' ? 'All' : category}
+                    </span>
                   </button>
-                )}
-
-                {/* Scrollable category list */}
-                <div
-                  ref={categoriesContainerRef}
-                  className="flex gap-2 overflow-x-auto no-scrollbar flex-1"
-                >
-                  {visibleCategories.map((category) => (
-                    <button
-                      key={category}
-                      onClick={() => setSelectedCategory(category)}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-all ${selectedCategory === category
-                        ? 'bg-orange-500 text-white shadow-md'
-                        : 'bg-white text-amber-700 border border-amber-200 hover:border-orange-300 hover:shadow-sm'
-                        }`}
-                    >
-                      <span className="font-medium text-sm">
-                        {category === 'All' ? 'All' : category}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-
-                {/* Next Button */}
-                {visibleCategoriesStart + visibleCategoriesCount < categories.length && (
-                  <button
-                    onClick={nextCategories}
-                    className="flex items-center justify-center w-10 h-10 bg-white border border-amber-200 rounded-full hover:border-orange-300 hover:shadow-sm transition-all text-amber-700"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                )}
+                ))}
               </div>
-
-              {/* Category Navigation Dots */}
-              {categories.length > visibleCategoriesCount && (
-                <div className="flex justify-center gap-1 mt-3">
-                  {Array.from({ length: Math.ceil(categories.length / visibleCategoriesCount) }).map((_, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setVisibleCategoriesStart(index * visibleCategoriesCount)}
-                      className={`w-2 h-2 rounded-full transition-all ${index === Math.floor(visibleCategoriesStart / visibleCategoriesCount)
-                        ? 'bg-orange-500'
-                        : 'bg-amber-200'
-                        }`}
-                    />
-                  ))}
-                </div>
-              )}
             </div>
           )}
 
