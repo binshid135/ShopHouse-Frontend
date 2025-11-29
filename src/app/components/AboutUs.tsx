@@ -82,7 +82,7 @@ const AboutUs: React.FC = () => {
               {/* Main Description */}
               <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl p-6">
                 <p className="text-amber-800 leading-relaxed text-lg mb-6">
-                  At ShopHouse, we provide comprehensive kitchen solutions for professional 
+                  At Shop House, we provide comprehensive kitchen solutions for professional 
                   chefs, restaurants, and culinary enthusiasts. Our extensive product range 
                   combines quality, innovation, and reliability to meet the demanding needs 
                   of modern kitchens.
@@ -135,7 +135,7 @@ const AboutUs: React.FC = () => {
               {/* Additional Info */}
               <div className="bg-amber-100 rounded-xl p-6">
                 <h4 className="font-semibold text-amber-900 mb-3">
-                  Why Choose ShopHouse?
+                  Why Choose Shop House General trading?
                 </h4>
                 <p className="text-amber-700 text-sm leading-relaxed">
                   We understand that every kitchen has unique requirements. That's why we offer 

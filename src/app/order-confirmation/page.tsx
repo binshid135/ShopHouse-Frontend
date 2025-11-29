@@ -73,7 +73,7 @@ export default function OrderConfirmationPage() {
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   <p><strong>Order ID:</strong> {order.id}</p>
-                  <p><strong>Total:</strong> ${order.total.toFixed(2)}</p>
+                  <p><strong>Total:</strong> AED {order.total.toFixed(2)}</p>
                   <p><strong>Status:</strong> <span className="text-orange-600 capitalize">{order.status}</span></p>
                 </div>
                 <div>
