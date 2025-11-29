@@ -367,6 +367,7 @@ export default function CheckoutPage() {
         customerPhone: formData.mobile,
         deliveryOption: deliveryOption,
         couponCode: appliedCoupon ? couponCode : undefined,
+        discountAmount: discount,
         ...(deliveryOption === 'delivery' && {
           shippingAddress: `${formData.street}, ${formData.building}${formData.flat ? `, Flat ${formData.flat}` : ''}, ${formData.area}, Al Ain`
         }),

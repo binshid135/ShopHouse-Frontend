@@ -193,6 +193,8 @@ export default function Orders() {
     return '🍴';
   };
 
+   console.log("orderssss",orders)
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100 overflow-hidden">
