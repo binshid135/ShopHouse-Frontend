@@ -39,11 +39,19 @@ export default function Cart() {
   const [couponMessage, setCouponMessage] = useState<CouponError | null>(null);
   const [cartError, setCartError] = useState<string | null>(null);
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
-  const { refreshCart } = useCart()
+  const [revalidatingCoupon, setRevalidatingCoupon] = useState(false);
+  const { refreshCart } = useCart();
 
   useEffect(() => {
     checkAuthAndFetchCart();
   }, []);
+
+  // Revalidate coupon when cart changes
+  useEffect(() => {
+    if (appliedCoupon && cart && cart.items.length > 0) {
+      revalidateCoupon();
+    }
+  }, [cart?.total, cart?.items?.length]);
 
   const checkAuthAndFetchCart = async () => {
     try {
@@ -61,14 +69,81 @@ export default function Cart() {
       if (cartResponse.ok) {
         const cartData = await cartResponse.json();
         setCart(cartData);
+        
+        // If cart is empty, remove any applied coupon
+        if (cartData.items.length === 0 && appliedCoupon) {
+          removeCoupon();
+        }
       } else {
         console.error('Failed to fetch cart');
+        // If we can't fetch cart, remove coupon for safety
+        if (appliedCoupon) {
+          removeCoupon();
+        }
       }
     } catch (error) {
       console.error('Failed to fetch cart:', error);
       setCartError('Failed to load cart. Please try again.');
+      // If error fetching cart, remove coupon for safety
+      if (appliedCoupon) {
+        removeCoupon();
+      }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const revalidateCoupon = async () => {
+    if (!appliedCoupon || !couponCode.trim() || !cart) return;
+    
+    try {
+      setRevalidatingCoupon(true);
+      
+      const response = await fetch('/api/coupons/validate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          code: couponCode,
+          cartTotal: cart.total,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.valid) {
+        // Update discount with new amount based on current cart total
+        setDiscount(data.coupon.discountAmount);
+        setAppliedCoupon(data.coupon);
+        
+        // Show success message if discount amount changed
+        if (data.coupon.discountAmount !== discount) {
+          setCouponMessage({
+            type: 'success',
+            message: `Coupon Applied Successfully!`,
+            details: `You saved AED ${data.coupon.discountAmount.toFixed(2)} (${data.coupon.discountValue}% off)`
+          });
+        }
+      } else {
+        // Coupon is no longer valid with new cart total
+        removeCoupon();
+        setCouponMessage({
+          type: 'error',
+          message: 'Coupon no longer valid',
+          details: data.error || 'Cart changes made this coupon invalid'
+        });
+      }
+    } catch (error) {
+      console.error('Failed to revalidate coupon:', error);
+      // Keep the coupon but show warning
+      setCouponMessage({
+        type: 'warning',
+        message: 'Unable to verify coupon',
+        details: 'Discount applied but please verify eligibility'
+      });
+    } finally {
+      setRevalidatingCoupon(false);
     }
   };
 
@@ -97,7 +172,7 @@ export default function Cart() {
       });
 
       if (response.ok) {
-        checkAuthAndFetchCart();
+        await checkAuthAndFetchCart(); // Wait for cart refresh
         refreshCart();
       } else {
         const errorData = await response.json();
@@ -118,8 +193,13 @@ export default function Cart() {
       });
 
       if (response.ok) {
-        checkAuthAndFetchCart();
+        await checkAuthAndFetchCart(); // Wait for cart refresh
         refreshCart();
+        
+        // If cart becomes empty after removal, remove coupon
+        if (cart && cart.items.length === 1) { // About to remove last item
+          removeCoupon();
+        }
       } else {
         setCartError('Failed to remove item');
         setTimeout(() => setCartError(null), 5000);
@@ -141,7 +221,7 @@ export default function Cart() {
       return;
     }
 
-    if (subtotal === 0) {
+    if (!cart || cart.items.length === 0 || subtotal === 0) {
       setCouponMessage({
         type: 'error',
         message: 'Cart is empty',
@@ -188,19 +268,7 @@ export default function Cart() {
         let errorMessage = data.error || 'Invalid coupon code';
         let errorDetails = 'Please check the code and try again';
         
-        if (errorMessage.includes('minimum order amount')) {
-          errorDetails = `Your cart total is AED ${subtotal.toFixed(2)}, but this coupon requires minimum order of AED ${data.minimumAmount || '0'}`;
-        } else if (errorMessage.includes('new customers only')) {
-          errorDetails = 'This coupon is only available for first-time customers';
-        } else if (errorMessage.includes('already used')) {
-          errorDetails = 'You have already used this coupon previously';
-        } else if (errorMessage.includes('usage limit reached')) {
-          errorDetails = 'This coupon has reached its maximum usage limit';
-        } else if (errorMessage.includes('expired')) {
-          errorDetails = 'This coupon has expired and is no longer valid';
-        } else if (errorMessage.includes('inactive')) {
-          errorDetails = 'This coupon is currently not active';
-        }
+      
 
         setCouponMessage({
           type: 'error',
@@ -227,58 +295,58 @@ export default function Cart() {
     setCouponMessage(null);
   };
 
- // In the cart page, update the proceedToCheckout function
-const proceedToCheckout = () => {
-  if (!user) {
-    localStorage.setItem('redirectAfterLogin', '/checkout');
-    localStorage.setItem('deliveryOption', deliveryOption);
-    
-    // Store coupon data in localStorage
-    if (appliedCoupon) {
-      localStorage.setItem('couponCode', couponCode);
-      localStorage.setItem('couponDiscount', discount.toString());
-      localStorage.setItem('couponData', JSON.stringify(appliedCoupon));
-    } else {
-      localStorage.removeItem('couponCode');
-      localStorage.removeItem('couponDiscount');
-      localStorage.removeItem('couponData');
+  const proceedToCheckout = () => {
+    if (!user) {
+      localStorage.setItem('redirectAfterLogin', '/checkout');
+      localStorage.setItem('deliveryOption', deliveryOption);
+      
+      // Store coupon data in localStorage
+      if (appliedCoupon) {
+        localStorage.setItem('couponCode', couponCode);
+        localStorage.setItem('couponDiscount', discount.toString());
+        localStorage.setItem('couponData', JSON.stringify(appliedCoupon));
+      } else {
+        localStorage.removeItem('couponCode');
+        localStorage.removeItem('couponDiscount');
+        localStorage.removeItem('couponData');
+      }
+      
+      router.push('/login');
+      return;
     }
-    
-    router.push('/login');
-    return;
-  }
 
-  const outOfStockItems = cart?.items.filter(item => item.stock <= 0) || [];
-  if (outOfStockItems.length > 0) {
-    setCartError('Some items in your cart are out of stock. Please remove them before checkout.');
-    setTimeout(() => setCartError(null), 5000);
-    return;
-  }
-
-  const insufficientStockItems = cart?.items.filter(item => item.quantity > item.stock) || [];
-  if (insufficientStockItems.length > 0) {
-    setCartError('Some items in your cart have insufficient stock. Please update quantities before checkout.');
-    setTimeout(() => setCartError(null), 5000);
-    return;
-  }
-
-  if (cart && cart.items.length > 0) {
-    localStorage.setItem('deliveryOption', deliveryOption);
-    
-    // Store coupon data in localStorage
-    if (appliedCoupon) {
-      localStorage.setItem('couponCode', couponCode);
-      localStorage.setItem('couponDiscount', discount.toString());
-      localStorage.setItem('couponData', JSON.stringify(appliedCoupon));
-    } else {
-      localStorage.removeItem('couponCode');
-      localStorage.removeItem('couponDiscount');
-      localStorage.removeItem('couponData');
+    const outOfStockItems = cart?.items.filter(item => item.stock <= 0) || [];
+    if (outOfStockItems.length > 0) {
+      setCartError('Some items in your cart are out of stock. Please remove them before checkout.');
+      setTimeout(() => setCartError(null), 5000);
+      return;
     }
-    
-    router.push('/cart/checkout');
-  }
-};
+
+    const insufficientStockItems = cart?.items.filter(item => item.quantity > item.stock) || [];
+    if (insufficientStockItems.length > 0) {
+      setCartError('Some items in your cart have insufficient stock. Please update quantities before checkout.');
+      setTimeout(() => setCartError(null), 5000);
+      return;
+    }
+
+    if (cart && cart.items.length > 0) {
+      localStorage.setItem('deliveryOption', deliveryOption);
+      
+      // Store coupon data in localStorage
+      if (appliedCoupon) {
+        localStorage.setItem('couponCode', couponCode);
+        localStorage.setItem('couponDiscount', discount.toString());
+        localStorage.setItem('couponData', JSON.stringify(appliedCoupon));
+      } else {
+        localStorage.removeItem('couponCode');
+        localStorage.removeItem('couponDiscount');
+        localStorage.removeItem('couponData');
+      }
+      
+      router.push('/cart/checkout');
+    }
+  };
+
   const getProductEmoji = (productName: string) => {
     const name = productName.toLowerCase();
     if (name.includes('knife') || name.includes('cutlery')) return '🔪';
@@ -452,6 +520,16 @@ const proceedToCheckout = () => {
           </div>
         )}
 
+        {/* Coupon Revalidation Indicator */}
+        {revalidatingCoupon && (
+          <div className="mb-4 w-full max-w-full">
+            <div className="bg-blue-50 border border-blue-200 text-blue-700 px-3 py-3 rounded-2xl flex items-center gap-2 w-full">
+              <RefreshCw className="w-4 h-4 animate-spin flex-shrink-0" />
+              <p className="font-medium text-sm flex-1 break-words">Updating coupon discount for current cart...</p>
+            </div>
+          </div>
+        )}
+
         {/* Main Content Grid */}
         <div className="w-full grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Cart Items - Full width on mobile, 2/3 on desktop */}
@@ -615,11 +693,18 @@ const proceedToCheckout = () => {
                         <div>
                           <p className="text-green-800 font-medium text-sm">Coupon Applied</p>
                           <p className="text-green-600 text-xs">{appliedCoupon.code} - {appliedCoupon.description}</p>
+                          {revalidatingCoupon && (
+                            <p className="text-green-500 text-xs mt-1 flex items-center gap-1">
+                              <RefreshCw className="w-3 h-3 animate-spin" />
+                              Updating discount...
+                            </p>
+                          )}
                         </div>
                       </div>
                       <button
                         onClick={removeCoupon}
                         className="text-green-600 hover:text-green-800 transition-colors"
+                        disabled={revalidatingCoupon}
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -641,7 +726,7 @@ const proceedToCheckout = () => {
                     />
                     <button
                       onClick={applyCoupon}
-                      disabled={!couponCode.trim()}
+                      disabled={!couponCode.trim() || !cart || cart.items.length === 0}
                       className="bg-gradient-to-r from-orange-500 to-amber-600 text-white px-3 py-2 rounded-full hover:shadow-lg transition-all flex items-center gap-1 justify-center text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Ticket className="w-4 h-4" />
@@ -765,7 +850,7 @@ const proceedToCheckout = () => {
 
               <button
                 onClick={proceedToCheckout}
-                disabled={!cart || cart.items.length === 0 || hasCartIssues}
+                disabled={!cart || cart.items.length === 0 || hasCartIssues || revalidatingCoupon}
                 className="w-full bg-gradient-to-r from-orange-500 to-amber-600 text-white py-3 rounded-full font-medium hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm mb-2"
               >
                 {!user ? 'Sign In to Checkout' : `Proceed to Checkout`}
@@ -787,6 +872,12 @@ const proceedToCheckout = () => {
               {hasCartIssues && (
                 <p className="text-center text-xs text-red-600 mt-1">
                   Please resolve stock issues before checkout
+                </p>
+              )}
+
+              {revalidatingCoupon && (
+                <p className="text-center text-xs text-blue-600 mt-1">
+                  Updating coupon discount...
                 </p>
               )}
             </div>

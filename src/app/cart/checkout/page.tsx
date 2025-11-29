@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, MapPin, Phone, User, Home, CreditCard, Truck, Store } from "lucide-react";
+import { ArrowLeft, MapPin, Phone, User, Home, CreditCard, Truck, Store, Ticket, CheckCircle, X, AlertCircle } from "lucide-react";
 import FloatingElements from "@/app/components/FloatingElements";
 import Header from "@/app/components/Header";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
@@ -28,6 +28,14 @@ interface UserProfile {
   phone?: string;
 }
 
+interface CouponData {
+  code: string;
+  discountAmount: number;
+  discountType: string;
+  discountValue: number;
+  description: string;
+}
+
 export default function CheckoutPage() {
   const router = useRouter();
   const [cart, setCart] = useState<Cart | null>(null);
@@ -36,6 +44,13 @@ export default function CheckoutPage() {
   const [profileLoading, setProfileLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [deliveryOption, setDeliveryOption] = useState<'delivery' | 'pickup'>('delivery');
+  
+  // Coupon states
+  const [couponCode, setCouponCode] = useState('');
+  const [discount, setDiscount] = useState(0);
+  const [appliedCoupon, setAppliedCoupon] = useState<CouponData | null>(null);
+  const [couponMessage, setCouponMessage] = useState<{type: string; message: string; details?: string} | null>(null);
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -126,10 +141,26 @@ export default function CheckoutPage() {
     fetchUserProfile();
     fetchCart();
     
-    // Load delivery option from localStorage
+    // Load delivery option and coupon data from localStorage
     const savedOption = localStorage.getItem('deliveryOption') as 'delivery' | 'pickup';
     if (savedOption) {
       setDeliveryOption(savedOption);
+    }
+
+    // Load coupon data from localStorage
+    const savedCouponCode = localStorage.getItem('couponCode');
+    const savedCouponDiscount = localStorage.getItem('couponDiscount');
+    const savedCouponData = localStorage.getItem('couponData');
+    
+    if (savedCouponCode && savedCouponDiscount && savedCouponData) {
+      try {
+        setCouponCode(savedCouponCode);
+        setDiscount(parseFloat(savedCouponDiscount));
+        setAppliedCoupon(JSON.parse(savedCouponData));
+      } catch (error) {
+        console.error('Failed to load coupon data:', error);
+        clearCouponData();
+      }
     }
   }, []);
 
@@ -144,14 +175,115 @@ export default function CheckoutPage() {
     }
   }, [userProfile]);
 
-  // Calculate shipping when cart loads or delivery option changes
-  useEffect(() => {
-    if (cart) {
-      // Use the same logic as cart page: free shipping over AED 100 for delivery, free for pickup
-      const calculatedShipping = deliveryOption === 'pickup' ? 0 : (cart.total > 100 ? 0 : 7);
-      // Shipping state is now calculated dynamically
+  const clearCouponData = () => {
+    setCouponCode('');
+    setDiscount(0);
+    setAppliedCoupon(null);
+    setCouponMessage(null);
+    localStorage.removeItem('couponCode');
+    localStorage.removeItem('couponDiscount');
+    localStorage.removeItem('couponData');
+  };
+
+  const applyCoupon = async () => {
+    if (!couponCode.trim()) {
+      setCouponMessage({
+        type: 'error',
+        message: 'Coupon code is required',
+        details: 'Please enter a coupon code to apply discount'
+      });
+      return;
     }
-  }, [cart, deliveryOption]);
+
+    if (!cart || cart.items.length === 0) {
+      setCouponMessage({
+        type: 'error',
+        message: 'Cart is empty',
+        details: 'Add items to your cart before applying coupon'
+      });
+      return;
+    }
+
+    try {
+      setApplyingCoupon(true);
+      setCouponMessage({
+        type: 'warning',
+        message: 'Validating coupon...'
+      });
+
+      const response = await fetch('/api/coupons/validate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          code: couponCode,
+          cartTotal: subtotal,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.valid) {
+        setDiscount(data.coupon.discountAmount);
+        setAppliedCoupon(data.coupon);
+        
+        // Save coupon data to localStorage
+        localStorage.setItem('couponCode', couponCode);
+        localStorage.setItem('couponDiscount', data.coupon.discountAmount.toString());
+        localStorage.setItem('couponData', JSON.stringify(data.coupon));
+        
+        setCouponMessage({
+          type: 'success',
+          message: `🎉 Coupon applied successfully!`,
+          details: `You saved AED ${data.coupon.discountAmount.toFixed(2)} (${data.coupon.discountType === 'percentage' 
+            ? `${data.coupon.discountValue}% off` 
+            : `AED ${data.coupon.discountValue} off`
+          })`
+        });
+      } else {
+        clearCouponData();
+        
+        let errorMessage = data.error || 'Invalid coupon code';
+        let errorDetails = 'Please check the code and try again';
+        
+        if (errorMessage.includes('minimum order amount')) {
+          errorDetails = `Your cart total is AED ${subtotal.toFixed(2)}, but this coupon requires minimum order of AED ${data.minimumAmount || '0'}`;
+        } else if (errorMessage.includes('new customers only')) {
+          errorDetails = 'This coupon is only available for first-time customers';
+        } else if (errorMessage.includes('already used')) {
+          errorDetails = 'You have already used this coupon previously';
+        } else if (errorMessage.includes('usage limit reached')) {
+          errorDetails = 'This coupon has reached its maximum usage limit';
+        } else if (errorMessage.includes('expired')) {
+          errorDetails = 'This coupon has expired and is no longer valid';
+        } else if (errorMessage.includes('inactive')) {
+          errorDetails = 'This coupon is currently not active';
+        }
+
+        setCouponMessage({
+          type: 'error',
+          message: errorMessage,
+          details: errorDetails
+        });
+      }
+    } catch (error) {
+      console.error('Failed to apply coupon:', error);
+      clearCouponData();
+      setCouponMessage({
+        type: 'error',
+        message: 'Network error',
+        details: 'Failed to validate coupon. Please check your connection and try again.'
+      });
+    } finally {
+      setApplyingCoupon(false);
+    }
+  };
+
+  const removeCoupon = () => {
+    clearCouponData();
+    setCouponMessage(null);
+  };
 
   const fetchUserProfile = async () => {
     try {
@@ -234,6 +366,7 @@ export default function CheckoutPage() {
         customerName: formData.fullName,
         customerPhone: formData.mobile,
         deliveryOption: deliveryOption,
+        couponCode: appliedCoupon ? couponCode : undefined,
         ...(deliveryOption === 'delivery' && {
           shippingAddress: `${formData.street}, ${formData.building}${formData.flat ? `, Flat ${formData.flat}` : ''}, ${formData.area}, Al Ain`
         }),
@@ -255,8 +388,12 @@ export default function CheckoutPage() {
 
       if (response.ok) {
         setSuccess(true);
-        // Clear delivery option from localStorage after successful order
+        // Clear all localStorage data after successful order
         localStorage.removeItem('deliveryOption');
+        localStorage.removeItem('couponCode');
+        localStorage.removeItem('couponDiscount');
+        localStorage.removeItem('couponData');
+        
         setTimeout(() => {
           router.push(`/order-confirmation?orderId=${result.orderId}`);
         }, 2000);
@@ -274,8 +411,8 @@ export default function CheckoutPage() {
   // Calculate totals
   const subtotal = cart?.total || 0;
   const shipping = deliveryOption === 'pickup' ? 0 : (subtotal > 100 ? 0 : 7);
-  // const tax = subtotal * 0.05;
-  const total = subtotal + shipping;
+  // const tax = (subtotal - discount) * 0.05; // 5% VAT on discounted amount
+  const total = Math.max(0, subtotal + shipping - discount);
 
   if (loading) {
     return (
@@ -330,23 +467,6 @@ export default function CheckoutPage() {
             <h1 className="text-3xl font-bold text-amber-900 mb-2">Checkout</h1>
             <p className="text-amber-700 mb-6">Complete your order with delivery information</p>
 
-            {/* User Info Notice */}
-            {/* {userProfile && (
-              <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <User className="w-5 h-5 text-green-600" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-green-900">Profile Information Loaded</h4>
-                    <p className="text-sm text-green-700">
-                      Your name and phone number have been pre-filled from your profile. You can edit them if needed.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )} */}
-
             {/* Cash on Delivery Notice */}
             <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
               <div className="flex items-center gap-3">
@@ -360,6 +480,88 @@ export default function CheckoutPage() {
                   </p>
                 </div>
               </div>
+            </div>
+
+            {/* Coupon Section */}
+            <div className="mb-6">
+              {appliedCoupon ? (
+                <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                      <div>
+                        <p className="text-green-800 font-medium">Coupon Applied</p>
+                        <p className="text-green-600 text-sm">{appliedCoupon.code} - {appliedCoupon.description}</p>
+                        <p className="text-green-700 text-sm font-semibold">
+                          You save: AED {discount.toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={removeCoupon}
+                      className="text-green-600 hover:text-green-800 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="flex-1">
+                      <input
+                        type="text"
+                        placeholder="Enter coupon code"
+                        value={couponCode}
+                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            applyCoupon();
+                          }
+                        }}
+                        className="w-full px-4 py-2 border-2 border-amber-200 rounded-xl focus:border-orange-400 outline-none transition-all"
+                      />
+                    </div>
+                    <button
+                      onClick={applyCoupon}
+                      disabled={!couponCode.trim() || applyingCoupon}
+                      className="bg-gradient-to-r from-orange-500 to-amber-600 text-white px-4 py-2 rounded-xl hover:shadow-lg transition-all flex items-center gap-2 justify-center disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                    >
+                      <Ticket className="w-4 h-4" />
+                      {applyingCoupon ? 'Applying...' : 'Apply Coupon'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Coupon Message */}
+              {couponMessage && (
+                <div className={`mt-3 rounded-xl p-3 ${
+                  couponMessage.type === 'success' 
+                    ? 'bg-green-50 border border-green-200 text-green-800'
+                    : couponMessage.type === 'error'
+                    ? 'bg-red-50 border border-red-200 text-red-800'
+                    : 'bg-yellow-50 border border-yellow-200 text-yellow-800'
+                }`}>
+                  <div className="flex items-start gap-2">
+                    {couponMessage.type === 'success' && <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />}
+                    {couponMessage.type === 'error' && <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />}
+                    {couponMessage.type === 'warning' && <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />}
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">{couponMessage.message}</p>
+                      {couponMessage.details && (
+                        <p className="text-xs mt-1 opacity-90">{couponMessage.details}</p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => setCouponMessage(null)}
+                      className="text-current hover:opacity-70 transition-opacity flex-shrink-0"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -454,11 +656,6 @@ export default function CheckoutPage() {
                     </div>
                     <div className="flex justify-between items-start mb-2">
                       <span className="font-medium text-amber-900">Home Delivery</span>
-                      {/* <span className={`text-sm font-medium ${
-                        shipping === 0 ? 'text-green-600' : 'text-amber-700'
-                      }`}>
-                        {shipping === 0 ? 'FREE' : `AED ${shipping.toFixed(2)}`}
-                      </span> */}
                     </div>
                     <p className="text-xs text-amber-600">
                       Get your order delivered to your address in Al Ain
@@ -518,7 +715,7 @@ export default function CheckoutPage() {
                       <div>
                         <h4 className="font-semibold text-blue-900 text-sm">Store Pickup Information</h4>
                         <p className="text-xs text-blue-700 mt-1">
-                          <strong>Address:</strong> Kitchen Tools Store, Central District, Al Ain, UAE
+                          <strong>Address:</strong> Shop House General trading, Central District, Al Ain, UAE
                         </p>
                         <p className="text-xs text-blue-700">
                           <strong>Phone:</strong> +971 50 719 1804
@@ -526,7 +723,6 @@ export default function CheckoutPage() {
                         <p className="text-xs text-blue-700">
                           <strong>Hours:</strong> 8:00 AM - 12:00 AM (Daily)
                         </p>
-                        
                       </div>
                     </div>
                   </div>
@@ -680,6 +876,13 @@ export default function CheckoutPage() {
                   <span>AED {subtotal.toFixed(2)}</span>
                 </div>
                 
+                {discount > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Discount</span>
+                    <span>-AED {discount.toFixed(2)}</span>
+                  </div>
+                )}
+                
                 <div className="flex justify-between text-amber-800">
                   <span>
                     {deliveryOption === 'pickup' ? 'Store Pickup' : 'Delivery'}
@@ -701,6 +904,18 @@ export default function CheckoutPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Coupon Applied Notice */}
+              {appliedCoupon && (
+                <div className="mt-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
+                    <p className="text-xs text-green-700">
+                      <strong>{appliedCoupon.code}</strong> applied - Saved AED {discount.toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Delivery Notice */}
               {deliveryOption === 'delivery' && shipping > 0 && (
@@ -738,6 +953,14 @@ export default function CheckoutPage() {
                     {deliveryOption === 'pickup' ? 'Store Pickup' : 'Home Delivery'}
                   </span>
                 </div>
+                {appliedCoupon && (
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-sm font-medium text-amber-800">Coupon Applied:</span>
+                    <span className="text-sm font-semibold text-green-800 bg-green-100 px-3 py-1 rounded-full">
+                      {appliedCoupon.code}
+                    </span>
+                  </div>
+                )}
                 <p className="text-xs text-amber-600 mt-2 text-center">
                   {deliveryOption === 'pickup' 
                     ? 'Pay this amount when collecting your order'
