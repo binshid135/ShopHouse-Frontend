@@ -53,7 +53,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const mostRecommended = products.find((p) => p.isMostRecommended);
 
   return {
-    title: 'Kitchen & Household Items in Al Ain - Best Deals & Offers | Shop house general trading',
+    title: 'Kitchen and Household Items in Al Ain - Best Deals & Offers | Shop house general trading',
     description:
       'Discover professional-grade kitchen equipment with amazing discounts.',
     keywords: 'kitchen tools, kitchen supplies, cookware, knives, appliances, best restaurant supplies, cooking, baking , shop house general trading',

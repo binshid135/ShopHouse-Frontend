@@ -16,13 +16,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Best Household & Kitchen Items in Al Ain | Shop House General trading",
+  title: "Best Household and Kitchen Items in Al Ain | Shop House General trading",
   description: "Discover high-quality household and kitchen items at our Al Ain shop. We provide everything from cookware to home essentials for homes and restaurants in the Al ain.",
   alternates: {
     canonical: "https://www.shophousealain.com",
   },
   keywords: [
     "household items Al Ain",
+    "kitchen equipments",
     "kitchen items Al Ain",
     "restaurant supplies Al Ain",
     "kitchen utensils Al Ain",
@@ -37,7 +38,7 @@ export const metadata: Metadata = {
     icon: "/favicon.ico",
   },
   openGraph: {
-    title: "Shop House general trading Al Ain – Household, Kitchen & Restaurant Items",
+    title: "Shop House general trading Al Ain – Household, Kitchen and Restaurant equipments",
     description:
       "Best shop in Al Ain for kitchen items, household essentials, restaurant supplies & cleaning products.",
     url: "https://www.shophousealain.com/",
