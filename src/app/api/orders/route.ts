@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAdminSession } from './../../../../lib/auth';
 import { query } from './../../../../lib/neon';
 
+// GET handler (existing)
 export async function GET(request: NextRequest) {
   const session = await verifyAdminSession();
   if (!session) {
@@ -26,7 +27,7 @@ export async function GET(request: NextRequest) {
           od.customer_phone as "customerPhone",
           od.shipping_address as "shippingAddress",
           od.status as "deliveryStatus",
-          od.delivery_option as "deliveryOption"  -- Add this line
+          od.delivery_option as "deliveryOption"
         FROM orders o
         LEFT JOIN order_details od ON o.id = od.order_id
         ORDER BY o.created_at DESC
@@ -78,7 +79,7 @@ export async function GET(request: NextRequest) {
           itemCount: itemCountsMap.get(order.id) || 0,
           customerName: order.customerName || 'N/A',
           deliveryStatus: order.deliveryStatus || order.status,
-          deliveryOption: order.deliveryOption || 'delivery' // Default to delivery
+          deliveryOption: order.deliveryOption || 'delivery'
         }));
         
       } catch (countError) {
@@ -90,7 +91,7 @@ export async function GET(request: NextRequest) {
           itemCount: 0,
           customerName: order.customerName || 'N/A',
           deliveryStatus: order.deliveryStatus || order.status,
-          deliveryOption: order.deliveryOption || 'delivery' // Default to delivery
+          deliveryOption: order.deliveryOption || 'delivery'
         }));
       }
     } else {
@@ -107,5 +108,77 @@ export async function GET(request: NextRequest) {
     
     // Return empty array as fallback
     return NextResponse.json([], { status: 200 });
+  }
+}
+
+// NEW PUT handler for updating order status
+export async function PUT(request: NextRequest) {
+  const session = await verifyAdminSession();
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  try {
+    const body = await request.json();
+    const { orderId, status, notes } = body;
+
+    if (!orderId || !status) {
+      return NextResponse.json(
+        { error: 'Order ID and status are required' },
+        { status: 400 }
+      );
+    }
+
+    console.log(`🔄 Updating order ${orderId} status to ${status}`);
+
+    // Update the order status in the database
+    const result = await query(
+      `UPDATE orders SET status = $1 WHERE id = $2 RETURNING *`,
+      [status, orderId]
+    );
+
+    if (result.rowCount === 0) {
+      return NextResponse.json(
+        { error: 'Order not found' },
+        { status: 404 }
+      );
+    }
+
+    // Also update the order_details status if it exists
+    try {
+      await query(
+        `UPDATE order_details SET status = $1 WHERE order_id = $2`,
+        [status, orderId]
+      );
+    } catch (error) {
+      console.log('Note: order_details update not required');
+    }
+
+    // Log the status change if notes are provided
+    if (notes) {
+      try {
+        await query(
+          `INSERT INTO order_notes (order_id, note, created_at) VALUES ($1, $2, NOW())`,
+          [orderId, notes]
+        );
+      } catch (error) {
+        console.log('Note: Could not add order note');
+      }
+    }
+
+    console.log(`✅ Order ${orderId} updated successfully to status: ${status}`);
+    
+    return NextResponse.json({
+      success: true,
+      message: 'Order status updated successfully',
+      order: result.rows[0]
+    });
+
+  } catch (error) {
+    console.error('❌ Failed to update order status:', error);
+    return NextResponse.json(
+      { error: 'Failed to update order status' },
+      { status: 500 }
+    );
   }
 }

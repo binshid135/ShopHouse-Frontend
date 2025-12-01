@@ -87,36 +87,41 @@ export default function AdminOrdersPage() {
     }
   };
 
-  const updateOrderStatus = async (orderId: string, newStatus: string) => {
-    setUpdatingStatus(orderId);
-    try {
-      const response = await fetch('/api/orders', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          orderId,
-          status: newStatus,
-          notes: `Status changed to ${newStatus}`
-        }),
-      });
+  // Update your updateOrderStatus function in AdminOrdersPage.tsx
+const updateOrderStatus = async (orderId: string, newStatus: string) => {
+  setUpdatingStatus(orderId);
+  try {
+    const response = await fetch('/api/orders', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        orderId,
+        status: newStatus,
+        notes: `Status changed to ${newStatus} by admin`
+      }),
+    });
 
-      if (response.ok) {
-        fetchOrders(); // Refresh orders list
-        if (selectedOrder?.id === orderId) {
-          setSelectedOrder(prev => prev ? { ...prev, status: newStatus } : null);
-        }
-      } else {
-        alert('Failed to update order status');
+    const data = await response.json();
+    
+    if (response.ok) {
+      // Show success message
+      alert('Order status updated successfully!');
+      fetchOrders(); // Refresh orders list
+      if (selectedOrder?.id === orderId) {
+        setSelectedOrder(prev => prev ? { ...prev, status: newStatus } : null);
       }
-    } catch (error) {
-      console.error('Failed to update order status:', error);
-      alert('Error updating order status');
-    } finally {
-      setUpdatingStatus(null);
+    } else {
+      alert(data.error || 'Failed to update order status');
     }
-  };
+  } catch (error) {
+    console.error('Failed to update order status:', error);
+    alert('Network error. Please try again.');
+  } finally {
+    setUpdatingStatus(null);
+  }
+};
 
   const getStatusIcon = (status: string) => {
     switch (status) {
