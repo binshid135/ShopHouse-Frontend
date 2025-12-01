@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "./context/cartContext";
 import PageTransition from './components/PageTransition';
+import GoogleAnalytics from "./components/GoogleAnalytics";
+import WebVitals from "./components/WebVitals";
 
 
 const geistSans = Geist({
@@ -60,6 +62,8 @@ export default function RootLayout({
         <CartProvider>
           <PageTransition>
             {children}
+            <GoogleAnalytics />
+            <WebVitals />
           </PageTransition>
         </CartProvider>
       </body>
