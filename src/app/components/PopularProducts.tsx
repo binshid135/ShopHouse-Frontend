@@ -1,6 +1,7 @@
 import React from 'react';
-import { Utensils, Star } from 'lucide-react';
+import { Utensils, Star, ChevronRight } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { Product } from './../../app/page';
 
 interface PopularProductsProps {
@@ -37,9 +38,17 @@ const PopularProducts: React.FC<PopularProductsProps> = ({ products, onProductCl
 };
 
 const SectionHeader: React.FC = () => (
-  <div className="flex items-center gap-3 mb-8">
-    <h2 className="text-3xl font-bold text-amber-900">Recommended Products</h2>
-    <Utensils className="w-6 h-6 text-orange-500" />
+  <div className="flex items-center justify-between mb-8">
+    <div className="flex items-center gap-3">
+      <h2 className="text-3xl font-bold text-amber-900">Recommended Products</h2>
+      <Utensils className="w-6 h-6 text-orange-500" />
+    </div>
+    <Link 
+      href="/products"
+      className="text-amber-700 hover:text-orange-600 underline underline-offset-4 hover:underline-offset-2 transition-all duration-200 font-medium"
+    >
+      View More
+    </Link>
   </div>
 );
 
@@ -120,12 +129,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, index, onProductClic
         <h3 className="font-bold text-lg text-amber-900 mb-2 line-clamp-2 group-hover:text-orange-600 transition-colors">
           {product.name}
         </h3>
-        
-        {/* {product.shortDescription && (
-          <p className="text-sm text-amber-600 mb-3 line-clamp-2">
-            {product.shortDescription}
-          </p>
-        )} */}
+      
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
