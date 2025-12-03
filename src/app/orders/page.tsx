@@ -471,7 +471,7 @@ export default function Orders() {
                 <p className="font-semibold mb-2">Contact Support:</p>
                 <p>For any questions about your order, contact us at:</p>
                 <p className="font-mono mt-1">📞 {storeLocation.phone}</p>
-                <p className="font-mono">📧 shophouse@gmail.com</p>
+                <p className="font-mono">📧 shophouse2025@gmail.com</p>
                 <div className="mt-3">
                   <p className="font-semibold">Store Location:</p>
                   <p className="font-mono text-sm">{storeLocation.name}</p>

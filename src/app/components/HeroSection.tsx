@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShoppingCart, Star } from 'lucide-react';
+import { ShoppingCart, Star, MapPin } from 'lucide-react';
 import Image from 'next/image';
 import { Product } from '../page';
 import { useRouter } from "next/navigation";
@@ -38,30 +38,65 @@ const HeroContent: React.FC<HeroContentProps> = ({ mostRecommendedProduct }) => 
 
   return (
     <div className="space-y-6">
+      {/* Location Badge */}
+      <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-100 rounded-full mb-4">
+        <MapPin className="w-4 h-4 text-orange-600" />
+        <span className="text-amber-800 font-medium">
+          Al Ain's Kitchen Equipment Supplier
+        </span>
+      </div>
+
       <h1 className="text-5xl md:text-6xl font-bold leading-tight">
-        Equip your <span className="text-orange-600">kitchen</span> And <span className="text-orange-600">House</span>
-        <br />
-        before your service
+        Equip Your <span className="text-orange-600">Kitchen</span> And <span className="text-orange-600">House</span>
+        <br /> Before your service 
+        {/* <span className="text-amber-700">Premium Restaurant Equipment</span> */}
       </h1>
 
       <p className="text-lg text-amber-800 max-w-md">
-        Boost your kitchen efficiency and build your culinary excellence with best premium Household and kitchen equipment provider in Al-ain 
+        Boost your kitchen efficiency with the best commercial kitchen equipment 
+        and household supplies in Al Ain. Your trusted partner for professional 
+        kitchen solutions across UAE.
       </p>
 
-      <div className="flex gap-4">
+      <div className="flex flex-wrap gap-4">
         <button
           onClick={handleOrderNow}
-          className="bg-gradient-to-r from-orange-500 to-amber-600 text-white px-8 py-3 rounded-full font-medium hover:shadow-lg transform hover:-translate-y-1 transition-all flex items-center gap-2"
+          className="bg-gradient-to-r cursor-pointer from-orange-500 to-amber-600 text-white px-8 py-3 rounded-full font-medium hover:shadow-lg transform hover:-translate-y-1 transition-all flex items-center gap-2"
         >
-          Order now
+          View our products
           <ShoppingCart className="w-4 h-4" />
         </button>
+        
+        <button
+          onClick={() =>  window.open('tel:+971507191804')}
+          className="bg-white cursor-pointer text-amber-800 border-2 border-amber-300 px-6 py-3 rounded-full font-medium hover:bg-amber-50 transition-all flex items-center gap-2"
+        >
+          Contact Our Store
+        </button>
+      </div>
+
+      {/* SEO Keywords */}
+      <div className="pt-6 border-t border-amber-200 mt-6">
+        <p className="text-sm text-amber-600 mb-2">Popular Searches:</p>
+        <div className="flex flex-wrap gap-2">
+          {[
+            "Kitchen Equipment Al Ain",
+            "Restaurant Supplies Al Ain",
+            "Commercial Cooking Equipment",
+            "Hotel Kitchen Al Ain"
+          ].map((keyword, index) => (
+            <span 
+              key={index}
+              className="px-3 py-1 bg-amber-50 text-amber-700 rounded-full text-xs font-medium"
+            >
+              {keyword}
+            </span>
+          ))}
+        </div>
       </div>
     </div>
   );
 };
-
-
 
 interface FeaturedProductProps {
   mostRecommendedProduct?: Product;
@@ -74,7 +109,8 @@ const FeaturedProduct: React.FC<FeaturedProductProps> = ({ mostRecommendedProduc
       <div className="relative">
         <div className="relative bg-gradient-to-br from-orange-100 via-amber-100 to-orange-200 rounded-full w-full aspect-square flex items-center justify-center shadow-xl p-12">
           <div className="text-center text-amber-600">
-            <p className="text-lg font-semibold">No featured product</p>
+            <p className="text-lg font-semibold">Featured Kitchen Equipment</p>
+            <p className="text-sm mt-2">Al Ain's Best Deals Coming Soon</p>
           </div>
         </div>
       </div>
@@ -95,7 +131,14 @@ const FeaturedProduct: React.FC<FeaturedProductProps> = ({ mostRecommendedProduc
   };
 
   return (
-    <div className="relative group" style={{ zIndex: 1 }}> {/* Added lower z-index here */}
+    <div className="relative group" style={{ zIndex: 1 }}>
+      {/* Product Location Context */}
+      <div className="text-center mb-4">
+        <p className="text-amber-700 font-medium">
+          Featured Kitchen Equipment in Al Ain
+        </p>
+      </div>
+
       <div
         className="relative bg-gradient-to-br from-orange-100 via-amber-100 to-orange-200 rounded-full 
         w-full aspect-square flex items-center justify-center shadow-xl p-8 cursor-pointer 
@@ -126,7 +169,7 @@ const FeaturedProduct: React.FC<FeaturedProductProps> = ({ mostRecommendedProduc
               border border-yellow-300 drop-shadow-md
             "
           >
-            ⭐ Best Seller
+            ⭐ Al Ain Best Seller
           </span>
 
           <span
@@ -137,7 +180,7 @@ const FeaturedProduct: React.FC<FeaturedProductProps> = ({ mostRecommendedProduc
               border border-red-400 drop-shadow-md
             "
           >
-            🔥 Mega Deal
+            🔥 UAE Mega Deal
           </span>
         </div>
 
@@ -146,7 +189,7 @@ const FeaturedProduct: React.FC<FeaturedProductProps> = ({ mostRecommendedProduc
           {mostRecommendedProduct.images?.length ? (
             <Image
               src={mostRecommendedProduct.images[0]}
-              alt={mostRecommendedProduct.name}
+              alt={`${mostRecommendedProduct.name} - Kitchen Equipment Al Ain`}
               fill
               sizes="(max-width: 768px) 80vw, 40vw"
               className="object-contain rounded-full"
@@ -190,17 +233,33 @@ const FeaturedProduct: React.FC<FeaturedProductProps> = ({ mostRecommendedProduc
           <span className="font-bold text-amber-900 text-sm md:text-base">4.9</span>
         </div>
 
+        {/* Location Badge */}
+        <div className="
+          absolute bottom-8 left-6 bg-amber-600 text-white px-3 py-1 
+          rounded-lg text-xs opacity-90 flex items-center gap-1
+        ">
+          <MapPin className="w-3 h-3" />
+          <span>Available in Al Ain</span>
+        </div>
+
         {/* Click Hint - Reduced z-index */}
         <div className="
           absolute bottom-8 right-6 bg-black/70 text-white px-3 py-2 
           rounded-lg text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10
         ">
-          Click to view details
+          View Kitchen Equipment Details
         </div>
+      </div>
+
+      {/* SEO Text Below Product */}
+      <div className="text-center mt-6">
+        <p className="text-sm text-amber-600">
+          Shop premium kitchen equipment and restaurant supplies in Al Ain. 
+          Best deals on commercial cooking tools and professional kitchen appliances.
+        </p>
       </div>
     </div>
   );
 };
-
 
 export default HeroSection;

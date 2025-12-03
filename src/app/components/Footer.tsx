@@ -59,7 +59,7 @@ const Footer: React.FC = () => {
                 />
                 <ContactItem
                   icon={<Mail className="w-4 h-4" />}
-                  text="shophouse@gmail.com"
+                  text="shophouse2025@gmail.com"
                 />
                 <ContactItem
                   icon={<MapPin className="w-4 h-4" />}
