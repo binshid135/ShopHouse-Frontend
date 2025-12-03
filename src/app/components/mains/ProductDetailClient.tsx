@@ -7,6 +7,8 @@ import FloatingElements from './../../components/FloatingElements';
 import Header from './../../components/Header';
 import Footer from './../../components/Footer';
 import { useCart } from '@/app/context/cartContext';
+import { viewItemGA } from '../../../../lib/analytics';
+import { addToCartGA } from "../../../../lib/analytics";
 
 interface Product {
   id: string;
@@ -44,7 +46,11 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
       indexes[relatedProduct.id] = 0;
     });
     setCurrentImageIndexes(indexes);
-  }, [relatedProducts]);
+
+    if (product) {
+      viewItemGA(product);
+    }
+  }, [relatedProducts, product]);
 
   // Image carousel navigation for main product
   const nextImage = () => {
@@ -100,9 +106,10 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
 
       // Use the cart context to add item
       const result = await addToCart(productId, quantityToAdd);
-      
+
       if (result.success) {
         // Mark as added for visual feedback
+        addToCartGA(productName, quantityToAdd)
         setAddedProductIds((prev) => [...prev, productId]);
         setTimeout(() => {
           setAddedProductIds((prev) => prev.filter((id) => id !== productId));
@@ -138,6 +145,7 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
 
     const success = await handleAddToCart(product.id, quantity, product.name);
     if (success) {
+      addToCartGA(product.name,quantity)
       setIsInCart(true);
       setTimeout(() => setIsInCart(false), 2000);
     }
@@ -664,7 +672,7 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
           </div>
         </div>
       </section>
-      
+
       <Footer />
     </div>
   );
