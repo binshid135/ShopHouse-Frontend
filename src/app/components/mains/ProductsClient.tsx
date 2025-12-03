@@ -8,6 +8,7 @@ import FloatingElements from '../FloatingElements';
 import Header from '../Header';
 import Footer from '../Footer';
 import { useCart } from '@/app/context/cartContext';
+import { addToCartGA } from '../../../../lib/analytics';
 
 interface Product {
   id: string;
@@ -29,11 +30,11 @@ interface ProductsClientProps {
   serverProductCount: number;
 }
 
-export default function ProductsClient({ 
-  initialProducts, 
-  initialCategories, 
+export default function ProductsClient({
+  initialProducts,
+  initialCategories,
   cacheVersion,
-  serverProductCount 
+  serverProductCount
 }: ProductsClientProps) {
   const router = useRouter();
   const { addToCart } = useCart();
@@ -72,7 +73,7 @@ export default function ProductsClient({
     if (hasLowCount) {
       console.warn(`⚠️ [CLIENT] LOW PRODUCT COUNT: Only ${clientCount} products`);
       setHasDataIssue(true);
-      
+
       // Report to analytics
       fetch('/api/analytics/low-product-count', {
         method: 'POST',
@@ -107,7 +108,7 @@ export default function ProductsClient({
     setCurrentPage(1);
   }, [searchQuery, selectedCategory]);
 
-  const handleAddToCart = async (productId: string, event: React.MouseEvent) => {
+  const handleAddToCart = async (productId: string, event: React.MouseEvent, productName: string) => {
     event.stopPropagation();
     event.preventDefault();
 
@@ -126,6 +127,7 @@ export default function ProductsClient({
         setTimeout(() => {
           setAddedProductIds((prev) => prev.filter((id) => id !== productId));
         }, 2000);
+        addToCartGA(productName, 1)
       } else {
         alert(result.error || 'Failed to add product to cart');
       }
@@ -270,7 +272,7 @@ export default function ProductsClient({
             <div>
               <h4 className="font-semibold text-yellow-800">Incomplete Data Loaded</h4>
               <p className="text-yellow-700 text-sm">
-                Showing {initialProducts.length} of {serverProductCount} products. 
+                Showing {initialProducts.length} of {serverProductCount} products.
                 Some items may not be visible due to caching issues.
               </p>
             </div>
@@ -579,7 +581,7 @@ export default function ProductsClient({
           {/* Scrollable Category Quick Filters */}
           {categories.length > 1 && (
             <div className="mb-8">
-              <div 
+              <div
                 ref={categoriesContainerRef}
                 className="flex gap-2 overflow-x-auto pb-3 scrollbar-thin scrollbar-thumb-amber-300 scrollbar-track-amber-100"
               >
@@ -648,7 +650,7 @@ export default function ProductsClient({
                         : 'hover:-translate-y-2 cursor-pointer'
                         } ${viewMode === 'list' ? 'flex' : ''}`}
                     >
-                      <Link 
+                      <Link
                         href={isOutOfStock ? '#' : `/products/${product.id}`}
                         className={`block ${viewMode === 'list' ? 'flex-1' : ''} ${isOutOfStock ? 'pointer-events-none' : ''}`}
                       >
@@ -786,13 +788,13 @@ export default function ProductsClient({
                           </div>
                         </div>
                       </Link>
-                      
+
                       {/* Add to Cart Button - Outside Link to prevent navigation */}
                       <div className="p-6 pt-0">
                         <button
                           onClick={(e) => {
                             if (!isOutOfStock) {
-                              handleAddToCart(product.id, e);
+                              handleAddToCart(product.id, e, product.id);
                             }
                           }}
                           disabled={isOutOfStock}
