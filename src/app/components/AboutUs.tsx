@@ -112,7 +112,7 @@ const AboutUs: React.FC = () => {
                   </div>
                   <div className="flex items-center">
                     <CheckCircle className="w-5 h-5 text-green-600 mr-3 flex-shrink-0" />
-                    <span className="text-amber-700">Professional Cookware UAE</span>
+                    <span className="text-amber-700">Professional Cookware Al Ain</span>
                   </div>
                   <div className="flex items-center">
                     <CheckCircle className="w-5 h-5 text-green-600 mr-3 flex-shrink-0" />
@@ -120,7 +120,7 @@ const AboutUs: React.FC = () => {
                   </div>
                   <div className="flex items-center">
                     <CheckCircle className="w-5 h-5 text-green-600 mr-3 flex-shrink-0" />
-                    <span className="text-amber-700">Food Preparation Equipment UAE</span>
+                    <span className="text-amber-700">Food Preparation Equipment Al Ain</span>
                   </div>
                 </div>
               </div>
@@ -134,8 +134,8 @@ const AboutUs: React.FC = () => {
                 />
                 <ServiceFeature
                   icon={<Truck className="w-6 h-6" />}
-                  title="Fast Delivery Al Ain"
-                  description="Quick delivery of restaurant equipment across Al Ain and UAE"
+                  title="Fast Delivery in Al Ain"
+                  description="Quick delivery of restaurant equipment across Al Ain"
                 />
                 <ServiceFeature
                   icon={<Headphones className="w-6 h-6" />}
@@ -313,7 +313,7 @@ const AboutUs: React.FC = () => {
               color="text-blue-600"
             />
             <ValueCard
-              title="Chef-Focused Solutions UAE"
+              title="Chef-Focused Solutions"
               description="Every restaurant equipment product is tested and approved by professional chefs for real kitchen use in Al Ain."
               color="text-green-600"
             />
@@ -334,13 +334,13 @@ const AboutUs: React.FC = () => {
             <div className="flex flex-wrap justify-center gap-3">
               {[
                 "Kitchen Equipment Al Ain",
-                "Restaurant Equipment UAE",
+                "Restaurant Equipment Al Ain",
                 "Commercial Kitchen Supplies",
                 "Professional Cookware Al Ain",
-                "Kitchen Utensils UAE",
+                "Kitchen Utensils Al Ain",
                 "Cooking Equipment Al Ain",
                 "Hotel Kitchen Supplies",
-                "Bakery Equipment UAE",
+                "Bakery Equipment Al Ain",
                 "Food Service Equipment",
                 "Kitchen Appliances Al Ain"
               ].map((keyword, index) => (
@@ -402,7 +402,7 @@ const MissionCard: React.FC = () => (
     <p className="text-amber-700 leading-relaxed mb-4">
       To provide professional chefs and culinary enthusiasts in Al Ain with reliable,
       high-performance kitchen equipment that enhances creativity and efficiency
-      in every kitchen we serve across the UAE.
+      in every kitchen we serve across Al Ain.
     </p>
     <ul className="space-y-2 text-amber-600">
       <li className="flex items-center">
@@ -411,7 +411,7 @@ const MissionCard: React.FC = () => (
       </li>
       <li className="flex items-center">
         <span className="w-2 h-2 bg-orange-500 rounded-full mr-3"></span>
-        Support culinary professionals across UAE
+        Support culinary professionals
       </li>
       <li className="flex items-center">
         <span className="w-2 h-2 bg-orange-500 rounded-full mr-3"></span>
@@ -436,7 +436,7 @@ const VisionCard: React.FC = () => (
       </li>
       <li className="flex items-center">
         <span className="w-2 h-2 bg-amber-500 rounded-full mr-3"></span>
-        Innovation in culinary technology UAE
+        Innovation in culinary technology Al Ain
       </li>
       <li className="flex items-center">
         <span className="w-2 h-2 bg-amber-500 rounded-full mr-3"></span>
