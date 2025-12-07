@@ -233,15 +233,6 @@ const FeaturedProduct: React.FC<FeaturedProductProps> = ({ mostRecommendedProduc
           <span className="font-bold text-amber-900 text-sm md:text-base">4.9</span>
         </div>
 
-        {/* Location Badge */}
-        <div className="
-          absolute bottom-8 left-6 bg-amber-600 text-white px-3 py-1 
-          rounded-lg text-xs opacity-90 flex items-center gap-1
-        ">
-          <MapPin className="w-3 h-3" />
-          <span>Available in Al Ain</span>
-        </div>
-
         {/* Click Hint - Reduced z-index */}
         <div className="
           absolute bottom-8 right-6 bg-black/70 text-white px-3 py-2 
