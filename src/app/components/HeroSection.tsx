@@ -55,7 +55,7 @@ const HeroContent: React.FC<HeroContentProps> = ({ mostRecommendedProduct }) => 
       <p className="text-lg text-amber-800 max-w-md">
         Boost your kitchen efficiency with the best commercial kitchen equipment 
         and household supplies in Al Ain. Your trusted partner for professional 
-        kitchen solutions across UAE.
+        kitchen solutions across Al Ain, UAE.
       </p>
 
       <div className="flex flex-wrap gap-4">
@@ -169,7 +169,7 @@ const FeaturedProduct: React.FC<FeaturedProductProps> = ({ mostRecommendedProduc
               border border-yellow-300 drop-shadow-md
             "
           >
-            ⭐ Al Ain Best Seller
+            ⭐ Best Seller
           </span>
 
           <span
@@ -180,7 +180,7 @@ const FeaturedProduct: React.FC<FeaturedProductProps> = ({ mostRecommendedProduc
               border border-red-400 drop-shadow-md
             "
           >
-            🔥 UAE Mega Deal
+            🔥 Mega Deal
           </span>
         </div>
 
@@ -231,15 +231,6 @@ const FeaturedProduct: React.FC<FeaturedProductProps> = ({ mostRecommendedProduc
         ">
           <Star className="w-4 h-4 md:w-5 md:h-5 text-yellow-500 fill-yellow-500" />
           <span className="font-bold text-amber-900 text-sm md:text-base">4.9</span>
-        </div>
-
-        {/* Location Badge */}
-        <div className="
-          absolute bottom-8 left-6 bg-amber-600 text-white px-3 py-1 
-          rounded-lg text-xs opacity-90 flex items-center gap-1
-        ">
-          <MapPin className="w-3 h-3" />
-          <span>Available in Al Ain</span>
         </div>
 
         {/* Click Hint - Reduced z-index */}
