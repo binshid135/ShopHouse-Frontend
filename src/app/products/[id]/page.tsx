@@ -98,7 +98,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   }
 
   return {
-    title: `${product.name} - Premium Kitchen Tools`,
+    title: `${product.name} - Best ${product.category} sale in Al Ain, UAE`,
     description: product.shortDescription || `Discover ${product.name}.`,
     openGraph: {
       title: product.name,
