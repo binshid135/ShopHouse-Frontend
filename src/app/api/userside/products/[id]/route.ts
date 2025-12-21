@@ -34,7 +34,7 @@ const getProductCached = (id: string) =>
     // FIX: stable key must be an array of strings
     [`product-cache-${id}`],
     {
-      revalidate: 600,
+      revalidate: 86400,
     }
   )();
 

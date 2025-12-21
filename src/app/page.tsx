@@ -18,7 +18,7 @@ export interface Product {
   updatedAt: string;
 }
 
-export const revalidate = 600; // 24h
+export const revalidate = 86400; // 24h
 
 // ---------- CACHED QUERY ----------
 const getHomepageProductsCached = unstable_cache(
@@ -44,7 +44,7 @@ const getHomepageProductsCached = unstable_cache(
     }));
   },
   ["products-api-v3"],
-  { revalidate: 600 }
+  { revalidate: 86400 }
 );
 
 // ---------- METADATA ----------
