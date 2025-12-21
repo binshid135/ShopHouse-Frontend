@@ -62,7 +62,7 @@ const getProductsCached = unstable_cache(async () => {
     }
   }
 }, ["products-api-v3"], { // New cache key to match page
-  revalidate: 600, // 24 hours
+  revalidate: 86400, // 24 hours
   tags: ['products'] // Add tags for consistency
 });
 
