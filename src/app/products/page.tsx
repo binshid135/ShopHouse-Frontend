@@ -17,7 +17,7 @@ interface Product {
   updatedAt: string;
 }
 
-export const revalidate = 86400; // 24 hours
+export const revalidate = 600; // 24 hours
 
 // ---------- RELIABLE CACHED PRODUCTS ----------
 const getProductsCached = unstable_cache(
@@ -82,7 +82,7 @@ const getProductsCached = unstable_cache(
   },
   ["products-reliable-v3"], // New cache key to bust old corrupted cache
   { 
-    revalidate: 86400,
+    revalidate: 600,
     tags: ['products'] 
   }
 );

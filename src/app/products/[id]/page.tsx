@@ -18,7 +18,7 @@ interface Product {
   updatedAt: string;
 }
 
-export const revalidate = 86400; // 24 hours
+export const revalidate = 600; // 24 hours
 
 // ---------- CACHED PRODUCT ----------
 const getProductCached = (id: string) =>
@@ -42,7 +42,7 @@ const getProductCached = (id: string) =>
       };
     },
     [`product-${id}`],
-    { revalidate: 86400 }
+    { revalidate: 600 }
   )();
 
 // ---------- CACHED RELATED PRODUCTS ----------
@@ -77,7 +77,7 @@ const getRelatedProductsCached = (id: string, category?: string) =>
       }));
     },
     [`related-${id}-${category ?? 'none'}`],
-    { revalidate: 86400 }
+    { revalidate: 600 }
   )();
 
 // ---------- STATIC PARAMS ----------
