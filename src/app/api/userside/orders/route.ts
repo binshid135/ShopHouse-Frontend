@@ -1,4 +1,3 @@
-// app/api/userside/orders/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '../../../../../lib/neon';
 import { v4 as uuidv4 } from 'uuid';
@@ -27,7 +26,8 @@ export async function POST(request: NextRequest) {
       shippingAddress,
       deliveryOption,
       couponCode,
-      providedDiscountAmount
+      providedDiscountAmount,
+      hasCouponCode: !!couponCode
     });
 
     // Get cart ID using the same logic as cart API
@@ -66,6 +66,7 @@ export async function POST(request: NextRequest) {
       userName = customerName;
     }
 
+    console.log('User type:', token ? 'Logged in' : 'Guest');
     console.log('Looking for cart with ID:', cartId);
 
     // Get cart items - handle both user ID and cart ID lookup
@@ -109,11 +110,14 @@ export async function POST(request: NextRequest) {
     );
 
     // Coupon validation and discount calculation
+    // IMPORTANT: Only apply coupons for logged-in users
     let discountAmount = 0;
     let couponId: string | null = null;
     let couponDetails: any = null;
 
-    if (couponCode) {
+    if (couponCode && token) {
+      console.log('User is logged in, processing coupon...');
+      
       // ✅ First, try to use the discount amount provided from checkout
       if (providedDiscountAmount && providedDiscountAmount > 0) {
         discountAmount = providedDiscountAmount;
@@ -165,6 +169,9 @@ export async function POST(request: NextRequest) {
           console.error('❌ Coupon validation error:', couponError);
         }
       }
+    } else if (couponCode && !token) {
+      console.log('⚠️ Guest user tried to use coupon, ignoring...');
+      // Guest users cannot use coupons - silently ignore
     }
 
     // Calculate final amounts
@@ -175,7 +182,8 @@ export async function POST(request: NextRequest) {
       originalSubtotal,
       discountAmount,
       discountedSubtotal,
-      total
+      total,
+      userLoggedIn: !!token
     });
 
     // Create or get user
@@ -227,8 +235,8 @@ export async function POST(request: NextRequest) {
       [orderId, customerName, customerPhone, shippingAddress, 'pending', deliveryOption || 'delivery']
     );
 
-    // Record coupon usage if coupon was applied
-    if (couponId && discountAmount > 0) {
+    // Record coupon usage if coupon was applied AND user is logged in
+    if (couponId && discountAmount > 0 && token) {
       try {
         await query(
           `INSERT INTO coupon_usage (coupon_id, user_id, order_id, discount_amount)
@@ -276,7 +284,8 @@ export async function POST(request: NextRequest) {
       deliveryOption: deliveryOption || 'delivery',
       itemCount: cartItems.length,
       couponCode: couponCode || null,
-      couponDiscount: discountAmount
+      couponDiscount: discountAmount,
+      userType: token ? 'Registered User' : 'Guest'
     };
 
     // Send email notification to admin only (fire and forget)
@@ -302,7 +311,8 @@ export async function POST(request: NextRequest) {
       discount_amount: parseFloat(discountAmount.toFixed(2)),
       deliveryOption: deliveryOption || 'delivery',
       couponApplied: discountAmount > 0,
-      couponCode: couponCode || null
+      couponCode: couponCode || null,
+      userLoggedIn: !!token
     });
 
     // Clear cart cookie for guest users

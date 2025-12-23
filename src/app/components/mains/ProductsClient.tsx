@@ -9,6 +9,7 @@ import Header from '../Header';
 import Footer from '../Footer';
 import { useCart } from '@/app/context/cartContext';
 import { addToCartGA } from '../../../../lib/analytics';
+import CartToast from '../CartToast';
 
 interface Product {
   id: string;
@@ -47,7 +48,10 @@ export default function ProductsClient({
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [currentImageIndexes, setCurrentImageIndexes] = useState<{ [key: string]: number }>({});
   const [hasDataIssue, setHasDataIssue] = useState(false);
-
+  
+  // Toast state
+  const [showToast, setShowToast] = useState(false);
+ 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(16);
@@ -60,10 +64,9 @@ export default function ProductsClient({
     console.log(`📱 [CLIENT] Cache version: ${cacheVersion}`);
     console.log(`📱 [CLIENT] Server reported count: ${serverProductCount}`);
 
-    // Check for data consistency issues
     const clientCount = initialProducts.length;
     const hasMismatch = clientCount < serverProductCount;
-    const hasLowCount = clientCount < 100; // Adjust based on your expected minimum
+    const hasLowCount = clientCount < 100;
 
     if (hasMismatch) {
       console.warn(`⚠️ [CLIENT] CLIENT-SERVER MISMATCH: Client got ${clientCount}, server had ${serverProductCount}`);
@@ -74,7 +77,6 @@ export default function ProductsClient({
       console.warn(`⚠️ [CLIENT] LOW PRODUCT COUNT: Only ${clientCount} products`);
       setHasDataIssue(true);
 
-      // Report to analytics
       fetch('/api/analytics/low-product-count', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -108,13 +110,24 @@ export default function ProductsClient({
     setCurrentPage(1);
   }, [searchQuery, selectedCategory]);
 
-  const handleAddToCart = async (productId: string, event: React.MouseEvent, productName: string) => {
+  // Show toast notification
+  const showCartToast = (productName: string, quantity: number, price: number, imageUrl?: string) => {
+   
+    setShowToast(true);
+    
+    // Auto-hide after 8 seconds
+    // setTimeout(() => {
+    //   if (showToast) {
+    //     setShowToast(false);
+    //   }
+    // }, 8000);
+  };
+
+  const handleAddToCart = async (productId: string, event: React.MouseEvent, product: Product) => {
     event.stopPropagation();
     event.preventDefault();
 
     try {
-      const product = products.find(p => p.id === productId);
-
       if (product && product.stock <= 0) {
         alert('This product is out of stock');
         return;
@@ -123,11 +136,21 @@ export default function ProductsClient({
       const result = await addToCart(productId, 1);
 
       if (result.success) {
+        // Show toast notification
+        showCartToast(
+          product.name,
+          1,
+          product.discountedPrice,
+          product.images[0]
+        );
+        
+        // Visual feedback
         setAddedProductIds((prev) => [...prev, productId]);
         setTimeout(() => {
           setAddedProductIds((prev) => prev.filter((id) => id !== productId));
         }, 2000);
-        addToCartGA(productName, 1)
+        
+        addToCartGA(product.name, 1);
       } else {
         alert(result.error || 'Failed to add product to cart');
       }
@@ -324,7 +347,6 @@ export default function ProductsClient({
 
     return (
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-12 pt-8 border-t border-amber-200">
-        {/* Items per page selector */}
         <div className="flex items-center gap-3">
           <span className="text-sm text-amber-700">Show:</span>
           <select
@@ -343,14 +365,11 @@ export default function ProductsClient({
           <span className="text-sm text-amber-700">per page</span>
         </div>
 
-        {/* Page info */}
         <div className="text-sm text-amber-700">
           Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems} products
         </div>
 
-        {/* Page navigation */}
         <div className="flex items-center gap-2">
-          {/* Previous button */}
           <button
             onClick={() => {
               setCurrentPage(prev => Math.max(prev - 1, 1));
@@ -365,7 +384,6 @@ export default function ProductsClient({
             <ChevronLeft className="w-4 h-4" />
           </button>
 
-          {/* Page numbers */}
           {getPageNumbers().map((page, index) => (
             <button
               key={index}
@@ -387,7 +405,6 @@ export default function ProductsClient({
             </button>
           ))}
 
-          {/* Next button */}
           <button
             onClick={() => {
               setCurrentPage(prev => Math.min(prev + 1, totalPages));
@@ -410,6 +427,20 @@ export default function ProductsClient({
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100 overflow-hidden">
       <FloatingElements />
       <Header searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+      
+      {/* Cart Toast */}
+      <CartToast
+        isVisible={showToast}
+        onClose={() => setShowToast(false)}
+        onViewCart={() => router.push('/cart')}
+        onContinueShopping={() => {
+          // Scroll to top of products section
+          const productsSection = document.querySelector('section[class*="Products"]');
+          if (productsSection) {
+            productsSection.scrollIntoView({ behavior: 'smooth' });
+          }
+        }}
+      />
 
       {/* Hero Section */}
       <section className="relative px-6 py-8">
@@ -658,7 +689,6 @@ export default function ProductsClient({
                           ? 'w-48 h-64 flex-shrink-0'
                           : 'h-64'
                           } bg-white flex items-center justify-center relative group p-2`}>
-                          {/* Product Image or Slideshow */}
                           {product.images && product.images.length > 0 ? (
                             <>
                               <img
@@ -667,7 +697,6 @@ export default function ProductsClient({
                                 className="w-full h-full object-scale-down transition-opacity duration-300 rounded-xl"
                               />
 
-                              {/* Navigation Arrows for Multiple Images */}
                               {hasMultipleImages && (
                                 <>
                                   <button
@@ -685,7 +714,6 @@ export default function ProductsClient({
                                 </>
                               )}
 
-                              {/* Image Dots Indicator */}
                               {hasMultipleImages && (
                                 <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 flex gap-1.5">
                                   {product.images.map((_, index) => (
@@ -708,7 +736,6 @@ export default function ProductsClient({
                                 </div>
                               )}
 
-                              {/* Image Counter */}
                               {hasMultipleImages && (
                                 <div className="absolute top-3 left-3 bg-black/50 text-white text-xs px-2 py-1 rounded-full">
                                   {currentImageIndex + 1} / {product.images.length}
@@ -719,7 +746,6 @@ export default function ProductsClient({
                             <div className="text-6xl">{productEmoji}</div>
                           )}
 
-                          {/* Top Right Discount Badge */}
                           {discountPercentage > 0 && (
                             <div className="absolute top-3 right-3 bg-red-500 text-white px-2 py-1 rounded-full text-sm font-bold">
                               -{discountPercentage}%
@@ -749,7 +775,6 @@ export default function ProductsClient({
                               )}
                             </div>
 
-                            {/* Category Badge */}
                             {product.category && product.category !== 'Uncategorized' && (
                               <div className="mb-2">
                                 <span className="inline-flex items-center gap-1 px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
@@ -766,7 +791,6 @@ export default function ProductsClient({
                               </p>
                             )}
 
-                            {/* Stock Status */}
                             {stockBadge && (
                               <div className="mb-3">
                                 {stockBadge}
@@ -789,12 +813,12 @@ export default function ProductsClient({
                         </div>
                       </Link>
 
-                      {/* Add to Cart Button - Outside Link to prevent navigation */}
+                      {/* Add to Cart Button */}
                       <div className="p-6 pt-0">
                         <button
                           onClick={(e) => {
                             if (!isOutOfStock) {
-                              handleAddToCart(product.id, e, product.id);
+                              handleAddToCart(product.id, e, product);
                             }
                           }}
                           disabled={isOutOfStock}

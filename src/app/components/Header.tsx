@@ -54,7 +54,8 @@ const Header: React.FC<HeaderProps> = ({ searchQuery, setSearchQuery }) => {
     };
 
     return (
-        <header className="relative z-10 px-4 py-2 sm:px-6">
+        <header className="fixed top-0 left-0 right-0 z-50 px-4 py-2 sm:px-6 shadow-sm" style={{backgroundColor:"rgb(255, 250, 236)"}}>
+
             <div className="max-w-7xl mx-auto flex items-center justify-between">
                 {/* Mobile menu button */}
                 <button
@@ -69,11 +70,11 @@ const Header: React.FC<HeaderProps> = ({ searchQuery, setSearchQuery }) => {
                 </button>
 
                 <Logo />
-                
+
                 {/* Desktop Navigation */}
                 <DesktopNavigation />
-                
-                <HeaderActions 
+
+                <HeaderActions
                     user={user}
                     onLogout={handleLogout}
                     loading={loading}
@@ -82,7 +83,7 @@ const Header: React.FC<HeaderProps> = ({ searchQuery, setSearchQuery }) => {
             </div>
 
             {/* Mobile Navigation */}
-            <MobileNavigation 
+            <MobileNavigation
                 isOpen={mobileMenuOpen}
                 onClose={() => setMobileMenuOpen(false)}
                 user={user}
@@ -95,9 +96,9 @@ const Header: React.FC<HeaderProps> = ({ searchQuery, setSearchQuery }) => {
 const Logo: React.FC = () => (
     <Link href="/" className="flex items-center">
         <div className="w-52 h-16 sm:w-60 sm:h-18 md:w-72 md:h-20 lg:w-80 lg:h-22 rounded-lg overflow-hidden">
-            <img 
-                src="/shophouselogo.png" 
-                alt="Shop House Logo" 
+            <img
+                src="/shophouselogo.png"
+                alt="Shop House Logo"
                 className="w-full h-full object-cover"
             />
         </div>
@@ -127,11 +128,10 @@ const DesktopNavigation: React.FC = () => {
                 <Link
                     key={item.href}
                     href={item.href}
-                    className={`px-3 py-2 lg:px-4 lg:py-2 rounded-full transition-all ${
-                        isActive(item.href)
+                    className={`px-3 py-2 lg:px-4 lg:py-2 rounded-full transition-all ${isActive(item.href)
                             ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg'
                             : 'text-amber-900 hover:text-orange-600 hover:bg-amber-50'
-                    }`}
+                        }`}
                 >
                     {item.label}
                 </Link>
@@ -174,16 +174,15 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ isOpen, onClose, us
                         key={item.href}
                         href={item.href}
                         onClick={onClose}
-                        className={`px-4 py-3 rounded-lg transition-all text-base font-medium ${
-                            isActive(item.href)
+                        className={`px-4 py-3 rounded-lg transition-all text-base font-medium ${isActive(item.href)
                                 ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md'
                                 : 'text-amber-900 hover:text-orange-600 hover:bg-amber-50'
-                        }`}
+                            }`}
                     >
                         {item.label}
                     </Link>
                 ))}
-                
+
                 {/* Auth Section */}
                 <div className="pt-2 border-t border-amber-200 mt-2 space-y-2">
                     {!user ? (
@@ -234,8 +233,8 @@ interface HeaderActionsProps {
     cartCount: number;
 }
 
-const HeaderActions: React.FC<HeaderActionsProps> = ({ 
-    user, 
+const HeaderActions: React.FC<HeaderActionsProps> = ({
+    user,
     onLogout,
     loading,
     cartCount

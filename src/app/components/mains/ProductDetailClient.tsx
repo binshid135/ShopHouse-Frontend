@@ -1,11 +1,11 @@
-// app/products/[id]/ProductDetailClient.tsx
 "use client";
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ShoppingCart, Star, Heart, Shield, Truck, ArrowLeft, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ShoppingCart, Star, Heart, Shield, Truck, ArrowLeft, AlertCircle, ChevronLeft, ChevronRight,X,CheckCircle } from 'lucide-react';
 import FloatingElements from './../../components/FloatingElements';
 import Header from './../../components/Header';
 import Footer from './../../components/Footer';
+import CartToast from './../../components/CartToast';
 import { useCart } from '@/app/context/cartContext';
 import { viewItemGA } from '../../../../lib/analytics';
 import { addToCartGA } from "../../../../lib/analytics";
@@ -30,7 +30,7 @@ interface ProductDetailClientProps {
 
 export default function ProductDetailClient({ product, relatedProducts }: ProductDetailClientProps) {
   const router = useRouter();
-  const { addToCart } = useCart(); // Use the cart context
+  const { addToCart } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const [isInCart, setIsInCart] = useState(false);
@@ -38,8 +38,9 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
   const [addedProductIds, setAddedProductIds] = useState<string[]>([]);
   const [cartError, setCartError] = useState<string | null>(null);
   const [currentImageIndexes, setCurrentImageIndexes] = useState<{ [key: string]: number }>({});
+  const [quantityError, setQuantityError] = useState<string | null>(null);
+  const [showToast, setShowToast] = useState(false);
 
-  // Initialize image indexes for related products
   useEffect(() => {
     const indexes: { [key: string]: number } = {};
     relatedProducts.forEach((relatedProduct) => {
@@ -52,7 +53,17 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
     }
   }, [relatedProducts, product]);
 
-  // Image carousel navigation for main product
+  // Validate quantity on change
+  useEffect(() => {
+    if (quantity <= 0) {
+      setQuantityError('Quantity must be at least 1');
+    } else if (quantity > product.stock) {
+      setQuantityError(`Only ${product.stock} items available`);
+    } else {
+      setQuantityError(null);
+    }
+  }, [quantity, product.stock]);
+
   const nextImage = () => {
     setSelectedImage((prev) => (prev + 1) % product.images.length);
   };
@@ -61,7 +72,6 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
     setSelectedImage((prev) => (prev - 1 + product.images.length) % product.images.length);
   };
 
-  // Image carousel navigation for related products
   const nextRelatedImage = (productId: string, event: React.MouseEvent) => {
     event.stopPropagation();
     const relatedProduct = relatedProducts.find(p => p.id === productId);
@@ -84,78 +94,155 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
     }));
   };
 
-  const handleAddToCart = async (productId: string, quantityToAdd: number = 1, productName?: string) => {
+  const handleAddToCart = async (productId: string, quantityToAdd: number = 1, productName?: string, productPrice?: number) => {
     try {
       setCartError(null);
+      setQuantityError(null);
 
-      // Validate stock before adding to cart
       const targetProduct = productId === product.id ? product : relatedProducts.find(p => p.id === productId);
       if (!targetProduct) return false;
 
+      // Validate quantity
+      if (quantityToAdd <= 0) {
+        const errorMsg = 'Quantity must be at least 1';
+        if (productId === product.id) {
+          setQuantityError(errorMsg);
+        } else {
+          setCartError(errorMsg);
+        }
+        setTimeout(() => {
+          if (productId === product.id) {
+            setQuantityError(null);
+          } else {
+            setCartError(null);
+          }
+        }, 5000);
+        return false;
+      }
+
       if (targetProduct.stock <= 0) {
-        setCartError(`${targetProduct.name} is currently out of stock`);
-        setTimeout(() => setCartError(null), 5000);
+        const errorMsg = `${targetProduct.name} is currently out of stock`;
+        if (productId === product.id) {
+          setQuantityError(errorMsg);
+        } else {
+          setCartError(errorMsg);
+        }
+        setTimeout(() => {
+          if (productId === product.id) {
+            setQuantityError(null);
+          } else {
+            setCartError(null);
+          }
+        }, 5000);
         return false;
       }
 
       if (quantityToAdd > targetProduct.stock) {
-        setCartError(`Only ${targetProduct.stock} items available in stock for ${targetProduct.name}`);
-        setTimeout(() => setCartError(null), 5000);
+        const errorMsg = `Only ${targetProduct.stock} items available in stock`;
+        if (productId === product.id) {
+          setQuantityError(errorMsg);
+        } else {
+          setCartError(errorMsg);
+        }
+        setTimeout(() => {
+          if (productId === product.id) {
+            setQuantityError(null);
+          } else {
+            setCartError(null);
+          }
+        }, 5000);
         return false;
       }
 
-      // Use the cart context to add item
       const result = await addToCart(productId, quantityToAdd);
 
       if (result.success) {
-        // Mark as added for visual feedback
-        addToCartGA(productName, quantityToAdd)
+        addToCartGA(productName || targetProduct.name, quantityToAdd);
         setAddedProductIds((prev) => [...prev, productId]);
         setTimeout(() => {
           setAddedProductIds((prev) => prev.filter((id) => id !== productId));
         }, 2000);
         return true;
       } else {
-        setCartError(result.error || 'Failed to add to cart');
-        setTimeout(() => setCartError(null), 5000);
+        const errorMsg = result.error || 'Failed to add to cart';
+        if (productId === product.id) {
+          setQuantityError(errorMsg);
+        } else {
+          setCartError(errorMsg);
+        }
+        setTimeout(() => {
+          if (productId === product.id) {
+            setQuantityError(null);
+          } else {
+            setCartError(null);
+          }
+        }, 5000);
         return false;
       }
     } catch (error) {
       console.error('Failed to add to cart:', error);
       const errorMessage = 'Error adding to cart. Please try again.';
-      setCartError(errorMessage);
-      setTimeout(() => setCartError(null), 5000);
+      if (productId === product.id) {
+        setQuantityError(errorMessage);
+      } else {
+        setCartError(errorMessage);
+      }
+      setTimeout(() => {
+        if (productId === product.id) {
+          setQuantityError(null);
+        } else {
+          setCartError(null);
+        }
+      }, 5000);
       return false;
     }
   };
 
   const handleMainProductAddToCart = async () => {
-    // Validate stock before adding to cart
+    // Clear previous errors
+    setQuantityError(null);
+    setCartError(null);
+
+    // Validate before proceeding
+    if (quantity <= 0) {
+      setQuantityError('Quantity must be at least 1');
+      setTimeout(() => setQuantityError(null), 5000);
+      return;
+    }
+
     if (product.stock <= 0) {
-      setCartError('This product is currently out of stock');
-      setTimeout(() => setCartError(null), 5000);
+      setQuantityError('This product is currently out of stock');
+      setTimeout(() => setQuantityError(null), 5000);
       return;
     }
 
     if (quantity > product.stock) {
-      setCartError(`Only ${product.stock} items available in stock`);
-      setTimeout(() => setCartError(null), 5000);
+      setQuantityError(`Only ${product.stock} items available in stock`);
+      setTimeout(() => setQuantityError(null), 5000);
       return;
     }
 
-    const success = await handleAddToCart(product.id, quantity, product.name);
+    const success = await handleAddToCart(
+      product.id,
+      quantity,
+      product.name,
+      product.discountedPrice
+    );
+
     if (success) {
-      addToCartGA(product.name,quantity)
+      addToCartGA(product.name, quantity);
       setIsInCart(true);
+      setShowToast(true); // Show toast
       setTimeout(() => setIsInCart(false), 2000);
+      // setTimeout(() => setShowToast(false), 8000); // Auto-hide toast
     }
   };
 
   const handleRelatedProductAddToCart = async (productId: string, event: React.MouseEvent, relatedProduct?: Product) => {
-    event.stopPropagation(); // Prevent navigation to product detail
+    event.stopPropagation();
+    setCartError(null);
 
     if (relatedProduct) {
-      // Validate stock for related product
       if (relatedProduct.stock <= 0) {
         setCartError(`${relatedProduct.name} is out of stock`);
         setTimeout(() => setCartError(null), 5000);
@@ -163,9 +250,16 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
       }
     }
 
-    const success = await handleAddToCart(productId, 1, relatedProduct?.name);
+    const success = await handleAddToCart(
+      productId,
+      1,
+      relatedProduct?.name,
+      relatedProduct?.discountedPrice
+    );
+
     if (success) {
-      // Success feedback is handled by the addedProductIds state
+      setShowToast(true); // Show toast
+      // setTimeout(() => setShowToast(false), 8000); // Auto-hide toast
     }
   };
 
@@ -185,7 +279,6 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
     return '🍴';
   };
 
-  // Get stock status badge
   const getStockBadge = (stock: number) => {
     if (stock <= 0) {
       return (
@@ -211,7 +304,6 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
     );
   };
 
-  // Get category icon
   const getCategoryIcon = (category: string) => {
     switch (category.toLowerCase()) {
       case 'electronics':
@@ -245,8 +337,21 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
       <FloatingElements />
       <Header searchQuery={""} setSearchQuery={() => { }} />
 
+      {/* Cart Toast */}
+      <CartToast
+        isVisible={showToast}
+        onClose={() => setShowToast(false)}
+        onViewCart={() => router.push('/cart')}
+        onContinueShopping={() => {
+          const relatedSection = document.querySelector('section[class*="Related"]');
+          if (relatedSection) {
+            relatedSection.scrollIntoView({ behavior: 'smooth' });
+          }
+        }}
+      />
+
       {/* Back Button */}
-      <div className="max-w-7xl mx-auto px-6 pt-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6">
         <button
           onClick={() => router.push('/products')}
           className="flex items-center gap-2 text-amber-900 hover:text-orange-600 transition-colors mb-6"
@@ -256,9 +361,9 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
         </button>
       </div>
 
-      {/* Error Message */}
+      {/* General Error Message (for related products) */}
       {cartError && (
-        <div className="max-w-7xl mx-auto px-6 mb-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 mb-6">
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl flex items-center gap-3">
             <AlertCircle className="w-5 h-5 flex-shrink-0" />
             <p className="font-medium">{cartError}</p>
@@ -275,18 +380,18 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
       )}
 
       {/* Product Details */}
-      <section className="px-6 py-8">
+      <section className="px-4 sm:px-6 py-8">
         <div className="max-w-7xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-12">
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
             {/* Product Images */}
             <div className="space-y-4">
-              <div className="bg-white rounded-3xl p-8 shadow-lg relative group">
+              <div className="bg-white rounded-3xl p-4 sm:p-8 shadow-lg relative group">
                 {product.images && product.images.length > 0 ? (
                   <>
                     <img
                       src={product.images[selectedImage]}
                       alt={product.name}
-                      className="w-full h-96 object-contain rounded-2xl mb-6"
+                      className="w-full h-64 sm:h-96 object-contain rounded-2xl mb-6"
                     />
 
                     {/* Navigation Arrows for Multiple Images */}
@@ -294,40 +399,40 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
                       <>
                         <button
                           onClick={prevImage}
-                          className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white text-amber-900 rounded-full p-3 opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-lg"
+                          className="absolute left-2 sm:left-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white text-amber-900 rounded-full p-2 sm:p-3 opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-lg"
                         >
-                          <ChevronLeft className="w-5 h-5" />
+                          <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
                         </button>
                         <button
                           onClick={nextImage}
-                          className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white text-amber-900 rounded-full p-3 opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-lg"
+                          className="absolute right-2 sm:right-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white text-amber-900 rounded-full p-2 sm:p-3 opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-lg"
                         >
-                          <ChevronRight className="w-5 h-5" />
+                          <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
                         </button>
                       </>
                     )}
 
                     {/* Image Counter */}
                     {hasMultipleImages && (
-                      <div className="absolute top-4 left-4 bg-black/50 text-white text-sm px-3 py-1 rounded-full">
+                      <div className="absolute top-2 sm:top-4 left-2 sm:left-4 bg-black/50 text-white text-xs sm:text-sm px-2 sm:px-3 py-1 rounded-full">
                         {selectedImage + 1} / {product.images.length}
                       </div>
                     )}
                   </>
                 ) : (
-                  <div className="h-96 flex items-center justify-center">
-                    <div className="text-9xl text-center">{productEmoji}</div>
+                  <div className="h-64 sm:h-96 flex items-center justify-center">
+                    <div className="text-6xl sm:text-9xl text-center">{productEmoji}</div>
                   </div>
                 )}
 
                 {/* Image Dots Indicator */}
                 {hasMultipleImages && (
-                  <div className="flex justify-center gap-2">
+                  <div className="flex justify-center gap-2 mt-4">
                     {product.images.map((_, index) => (
                       <button
                         key={index}
                         onClick={() => setSelectedImage(index)}
-                        className={`w-3 h-3 rounded-full transition-all ${selectedImage === index ? 'bg-orange-500' : 'bg-gray-300 hover:bg-gray-400'
+                        className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-all ${selectedImage === index ? 'bg-orange-500' : 'bg-gray-300 hover:bg-gray-400'
                           }`}
                       />
                     ))}
@@ -337,12 +442,12 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
 
               {/* Thumbnail Gallery */}
               {hasMultipleImages && (
-                <div className="flex gap-3 overflow-x-auto pb-2">
+                <div className="flex gap-2 sm:gap-3 overflow-x-auto pb-2">
                   {product.images.map((image, index) => (
                     <button
                       key={index}
                       onClick={() => setSelectedImage(index)}
-                      className={`flex-shrink-0 w-20 h-20 bg-white rounded-xl border-2 overflow-hidden transition-all ${selectedImage === index
+                      className={`flex-shrink-0 w-12 h-12 sm:w-20 sm:h-20 bg-white rounded-lg sm:rounded-xl border-2 overflow-hidden transition-all ${selectedImage === index
                         ? 'border-orange-500 shadow-md'
                         : 'border-gray-200 hover:border-orange-300'
                         }`}
@@ -360,7 +465,7 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
 
             {/* Product Info */}
             <div className="space-y-6">
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex flex-wrap items-center gap-2 mb-4">
                 {discount > 0 && (
                   <span className="px-3 py-1 bg-red-100 text-red-600 rounded-full text-sm font-medium">
                     {discount}% OFF
@@ -377,24 +482,24 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
                 )}
               </div>
 
-              <h1 className="text-4xl font-bold text-amber-900">{product.name}</h1>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-amber-900">{product.name}</h1>
 
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-1">
-                    <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
+                    <Star className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-500 fill-yellow-500" />
                     <span className="font-bold text-amber-900">4.8</span>
                   </div>
-                  <span className="text-amber-700">(128 reviews)</span>
+                  <span className="text-amber-700 text-sm sm:text-base">(128 reviews)</span>
                 </div>
               </div>
 
               <div className="flex items-center gap-4">
-                <span className="text-3xl font-bold text-amber-900">
+                <span className="text-2xl sm:text-3xl font-bold text-amber-900">
                   AED {product.discountedPrice.toFixed(2)}
                 </span>
                 {product.originalPrice > product.discountedPrice && (
-                  <span className="text-xl text-gray-500 line-through">
+                  <span className="text-lg sm:text-xl text-gray-500 line-through">
                     AED {product.originalPrice.toFixed(2)}
                   </span>
                 )}
@@ -432,8 +537,8 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
 
               {product.shortDescription && (
                 <div className="space-y-3">
-                  <h3 className="text-xl font-bold text-amber-900">Product Details</h3>
-                  <p className="text-lg text-amber-800 leading-relaxed">{product.shortDescription}</p>
+                  <h3 className="text-lg sm:text-xl font-bold text-amber-900">Product Details</h3>
+                  <p className="text-base sm:text-lg text-amber-800 leading-relaxed">{product.shortDescription}</p>
                 </div>
               )}
 
@@ -477,49 +582,60 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
                   )}
                 </div>
 
-                <div className="flex gap-4">
-                  <button
-                    onClick={handleMainProductAddToCart}
-                    disabled={isOutOfStock}
-                    className={`flex-1 py-4 rounded-full font-medium transform transition-all flex items-center justify-center gap-3 ${isOutOfStock
-                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : isInCart
-                        ? 'bg-green-500 text-white shadow-lg hover:shadow-xl'
-                        : 'bg-gradient-to-r from-orange-500 to-amber-600 text-white hover:shadow-lg hover:-translate-y-1'
-                      }`}
-                  >
-                    <ShoppingCart className="w-5 h-5" />
-                    {isOutOfStock
-                      ? 'Out of Stock'
-                      : isInCart
-                        ? 'Added to Cart!'
-                        : 'Add to Cart'
-                    }
-                  </button>
-                  <button
-                    onClick={() => setIsFavorite(!isFavorite)}
-                    disabled={isOutOfStock}
-                    className={`p-4 rounded-full border-2 transition-all ${isOutOfStock
-                      ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed'
-                      : isFavorite
-                        ? 'bg-red-50 border-red-200 text-red-500 hover:border-red-300'
-                        : 'bg-white border-amber-200 text-amber-900 hover:border-orange-300'
-                      }`}
-                  >
-                    <Heart className={`w-5 h-5 ${isFavorite ? 'fill-red-500' : ''}`} />
-                  </button>
+                {/* Add to Cart Button with Quantity Error Below */}
+                <div className="space-y-2">
+                  <div className="flex gap-4">
+                    <button
+                      onClick={handleMainProductAddToCart}
+                      disabled={isOutOfStock}
+                      className={`flex-1 py-3 sm:py-4 rounded-full font-medium transform transition-all flex items-center justify-center gap-3 ${isOutOfStock
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : isInCart
+                          ? 'bg-green-500 text-white shadow-lg hover:shadow-xl'
+                          : 'bg-gradient-to-r from-orange-500 to-amber-600 text-white hover:shadow-lg hover:-translate-y-1'
+                        }`}
+                    >
+                      <ShoppingCart className="w-5 h-5" />
+                      {isOutOfStock
+                        ? 'Out of Stock'
+                        : isInCart
+                          ? 'Added to Cart!'
+                          : 'Add to Cart'
+                      }
+                    </button>
+                    <button
+                      onClick={() => setIsFavorite(!isFavorite)}
+                      disabled={isOutOfStock}
+                      className={`p-3 sm:p-4 rounded-full border-2 transition-all ${isOutOfStock
+                        ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed'
+                        : isFavorite
+                          ? 'bg-red-50 border-red-200 text-red-500 hover:border-red-300'
+                          : 'bg-white border-amber-200 text-amber-900 hover:border-orange-300'
+                        }`}
+                    >
+                      <Heart className={`w-5 h-5 ${isFavorite ? 'fill-red-500' : ''}`} />
+                    </button>
+                  </div>
+
+                  {/* Quantity Error Message - Shows right below Add to Cart button */}
+                  {quantityError && (
+                    <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-start gap-2 animate-pulse">
+                      <AlertCircle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
+                      <p className="text-sm text-red-700 font-medium">{quantityError}</p>
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Trust Badges */}
-              <div className="flex items-center gap-6 pt-6 border-t border-amber-200">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 pt-6 border-t border-amber-200">
                 <div className="flex items-center gap-2 text-sm text-amber-700">
                   <Truck className="w-4 h-4" />
-                  Free Delivery if total order is above 100
+                  <span>Free Delivery if total order is above AED 100</span>
                 </div>
-                <div className="flex items-center gap-1 text-sm text-amber-700">
+                <div className="flex items-center gap-2 text-sm text-amber-700">
                   <Shield className="w-4 h-4" />
-                  Quality assured
+                  <span>Quality assured</span>
                 </div>
               </div>
             </div>
@@ -528,10 +644,10 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
       </section>
 
       {/* Related Products */}
-      <section className="px-6 py-16">
+      <section className="px-4 sm:px-6 py-12 sm:py-16">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-3xl font-bold text-amber-900 mb-8">You May Also Like</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <h2 className="text-2xl sm:text-3xl font-bold text-amber-900 mb-8">You May Also Like</h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {relatedProducts.map((relatedProduct) => {
               const relatedEmoji = getProductEmoji(relatedProduct);
               const relatedDiscount = Math.round(((relatedProduct.originalPrice - relatedProduct.discountedPrice) / relatedProduct.originalPrice) * 100);
@@ -544,19 +660,19 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
               return (
                 <div
                   key={relatedProduct.id}
-                  className={`bg-white rounded-3xl overflow-hidden shadow-lg transform transition-all duration-300 cursor-pointer ${isRelatedOutOfStock
+                  className={`bg-white rounded-2xl sm:rounded-3xl overflow-hidden shadow-lg transform transition-all duration-300 cursor-pointer ${isRelatedOutOfStock
                     ? 'opacity-60 cursor-not-allowed'
-                    : 'hover:shadow-xl hover:-translate-y-2'
+                    : 'hover:shadow-xl hover:-translate-y-1 sm:hover:-translate-y-2'
                     }`}
                   onClick={() => !isRelatedOutOfStock && router.push(`/products/${relatedProduct.id}`)}
                 >
-                  <div className="h-48 bg-gradient-to-br from-orange-100 to-amber-100 flex items-center justify-center relative group">
+                  <div className="h-40 sm:h-48 bg-gradient-to-br from-orange-100 to-amber-100 flex items-center justify-center relative group">
                     {relatedProduct.images && relatedProduct.images.length > 0 ? (
                       <>
                         <img
                           src={relatedProduct.images[currentImageIndex]}
                           alt={relatedProduct.name}
-                          className="w-full h-full object-contain"
+                          className="w-full h-full object-contain p-2"
                         />
 
                         {/* Navigation Arrows for Related Products */}
@@ -564,13 +680,13 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
                           <>
                             <button
                               onClick={(e) => prevRelatedImage(relatedProduct.id, e)}
-                              className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white text-amber-900 rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md"
+                              className="absolute left-1 sm:left-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white text-amber-900 rounded-full p-1 sm:p-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md"
                             >
                               <ChevronLeft className="w-3 h-3" />
                             </button>
                             <button
                               onClick={(e) => nextRelatedImage(relatedProduct.id, e)}
-                              className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white text-amber-900 rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md"
+                              className="absolute right-1 sm:right-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white text-amber-900 rounded-full p-1 sm:p-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md"
                             >
                               <ChevronRight className="w-3 h-3" />
                             </button>
@@ -579,7 +695,7 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
 
                         {/* Image Dots Indicator for Related Products */}
                         {hasMultipleRelatedImages && (
-                          <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex gap-1">
+                          <div className="absolute bottom-1 sm:bottom-2 left-1/2 transform -translate-x-1/2 flex gap-1">
                             {relatedProduct.images.map((_, index) => (
                               <button
                                 key={index}
@@ -601,48 +717,48 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
 
                         {/* Image Counter for Related Products */}
                         {hasMultipleRelatedImages && (
-                          <div className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded-full">
+                          <div className="absolute top-1 sm:top-2 left-1 sm:left-2 bg-black/50 text-white text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full">
                             {currentImageIndex + 1} / {relatedProduct.images.length}
                           </div>
                         )}
                       </>
                     ) : (
-                      <div className="text-6xl">{relatedEmoji}</div>
+                      <div className="text-4xl sm:text-6xl">{relatedEmoji}</div>
                     )}
 
                     {relatedDiscount > 0 && (
-                      <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded-full text-sm font-bold">
+                      <div className="absolute top-1 sm:top-2 right-1 sm:right-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs sm:text-sm font-bold">
                         -{relatedDiscount}%
                       </div>
                     )}
 
                     {/* Stock badge for related products */}
                     {isRelatedOutOfStock && (
-                      <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded-full text-sm font-bold">
+                      <div className="absolute top-1 sm:top-2 left-1 sm:left-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs sm:text-sm font-bold">
                         Out of Stock
                       </div>
                     )}
                     {isRelatedLowStock && !isRelatedOutOfStock && (
-                      <div className="absolute top-2 left-2 bg-yellow-500 text-white px-2 py-1 rounded-full text-sm font-bold">
+                      <div className="absolute top-1 sm:top-2 left-1 sm:left-2 bg-yellow-500 text-white px-2 py-1 rounded-full text-xs sm:text-sm font-bold">
                         Low Stock
                       </div>
                     )}
                   </div>
-                  <div className="p-6">
-                    <h3 className="text-lg font-bold text-amber-900 mb-2">{relatedProduct.name}</h3>
+                  <div className="p-4 sm:p-6">
+                    <h3 className="text-base sm:text-lg font-bold text-amber-900 mb-2 line-clamp-1">{relatedProduct.name}</h3>
                     {relatedProduct.shortDescription && (
-                      <p className="text-amber-700 text-sm mb-3 line-clamp-2">
+                      <p className="text-amber-700 text-xs sm:text-sm mb-3 line-clamp-2">
                         {relatedProduct.shortDescription}
                       </p>
                     )}
                     <div className="flex items-center justify-between">
                       <div className="flex flex-col">
-                        <span className={`text-xl font-bold ${isRelatedOutOfStock ? 'text-gray-400' : 'text-amber-900'
+                        <span className={`text-lg sm:text-xl font-bold ${isRelatedOutOfStock ? 'text-gray-400' : 'text-amber-900'
                           }`}>
                           AED {relatedProduct.discountedPrice.toFixed(2)}
                         </span>
                         {relatedProduct.originalPrice > relatedProduct.discountedPrice && (
-                          <span className="text-sm text-gray-500 line-through">
+                          <span className="text-xs sm:text-sm text-gray-500 line-through">
                             AED {relatedProduct.originalPrice.toFixed(2)}
                           </span>
                         )}
@@ -650,17 +766,17 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
                       <button
                         onClick={(e) => handleRelatedProductAddToCart(relatedProduct.id, e, relatedProduct)}
                         disabled={isRelatedOutOfStock}
-                        className={`p-3 rounded-full transition-all transform ${isRelatedOutOfStock
+                        className={`p-2 sm:p-3 rounded-full transition-all transform ${isRelatedOutOfStock
                           ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                           : isAdded
                             ? 'bg-green-500 text-white shadow-lg hover:scale-110'
-                            : 'bg-gradient-to-r from-orange-500 to-amber-600 text-white hover:shadow-lg hover:scale-110'
+                            : 'bg-gradient-to-r from-orange-500 to-amber-600 text-white hover:shadow-lg hover:scale-105'
                           }`}
                       >
                         {isRelatedOutOfStock
-                          ? 'Out of Stock'
+                          ? <X className="w-4 h-4" />
                           : isAdded
-                            ? '✓'
+                            ? <CheckCircle className="w-4 h-4" />
                             : <ShoppingCart className="w-4 h-4" />
                         }
                       </button>
