@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     if (userId) {
       // For authenticated users, get cart by user ID
       queryText = `
-        SELECT ci.*, p.name, p.images, p.discounted_price as price
+        SELECT ci.*, p.name, p.images, p.discounted_price as price, p.stock
         FROM cart_items ci
         JOIN products p ON ci.product_id = p.id
         WHERE ci.user_id = $1
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     } else {
       // For guests, get cart by cart_id
       queryText = `
-        SELECT ci.*, p.name, p.images, p.discounted_price as price
+        SELECT ci.*, p.name, p.images, p.discounted_price as price, p.stock
         FROM cart_items ci
         JOIN products p ON ci.product_id = p.id
         WHERE ci.cart_id = $1
@@ -58,7 +58,8 @@ export async function GET(request: NextRequest) {
       ...item,
       images: Array.isArray(item.images) ? item.images : [],
       price: parseFloat(item.price),
-      quantity: parseInt(item.quantity)
+      quantity: parseInt(item.quantity),
+      stock: parseInt(item.stock)
     }));
     
     const total = itemsWithImages.reduce((sum: number, item: any) => 

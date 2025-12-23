@@ -212,6 +212,16 @@ export default function Cart() {
   };
 
   const applyCoupon = async () => {
+    // Check if user is logged in
+    if (!user) {
+      setCouponMessage({
+        type: 'error',
+        message: 'Login Required',
+        details: 'Please sign in to your account to apply coupons and enjoy exclusive discounts!'
+      });
+      return;
+    }
+
     if (!couponCode.trim()) {
       setCouponMessage({
         type: 'error',
@@ -268,7 +278,19 @@ export default function Cart() {
         let errorMessage = data.error || 'Invalid coupon code';
         let errorDetails = 'Please check the code and try again';
         
-      
+        if (errorMessage.includes('minimum order amount')) {
+          errorDetails = `Your cart total is AED ${subtotal.toFixed(2)}, but this coupon requires minimum order of AED ${data.minimumAmount || '0'}`;
+        } else if (errorMessage.includes('new customers only')) {
+          errorDetails = 'This coupon is only available for first-time customers';
+        } else if (errorMessage.includes('already used')) {
+          errorDetails = 'You have already used this coupon previously';
+        } else if (errorMessage.includes('usage limit reached')) {
+          errorDetails = 'This coupon has reached its maximum usage limit';
+        } else if (errorMessage.includes('expired')) {
+          errorDetails = 'This coupon has expired and is no longer valid';
+        } else if (errorMessage.includes('inactive')) {
+          errorDetails = 'This coupon is currently not active';
+        }
 
         setCouponMessage({
           type: 'error',
@@ -296,25 +318,7 @@ export default function Cart() {
   };
 
   const proceedToCheckout = () => {
-    if (!user) {
-      localStorage.setItem('redirectAfterLogin', '/checkout');
-      localStorage.setItem('deliveryOption', deliveryOption);
-      
-      // Store coupon data in localStorage
-      if (appliedCoupon) {
-        localStorage.setItem('couponCode', couponCode);
-        localStorage.setItem('couponDiscount', discount.toString());
-        localStorage.setItem('couponData', JSON.stringify(appliedCoupon));
-      } else {
-        localStorage.removeItem('couponCode');
-        localStorage.removeItem('couponDiscount');
-        localStorage.removeItem('couponData');
-      }
-      
-      router.push('/login');
-      return;
-    }
-
+    // Guest checkout is now allowed
     const outOfStockItems = cart?.items.filter(item => item.stock <= 0) || [];
     if (outOfStockItems.length > 0) {
       setCartError('Some items in your cart are out of stock. Please remove them before checkout.');
@@ -332,8 +336,8 @@ export default function Cart() {
     if (cart && cart.items.length > 0) {
       localStorage.setItem('deliveryOption', deliveryOption);
       
-      // Store coupon data in localStorage
-      if (appliedCoupon) {
+      // Store coupon data in localStorage (only if user is logged in)
+      if (appliedCoupon && user) {
         localStorage.setItem('couponCode', couponCode);
         localStorage.setItem('couponDiscount', discount.toString());
         localStorage.setItem('couponData', JSON.stringify(appliedCoupon));
@@ -486,13 +490,13 @@ export default function Cart() {
           )}
         </div>
 
-        {/* User Not Logged In Warning */}
+        {/* User Not Logged In Notice */}
         {!user && cart && cart.items.length > 0 && (
           <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-2xl mb-4 w-full">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex-1">
-                <p className="font-medium mb-1 text-sm">💡 Sign in for a better experience!</p>
-                <p className="text-xs">Create an account to save your cart and view order history.</p>
+                <p className="font-medium mb-1 text-sm">🎉 Guest checkout available!</p>
+                <p className="text-xs">Complete your order without creating an account. Login for coupons and order tracking.</p>
               </div>
               <div className="flex gap-2 mt-2 sm:mt-0">
                 <button
@@ -711,27 +715,46 @@ export default function Cart() {
                     </div>
                   </div>
                 ) : (
-                  <div className="flex flex-col gap-2 mb-2">
-                    <input
-                      type="text"
-                      placeholder="Enter coupon code"
-                      value={couponCode}
-                      onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter') {
-                          applyCoupon();
-                        }
-                      }}
-                      className="flex-1 px-3 py-2 border-2 border-amber-200 rounded-full focus:border-orange-400 outline-none transition-all text-sm"
-                    />
-                    <button
-                      onClick={applyCoupon}
-                      disabled={!couponCode.trim() || !cart || cart.items.length === 0}
-                      className="bg-gradient-to-r from-orange-500 to-amber-600 text-white px-3 py-2 rounded-full hover:shadow-lg transition-all flex items-center gap-1 justify-center text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Ticket className="w-4 h-4" />
-                      Apply Coupon
-                    </button>
+                  <div className="mb-2">
+                    {user ? (
+                      <div className="flex flex-col gap-2">
+                        <input
+                          type="text"
+                          placeholder="Enter coupon code"
+                          value={couponCode}
+                          onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              applyCoupon();
+                            }
+                          }}
+                          className="flex-1 px-3 py-2 border-2 border-amber-200 rounded-full focus:border-orange-400 outline-none transition-all text-sm"
+                        />
+                        <button
+                          onClick={applyCoupon}
+                          disabled={!couponCode.trim() || !cart || cart.items.length === 0}
+                          className="bg-gradient-to-r from-orange-500 to-amber-600 text-white px-3 py-2 rounded-full hover:shadow-lg transition-all flex items-center gap-1 justify-center text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <Ticket className="w-4 h-4" />
+                          Apply Coupon
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 text-center">
+                        <Ticket className="w-5 h-5 text-gray-400 mx-auto mb-2" />
+                        <p className="text-sm font-medium text-gray-700 mb-1">Coupons for Members Only</p>
+                        <p className="text-xs text-gray-600 mb-3">Sign in to apply exclusive discounts</p>
+                        <button
+                          onClick={() => {
+                            localStorage.setItem('redirectAfterLogin', '/cart');
+                            router.push('/login');
+                          }}
+                          className="bg-gradient-to-r from-orange-500 to-amber-600 text-white px-3 py-2 rounded-full hover:shadow-lg transition-all text-xs w-full"
+                        >
+                          Sign In for Coupons
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -853,7 +876,7 @@ export default function Cart() {
                 disabled={!cart || cart.items.length === 0 || hasCartIssues || revalidatingCoupon}
                 className="w-full bg-gradient-to-r from-orange-500 to-amber-600 text-white py-3 rounded-full font-medium hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm mb-2"
               >
-                {!user ? 'Sign In to Checkout' : `Proceed to Checkout`}
+                {`Proceed to Checkout`}
                 <ArrowRight className="w-4 h-4" />
               </button>
 
@@ -865,7 +888,7 @@ export default function Cart() {
 
               {!user && (
                 <p className="text-center text-xs text-amber-600 mt-1">
-                  You'll be asked to sign in or create an account before checkout
+                  ✅ No login required for checkout
                 </p>
               )}
 
@@ -881,6 +904,44 @@ export default function Cart() {
                 </p>
               )}
             </div>
+
+            {/* Guest Benefits Card */}
+            {!user && (
+              <div className="bg-white rounded-2xl p-4 shadow-lg">
+                <h4 className="font-bold text-amber-900 mb-3 text-sm">Create an Account & Get:</h4>
+                <div className="space-y-2 text-xs text-amber-700">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <Ticket className="w-3 h-3 text-orange-600" />
+                    </div>
+                    Exclusive coupons and discounts
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <span className="text-blue-600 font-bold text-xs">📦</span>
+                    </div>
+                    Order tracking and history
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <span className="text-green-600 font-bold text-xs">⚡</span>
+                    </div>
+                    Faster checkout experience
+                  </div>
+                  <div className="pt-2">
+                    <button
+                      onClick={() => {
+                        localStorage.setItem('redirectAfterLogin', '/cart');
+                        router.push('/signup');
+                      }}
+                      className="w-full border-2 border-orange-500 text-orange-500 py-2 rounded-full font-medium hover:bg-orange-50 transition-all text-xs"
+                    >
+                      Create Free Account
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Trust Badges */}
             <div className="bg-white rounded-2xl p-4 shadow-lg">
