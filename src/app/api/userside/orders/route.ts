@@ -12,12 +12,11 @@ export async function POST(request: NextRequest) {
   try {
     const { 
       customerName, 
-      customerEmail, 
       customerPhone, 
       shippingAddress, 
       deliveryOption,
       couponCode,
-      discountAmount: providedDiscountAmount // ✅ Accept discount from checkout
+      discountAmount: providedDiscountAmount
     } = await request.json();
     
     console.log('Received order data:', {
@@ -30,30 +29,29 @@ export async function POST(request: NextRequest) {
       hasCouponCode: !!couponCode
     });
 
-    // Get cart ID using the same logic as cart API
+    // Get cart ID
     const token = request.cookies.get('userToken')?.value;
     let cartId: string | undefined;
-    let userId: string;
-    let userEmail: string;
-    let userName: string;
+    let userId: string | null = null;
 
     if (token) {
       // User is logged in
       const user = await verifyUserSession(token);
       if (user) {
         userId = user.id;
-        userEmail = user.email;
-        userName = user.name;
         cartId = `user_${token.substring(0, 8)}`;
+        
+        // Update user phone if needed
+        await query(
+          'UPDATE users SET phone = $1 WHERE id = $2',
+          [customerPhone, userId]
+        );
       } else {
         // Session invalid, treat as guest
         cartId = request.cookies.get('cartId')?.value;
         if (!cartId) {
           return NextResponse.json({ error: 'Cart is empty' }, { status: 400 });
         }
-        userId = uuidv4();
-        userEmail = customerEmail || `${customerPhone}@guest.com`;
-        userName = customerName;
       }
     } else {
       // Guest user
@@ -61,15 +59,12 @@ export async function POST(request: NextRequest) {
       if (!cartId) {
         return NextResponse.json({ error: 'Cart is empty' }, { status: 400 });
       }
-      userId = uuidv4();
-      userEmail = customerEmail || `${customerPhone}@guest.com`;
-      userName = customerName;
     }
 
-    console.log('User type:', token ? 'Logged in' : 'Guest');
-    console.log('Looking for cart with ID:', cartId);
+    console.log('User type:', userId ? 'Logged in' : 'Guest');
+    console.log('Cart ID:', cartId);
 
-    // Get cart items - handle both user ID and cart ID lookup
+    // Get cart items
     let cartItemsResult;
     if (token) {
       const user = await verifyUserSession(token);
@@ -104,26 +99,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Cart is empty' }, { status: 400 });
     }
 
-    // Calculate subtotal (original cart total before any discounts)
+    // Calculate subtotal
     const originalSubtotal = cartItems.reduce((sum: number, item: any) => 
       sum + (parseFloat(item.price) * parseInt(item.quantity)), 0
     );
 
-    // Coupon validation and discount calculation
-    // IMPORTANT: Only apply coupons for logged-in users
+    // Coupon validation - only for logged in users
     let discountAmount = 0;
     let couponId: string | null = null;
-    let couponDetails: any = null;
 
-    if (couponCode && token) {
-      console.log('User is logged in, processing coupon...');
+    if (couponCode && userId) { // Only for logged in users
+      console.log('Processing coupon for logged in user...');
       
-      // ✅ First, try to use the discount amount provided from checkout
       if (providedDiscountAmount && providedDiscountAmount > 0) {
         discountAmount = providedDiscountAmount;
         console.log('✅ Using discount amount from checkout:', discountAmount);
         
-        // Get coupon details for recording usage
         try {
           const couponResult = await query(
             'SELECT * FROM coupons WHERE code = $1 AND is_active = true',
@@ -132,13 +123,11 @@ export async function POST(request: NextRequest) {
           
           if (couponResult.rows.length > 0) {
             couponId = couponResult.rows[0].id;
-            couponDetails = couponResult.rows[0];
           }
         } catch (error) {
           console.error('Error fetching coupon details:', error);
         }
       } else {
-        // Fallback: Validate coupon again if no discount was provided
         try {
           const couponValidationResponse = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/coupons/validate`, {
             method: 'POST',
@@ -156,7 +145,6 @@ export async function POST(request: NextRequest) {
           if (couponData.valid) {
             discountAmount = couponData.coupon.discountAmount;
             couponId = couponData.coupon.id;
-            couponDetails = couponData.coupon;
             console.log('✅ Coupon validated and applied:', {
               code: couponData.coupon.code,
               discountAmount,
@@ -169,55 +157,44 @@ export async function POST(request: NextRequest) {
           console.error('❌ Coupon validation error:', couponError);
         }
       }
-    } else if (couponCode && !token) {
+    } else if (couponCode && !userId) {
       console.log('⚠️ Guest user tried to use coupon, ignoring...');
-      // Guest users cannot use coupons - silently ignore
     }
 
     // Calculate final amounts
     const discountedSubtotal = Math.max(0, originalSubtotal - discountAmount);
-    const total = discountedSubtotal; // No tax, so total equals discounted subtotal
+    const total = discountedSubtotal;
 
     console.log('Order amounts:', {
       originalSubtotal,
       discountAmount,
       discountedSubtotal,
       total,
-      userLoggedIn: !!token
+      userLoggedIn: !!userId
     });
 
-    // Create or get user
-    const existingUserResult = await query('SELECT * FROM users WHERE id = $1', [userId]);
-    if (existingUserResult.rows.length === 0) {
-      await query(
-        'INSERT INTO users (id, email, name) VALUES ($1, $2, $3)',
-        [userId, userEmail, userName]
-      );
-    } else {
-      // Update user details if they exist
-      await query(
-        'UPDATE users SET name = $1, email = $2 WHERE id = $3',
-        [customerName, userEmail, userId]
-      );
-    }
-
-    // ✅ Create order - ENSURE discount_amount is saved
+    // ✅ Create order with user_id as NULL for guests
     const orderId = uuidv4();
+    
     await query(
       `INSERT INTO orders (id, user_id, total, status, subtotal, tax_amount, discount_amount)
        VALUES ($1, $2, $3, $4, $5, $6, $7)`,
       [
         orderId, 
-        userId, 
+        userId, // This will be NULL for guests
         total, 
         'pending', 
         discountedSubtotal, 
         0, 
-        discountAmount // ✅ This should now be saved correctly
+        discountAmount
       ]
     );
 
-    console.log('✅ Order created with discount_amount:', discountAmount);
+    console.log('✅ Order created:', {
+      orderId,
+      userId: userId || 'GUEST',
+      discountAmount
+    });
 
     // Create order items
     for (const item of cartItems) {
@@ -228,15 +205,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create order details with shipping information INCLUDING DELIVERY OPTION
+    // Create order details with customer information
     await query(
       `INSERT INTO order_details (order_id, customer_name, customer_phone, shipping_address, status, delivery_option)
        VALUES ($1, $2, $3, $4, $5, $6)`,
-      [orderId, customerName, customerPhone, shippingAddress, 'pending', deliveryOption || 'delivery']
+      [
+        orderId, 
+        customerName, 
+        customerPhone, 
+        shippingAddress, 
+        'pending', 
+        deliveryOption || 'delivery'
+      ]
     );
 
-    // Record coupon usage if coupon was applied AND user is logged in
-    if (couponId && discountAmount > 0 && token) {
+    // Record coupon usage only for logged in users
+    if (couponId && discountAmount > 0 && userId) {
       try {
         await query(
           `INSERT INTO coupon_usage (coupon_id, user_id, order_id, discount_amount)
@@ -244,7 +228,6 @@ export async function POST(request: NextRequest) {
           [couponId, userId, orderId, discountAmount]
         );
 
-        // Update coupon usage count
         await query(
           'UPDATE coupons SET used_count = used_count + 1 WHERE id = $1',
           [couponId]
@@ -253,11 +236,10 @@ export async function POST(request: NextRequest) {
         console.log('✅ Coupon usage recorded successfully');
       } catch (couponUsageError) {
         console.error('❌ Failed to record coupon usage:', couponUsageError);
-        // Don't fail the order if coupon usage recording fails
       }
     }
 
-    // Clear cart - handle both user ID and cart ID
+    // Clear cart
     if (token) {
       const user = await verifyUserSession(token);
       if (user) {
@@ -278,17 +260,16 @@ export async function POST(request: NextRequest) {
       tax_amount: 0,
       status: 'pending',
       customerName,
-      customerEmail,
       customerPhone,
       shippingAddress,
       deliveryOption: deliveryOption || 'delivery',
       itemCount: cartItems.length,
       couponCode: couponCode || null,
       couponDiscount: discountAmount,
-      userType: token ? 'Registered User' : 'Guest'
+      userType: userId ? 'Registered User' : 'Guest'
     };
 
-    // Send email notification to admin only (fire and forget)
+    // Send email notification
     sendNewOrderNotification(orderSummary)
       .then(success => {
         if (success) {
@@ -312,7 +293,7 @@ export async function POST(request: NextRequest) {
       deliveryOption: deliveryOption || 'delivery',
       couponApplied: discountAmount > 0,
       couponCode: couponCode || null,
-      userLoggedIn: !!token
+      userLoggedIn: !!userId
     });
 
     // Clear cart cookie for guest users
@@ -341,7 +322,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
     }
 
-    // Get orders for the authenticated user only
+    // Get orders only for the authenticated user
     const ordersResult = await query(`
       SELECT 
         o.id,
@@ -367,7 +348,7 @@ export async function GET(request: NextRequest) {
 
     const orders = ordersResult.rows;
 
-    // Get order items for each order
+    // Get order items
     const ordersWithItems = await Promise.all(
       orders.map(async (order: any) => {
         const itemsResult = await query(`
