@@ -149,7 +149,18 @@ export default function CheckoutPage() {
 
     // Don't load coupon data here - we'll handle it after userProfile loads
   }, []);
-
+useEffect(() => {
+  if (userProfile) {
+    console.log("Prefilling form with user profile:", userProfile);
+    
+    setFormData(prev => ({
+      ...prev,
+      fullName: userProfile.name || prev.fullName,
+      mobile: userProfile.phone || prev.mobile || ""
+    }));
+  }
+}, [userProfile]);
+  
   // Handle coupon loading based on user authentication
   useEffect(() => {
     if (!profileLoading) {
